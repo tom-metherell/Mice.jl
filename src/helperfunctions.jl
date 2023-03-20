@@ -6,7 +6,7 @@ function makeMethod(data::DataFrame)
             method[1, i] = "polr"
         elseif data[:, i] isa CategoricalArray && length(levels(data[:, i])) > 2
             method[1, i] = "polyreg"
-        elseif data[;, i] isa CategoricalArray && length(levels(data[:, i])) == 2
+        elseif data[:, i] isa CategoricalArray && length(levels(data[:, i])) == 2
             method[1, i] = "logreg"
         else
             method[1, i] = "pmm"
