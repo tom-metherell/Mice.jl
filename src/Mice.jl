@@ -1,15 +1,15 @@
 module Mice
 
-using CategoricalArrays, DataFrames
+using DataFrames
 
 include("helperfunctions.jl")
 
 function mice(
     data::DataFrame, 
     m = 5,
-    method = nothing, 
+    method = nothing,
     predictorMatrix = nothing,
-    maxit = 10)
+    iter = 10)
 
     if method === nothing
         method = makeMethod(data)
