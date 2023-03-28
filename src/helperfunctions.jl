@@ -24,7 +24,7 @@ function initialiseImputations(
 
     presentData = ismissing.(data) .== 0
 
-    for i in 1:length(visitSequence)
+    for i in eachindex(visitSequence)
         var = visitSequence[i]
         if method[i] != ""
             relevantData = data[:, [var]][:, 1]
@@ -49,4 +49,18 @@ function initialiseImputations(
     end
 
     return imputations
+end
+
+function sampler(
+    data = data,
+    m = m,
+    imputations = imputations,
+    method = method,
+    visitSequence = visitSequence,
+    predictorMatrix = predictorMatrix,
+    iter = iter
+    )
+
+    
+
 end

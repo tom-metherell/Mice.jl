@@ -1,6 +1,6 @@
 module Mice
 
-using CategoricalArrays, DataFrames, StatsBase
+using StatsBase
 
 include("helperfunctions.jl")
 
