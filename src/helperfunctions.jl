@@ -51,7 +51,14 @@ function initialiseImputations(
     return method
 end
 
-function makePredictorMatrix(data::DataFrame)
-    predictorMatrix = Matrix{Int64}(1, ncol(data), ncol(data))
-    setindex!.(Ref(predictorMatrix), 0, 1:ncol(data), 1:ncol(data))
+function sampler(
+    data = data,
+    m = m,
+    imputations = imputations,
+    method = method,
+    visitSequence = visitSequence,
+    predictorMatrix = predictorMatrix,
+    iter = iter
+    )
+
 end
