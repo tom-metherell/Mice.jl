@@ -1,7 +1,10 @@
 name = "Mice"
 uuid = "d4678d24-b338-4f96-a2c8-a66549d61c16"
 authors = ["Tom Metherell <thomas.metherell.22@ucl.ac.uk> and contributors"]
-version = "1.0.0-DEV"
+version = "0.0.0-DEV"
+
+[deps]
+CategoricalArrays = "324d7699-5711-5eae-9e2f-1d82baa6b597"
 
 [deps]
 CategoricalArrays = "324d7699-5711-5eae-9e2f-1d82baa6b597"

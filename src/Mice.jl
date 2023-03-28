@@ -1,6 +1,6 @@
 module Mice
 
-using CategoricalArrays, DataFrames, StatsBase
+using StatsBase
 
 include("helperfunctions.jl")
 
@@ -10,7 +10,8 @@ function mice(
     method = nothing,
     predictorMatrix = nothing,
     visitSequence = nothing,
-    iter = 10)
+    iter = 10
+    )
 
     if method === nothing
         method = makeMethod()
