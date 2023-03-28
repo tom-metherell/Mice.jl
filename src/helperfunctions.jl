@@ -1,5 +1,7 @@
 function makeMethod(data = data)
     method = fill("pmm", ncol(data))
+
+    return method
 end
 
 function makePredictorMatrix(data = data)
@@ -7,6 +9,8 @@ function makePredictorMatrix(data = data)
     for i in 1:ncol(data)
         predictorMatrix[i, i] = 0
     end
+
+    return predictorMatrix
 end
 
 function initialiseImputations(
