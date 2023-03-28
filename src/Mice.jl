@@ -1,6 +1,6 @@
 module Mice
 
-using DataFrames
+using CategoricalArrays, DataFrames, StatsBase
 
 include("helperfunctions.jl")
 
@@ -9,13 +9,20 @@ function mice(
     m = 5,
     method = nothing,
     predictorMatrix = nothing,
+    visitSequence = nothing,
     iter = 10)
 
     if method === nothing
-        method = makeMethod(data)
+        method = makeMethod()
     end
 
     if predictorMatrix === nothing
-        predictorMatrix = makePredictorMatrix(data)
+        predictorMatrix = makePredictorMatrix()
     end
+
+    if visitSequence === nothing
+        visitSequence = names(data)
+    end
+
+    imputations = initialiseImputations()
 end
