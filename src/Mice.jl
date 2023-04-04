@@ -7,11 +7,15 @@ include("helperfunctions.jl")
 function mice(
     data::DataFrame, 
     m = 5,
+    visitSequence = nothing,
     method = nothing,
     predictorMatrix = nothing,
-    visitSequence = nothing,
     iter = 10
     )
+
+    if visitSequence === nothing
+        visitSequence = names(data)
+    end
 
     if method === nothing
         method = makeMethod()
@@ -20,10 +24,4 @@ function mice(
     if predictorMatrix === nothing
         predictorMatrix = makePredictorMatrix()
     end
-
-    if visitSequence === nothing
-        visitSequence = names(data)
-    end
-
-    imputations = initialiseImputations()
 end

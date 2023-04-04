@@ -5,7 +5,7 @@ function makeMethod(data = data)
 end
 
 function makePredictorMatrix(data = data)
-    predictorMatrix = Matrix{Int8}(fill(1, ncol(data), ncol(data)))
+    predictorMatrix = Matrix{Bool}(fill(1, ncol(data), ncol(data)))
     for i in 1:ncol(data)
         predictorMatrix[i, i] = 0
     end
@@ -48,17 +48,41 @@ function initialiseImputations(
         end
     end
 
-    return method
+    return imputations
+end
+
+function initialiseChain(
+    visitSequence = visitSequence,
+    iter = iter,
+    m = m
+    )
+
+    chain = [[Vector{Union{Missing, Float64}}(undef, length(visitSequence)) for _ = 1:iter] for _ = 1:m]
+
+    return chain
 end
 
 function sampler(
     data = data,
     m = m,
-    imputations = imputations,
+    imputations = initialiseImputations(),
     method = method,
     visitSequence = visitSequence,
     predictorMatrix = predictorMatrix,
     iter = iter
     )
 
+    meanChain = initialiseChain()
+    varChain = deepcopy(meanChain)
+
+    iterCounter = 1
+
+    while iterCounter <= iter
+        for i in 1:m
+            for j in visitSequence
+                if method[j] != ""
+                    
+            end
+        end
+    end
 end
