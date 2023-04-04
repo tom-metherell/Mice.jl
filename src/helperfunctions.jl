@@ -52,15 +52,15 @@ function initialiseImputations(
     return imputations
 end
 
-function initialiseChain(
+function initialiseTraces(
     visitSequence = visitSequence,
     iter = iter,
     m = m
     )
 
-    chain = [[Vector{Union{Missing, Float64}}(undef, length(visitSequence)) for _ = 1:iter] for _ = 1:m]
+    traces = [[Vector{Union{Missing, Float64}}(undef, m) for _ = 1:iter] for _ = eachindex(visitSequence)]
 
-    return chain
+    return traces
 end
 
 function sampler(
@@ -75,30 +75,45 @@ function sampler(
 
     presentData = ismissing.(data) .== 0
 
-    meanChain = initialiseChain()
-    varChain = deepcopy(meanChain)
+    meanTraces = initialiseTraces()
+    varTraces = deepcopy(meanTraces)
 
     iterCounter = 1
 
     while iterCounter <= iter
-        for i in 1:m
-            for j in eachindex(visitSequence)
-                var = visitSequence[j]
+        for i in eachindex(visitSequence)
+            var = visitSequence[i]
+            relevantData = data[:, [var]][:, 1]
 
-                if methods[j] != ""
-                    imputations[j][:, i] = univariateSampler(method = methods[j])
+            if methods[i] == "pmm" && any(ismissing(relevantData))
+                for j in 1:m
+                    imputations[i][:, j] = pmmImpute()
 
+                    data[presentData .== 0][:, [var]] = imputations[i][:, j]
                 end
+
+                if data[:, [var]][:, 1] isa CategoricalArray
+                    mapping = Dict(levels(data[:, [var]][:, 1])[i] => i for i in eachindex(levels(data[:, [var]][:, 1])))
+    
+                    data[:, [var]][:, 1] = [mapping[v] for v in data[:, [var]][:, 1]]
+                end
+    
+                meanTraces[i][iterCounter][j] = mean(data[:, [var]][:, 1])
+                varTraces[i][iterCounter][j] = var(data[:, [var]][:, 1])
             end
         end
+
+        iterCounter += 1
     end
+
+    return imputations, meanTraces, varTraces
 end
 
-function univariateSampler(
+function pmmImpute(
     data = data,
+    relevantData = relevantData,
     presentData = presentData,
-    method::String,
-    var = var
-    )    
+    donors = 5
+    )
 
-    presentLocations = BitVector(presentData[:, [var]][:, 1])
+end

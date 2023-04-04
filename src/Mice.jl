@@ -1,6 +1,6 @@
 module Mice
 
-using StatsBase
+using StatsBase, Statistics
 
 include("helperfunctions.jl")
 
