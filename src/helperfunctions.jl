@@ -1,7 +1,7 @@
-function makeMethod(data = data)
-    method = fill("pmm", ncol(data))
+function makeMethods(data = data)
+    methods = fill("pmm", ncol(data))
 
-    return method
+    return methods
 end
 
 function makePredictorMatrix(data = data)
@@ -17,7 +17,7 @@ function initialiseImputations(
     data = data,
     m = m,
     visitSequence = visitSequence,
-    method = method
+    methods = methods
     )
 
     imputations = Vector{Matrix}(undef, ncol(data))
@@ -26,22 +26,23 @@ function initialiseImputations(
 
     for i in eachindex(visitSequence)
         var = visitSequence[i]
-        if method[i] != ""
+        if methods[i] != ""
             relevantData = data[:, [var]][:, 1]
             presentLocations = BitVector(presentData[:, [var]][:, 1])
-            imputations[i] = Matrix{nonmissingtype(eltype(relevantData))}(undef, sum(.!presentLocations), m)
+            presentDataCount = sum(.!presentLocations)
+            imputations[i] = Matrix{nonmissingtype(eltype(relevantData))}(undef, missingDataCount, m)
             if sum(presentLocations) > 0
                 for j in 1:m
-                    imputations[i][:, j] = sample(relevantData[presentLocations], sum(.!presentLocations))
+                    imputations[i][:, j] = sample(relevantData[presentLocations], missingDataCount)
                 end
             else
                 if isa(relevantData, CategoricalArray)
                     for j in 1:m
-                        imputations[i][:, j] = CategoricalArray{nonmissingtype(eltype(relevantData))}(sample(levels(relevantData), sum(.!presentLocations)))
+                        imputations[i][:, j] = CategoricalArray{nonmissingtype(eltype(relevantData))}(sample(levels(relevantData), presentDataCount))
                     end
                 else
                     for j in 1:m
-                        imputations[i][:, j] .= randn(sum(.!presentLocations))
+                        imputations[i][:, j] .= randn(presentDataCount)
                     end
                 end
             end
@@ -66,11 +67,13 @@ function sampler(
     data = data,
     m = m,
     imputations = initialiseImputations(),
-    method = method,
+    methods = methods,
     visitSequence = visitSequence,
     predictorMatrix = predictorMatrix,
     iter = iter
     )
+
+    presentData = ismissing.(data) .== 0
 
     meanChain = initialiseChain()
     varChain = deepcopy(meanChain)
@@ -79,10 +82,23 @@ function sampler(
 
     while iterCounter <= iter
         for i in 1:m
-            for j in visitSequence
-                if method[j] != ""
-                    
+            for j in eachindex(visitSequence)
+                var = visitSequence[j]
+
+                if methods[j] != ""
+                    imputations[j][:, i] = univariateSampler(method = methods[j])
+
+                end
             end
         end
     end
 end
+
+function univariateSampler(
+    data = data,
+    presentData = presentData,
+    method::String,
+    var = var
+    )    
+
+    presentLocations = BitVector(presentData[:, [var]][:, 1])

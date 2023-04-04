@@ -8,7 +8,7 @@ function mice(
     data::DataFrame, 
     m = 5,
     visitSequence = nothing,
-    method = nothing,
+    methods = nothing,
     predictorMatrix = nothing,
     iter = 10
     )
@@ -17,8 +17,8 @@ function mice(
         visitSequence = names(data)
     end
 
-    if method === nothing
-        method = makeMethod()
+    if methods === nothing
+        methods = makeMethods()
     end
 
     if predictorMatrix === nothing
