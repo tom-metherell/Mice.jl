@@ -6,11 +6,11 @@ include("helperfunctions.jl")
 
 function mice(
     data::DataFrame, 
-    m = 5,
+    m = 5::Int,
     visitSequence = nothing,
     methods = nothing,
     predictorMatrix = nothing,
-    iter = 10
+    iter = 10::Int
     )
 
     if visitSequence === nothing

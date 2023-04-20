@@ -83,16 +83,18 @@ function sampler(
     while iterCounter <= iter
         for i in eachindex(visitSequence)
             var = visitSequence[i]
-            relevantData = data[:, [var]][:, 1]
+            y = data[:, [var]][:, 1]
+            X = data[:, predictorMatrix[i, :]][:, 1]
 
-            if methods[i] == "pmm" && any(ismissing(relevantData))
+            if methods[i] == "pmm" && any(ismissing(y))
+
                 for j in 1:m
                     imputations[i][:, j] = pmmImpute()
 
                     data[presentData .== 0][:, [var]] = imputations[i][:, j]
                 end
 
-                if data[:, [var]][:, 1] isa CategoricalArray
+                if y isa CategoricalArray
                     mapping = Dict(levels(data[:, [var]][:, 1])[i] => i for i in eachindex(levels(data[:, [var]][:, 1])))
     
                     data[:, [var]][:, 1] = [mapping[v] for v in data[:, [var]][:, 1]]
@@ -110,10 +112,28 @@ function sampler(
 end
 
 function pmmImpute(
-    data = data,
-    relevantData = relevantData,
-    presentData = presentData,
-    donors = 5
+    y = y,
+    X = X,
+    donors = 5::Int
+    )
+
+    X = Matrix(X)
+
+    X = vcat(1, X)
+
+    if y isa CategoricalArray
+        mapping = Dict(levels(y)[i] => i for i in eachindex(levels(y)))
+
+        y = [mapping[v] for v in y]
+    end
+
+    coefs, β = blrDraw()
+    
+end
+
+function blrDraw(
+    y = y,
+    X = X
     )
 
 end
