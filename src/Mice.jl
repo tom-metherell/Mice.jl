@@ -1,6 +1,6 @@
 module Mice
 
-using StatsBase, Statistics
+using Distributions, LinearAlgebra, Random, StatsBase, Statistics
 
 include("helperfunctions.jl")
 
@@ -9,7 +9,7 @@ function mice(
     m = 5::Int,
     visitSequence = nothing,
     methods = nothing,
-    predictorMatrix = nothing,
+    predictorMatrix = nothing, # methods and predictorMatrix must be arranged in visitSequence order!
     iter = 10::Int
     )
 

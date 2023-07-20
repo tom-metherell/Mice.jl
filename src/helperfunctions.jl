@@ -73,8 +73,6 @@ function sampler(
     iter = iter
     )
 
-    presentData = ismissing.(data) .== 0
-
     meanTraces = initialiseTraces()
     varTraces = deepcopy(meanTraces)
 
@@ -84,24 +82,30 @@ function sampler(
         for i in eachindex(visitSequence)
             var = visitSequence[i]
             y = data[:, [var]][:, 1]
-            X = data[:, predictorMatrix[i, :]][:, 1]
+            X = data[:, predictorMatrix[i, :]]
 
             if methods[i] == "pmm" && any(ismissing(y))
 
                 for j in 1:m
+                    for k in findall(predictorMatrix[i, :])
+                        xVar = visitSequence[k]
+                        X[ismissing.(X) .== 1, [xVar]] = imputations[k][:, j]
+                    end
+
                     imputations[i][:, j] = pmmImpute()
-
-                    data[presentData .== 0][:, [var]] = imputations[i][:, j]
+                    
+                    plottingData = deepcopy(data[:, [var]][:, 1])
+                    plottingData[ismissing.(plottingData) .== 1] = imputations[i][:, j]
                 end
 
-                if y isa CategoricalArray
-                    mapping = Dict(levels(data[:, [var]][:, 1])[i] => i for i in eachindex(levels(data[:, [var]][:, 1])))
+                if plottingData isa CategoricalArray
+                    mapping = Dict(levels(plottingData)[i] => i for i in eachindex(levels(plottingData)))
     
-                    data[:, [var]][:, 1] = [mapping[v] for v in data[:, [var]][:, 1]]
+                    plottingData = [mapping[v] for v in plottingData]
                 end
     
-                meanTraces[i][iterCounter][j] = mean(data[:, [var]][:, 1])
-                varTraces[i][iterCounter][j] = var(data[:, [var]][:, 1])
+                meanTraces[i][iterCounter][j] = mean(plottingData)
+                varTraces[i][iterCounter][j] = var(plottingData)
             end
         end
 
@@ -119,7 +123,7 @@ function pmmImpute(
 
     X = Matrix(X)
 
-    X = vcat(1, X)
+    X = hcat(repeat([1], size(X, 1)), X)
 
     if y isa CategoricalArray
         mapping = Dict(levels(y)[i] => i for i in eachindex(levels(y)))
@@ -127,13 +131,104 @@ function pmmImpute(
         y = [mapping[v] for v in y]
     end
 
-    coefs, β = blrDraw()
+    Xₒ = X[ismissing.(y) .== 0, :]
+    Xₘ = X[ismissing.(y) .== 1, :]
+    yₒ = y[ismissing.(y) .== 0]
+
+    β̂, β̇, = blrDraw()
+
+    ŷₒ = Xₒ * β̂
+    ŷₘ = Xₘ * β̇
     
 end
 
 function blrDraw(
-    y = y,
-    X = X
+    yₒ = yₒ,
+    Xₒ = Xₒ, 
+    κ = 0.0001::Float
     )
 
+    S = transpose(Xₒ) * Xₒ
+
+    V = inv(S + diag(S) * κ)
+
+    β̂ = V * transpose(Xₒ) * yₒ
+
+    ġ = rand(Chisq(size(Xₒ, 1) - size(Xₒ, 2)))
+
+    σ̇ = sqrt((transpose(yₒ - Xₒ * β̂) * (yₒ - Xₒ * β̂)) / ġ)
+
+    ż = randn(size(Xₒ, 2))
+
+    sqrtV = cholesky(V)
+
+    β̇ = β̂ + σ̇ * ż * sqrtV
+
+    return β̂, β̇
+end
+
+using Random, StatsBase
+
+function matchindex(yₒ::Vector{Real}, yₘ::Vector{Real}, donors = 5::Int)
+    # Shuffle records to remove effects of ties
+    nₒ = length(yₒ)
+    ishuf = randperm(nₒ)
+    yshuf = yₒ[ishuf]
+
+    # Obtain sorting order on shuffled data
+    isort = sortperm(yshuf)
+
+    # Calculate index on input data and sort
+    id = ishuf[isort]
+    ysort = yₒ[id]
+
+    # Pre-sample n0 values between 1 and k
+    nₘ = length(yₘ)
+    donors = min(donors, nₒ)
+    donors = max(donors, 1)
+    presample = sample(1:donors, nₘ, replace = true)
+
+    indices = similar(yₘ, Int)
+
+    # Loop over the target units
+    for i in eachindex(yₘ)
+        value = yₘ[i]
+        donor = presample[i]
+        count = 0
+
+        # Find the two adjacent neighbours
+        r = searchsortedfirst(ysort, value)
+        l = r - 1
+
+        ### CHECKED UP TO HERE
+
+        # Find the h_i'th nearest neighbour
+        # Store the index of that neighbour
+        while count < hi && l >= 1 && r <= n1
+            if val - ysort[l] < ysort[r] - val
+                idx[i] = id[l]
+                l -= 1
+            else
+                idx[i] = id[r]
+                r += 1
+            end
+            count += 1
+        end
+
+        # If right side is exhausted, take left elements
+        while count < hi && l >= 1
+            idx[i] = id[l]
+            l -= 1
+            count += 1
+        end
+
+        # If left side is exhausted, take right elements
+        while count < hi && r <= n1
+            idx[i] = id[r]
+            r += 1
+            count += 1
+        end
+    end
+
+    return idx
 end
