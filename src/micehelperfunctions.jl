@@ -1,10 +1,3 @@
-struct Mids
-    data::DataFrame
-    imputations::Vector{Matrix}
-    meanTraces::AbstractVector
-    varTraces::AbstractVector
-end
-
 function makeMethods(data = data)
     methods = fill("pmm", ncol(data))
 
