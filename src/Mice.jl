@@ -3,8 +3,28 @@ module Mice
     # Dependencies
     using Distributions, LinearAlgebra, Random, StatsBase, Statistics
 
-    # All functions and structs except the main 'mice' function are defined in this file
+    # All functions except the main 'mice' function are defined in this file
     include("micehelperfunctions.jl")
+
+"""
+    Mids
+
+A multiply imputed dataset object.
+
+The data originally supplied are stored as `data`.
+
+The imputed data are stored as `imputations` (one column per imputation).
+
+The mean of each variable across the imputations is stored as `meanTraces`.
+
+The variance of each variable across the imputations is stored as `varTraces`.
+"""
+    struct Mids
+        data::DataFrame
+        imputations::Vector{Matrix}
+        meanTraces::AbstractVector
+        varTraces::AbstractVector
+    end
 
 """
     mice(
