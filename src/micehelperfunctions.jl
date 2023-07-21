@@ -1,3 +1,10 @@
+struct Mids
+    data::DataFrame
+    imputations::Vector{Matrix}
+    meanTraces::AbstractVector
+    varTraces::AbstractVector
+end
+
 function makeMethods(data = data)
     methods = fill("pmm", ncol(data))
 
@@ -14,10 +21,10 @@ function makePredictorMatrix(data = data)
 end
 
 function initialiseImputations(
-    data = data,
-    m = m,
-    visitSequence = visitSequence,
-    methods = methods
+    data::DataFrame = data,
+    m::Int = m,
+    visitSequence::AbstractVector = visitSequence,
+    methods::AbstractVector = methods
     )
 
     imputations = Vector{Matrix}(undef, ncol(data))
@@ -53,9 +60,9 @@ function initialiseImputations(
 end
 
 function initialiseTraces(
-    visitSequence = visitSequence,
-    iter = iter,
-    m = m
+    visitSequence::AbstractVector = visitSequence,
+    iter::Int = iter,
+    m::Int = m
     )
 
     traces = [[Vector{Union{Missing, Float64}}(undef, m) for _ = 1:iter] for _ = eachindex(visitSequence)]
@@ -64,14 +71,15 @@ function initialiseTraces(
 end
 
 function sampler(
-    data = data,
-    m = m,
-    imputations = initialiseImputations(),
-    methods = methods,
-    visitSequence = visitSequence,
-    predictorMatrix = predictorMatrix,
-    iter = iter
+    data::DataFrame = data,
+    m::Int = m,
+    methods::AbstractVector = methods,
+    visitSequence::AbstractVector = visitSequence,
+    predictorMatrix::AbstractMatrix = predictorMatrix,
+    iter::Int = iter
     )
+
+    imputations = initialiseImputations()
 
     meanTraces = initialiseTraces()
     varTraces = deepcopy(meanTraces)
@@ -116,20 +124,19 @@ function sampler(
 end
 
 function pmmImpute(
-    y = y,
-    X = X,
-    donors = 5::Int
+    y::AbstractVector = y,
+    X::DataFrame = X,
+    donors::Int = 5
     )
 
-    X = Matrix(X)
-
-    X = hcat(repeat([1], size(X, 1)), X)
-
-    if y isa CategoricalArray
-        mapping = Dict(levels(y)[i] => i for i in eachindex(levels(y)))
-
-        y = [mapping[v] for v in y]
+    for i in names(X)
+        if X[:, i] isa CategoricalArray
+            xMapping = Dict(levels(X[:, i])[j] => j for j in eachindex(levels(X[:, i])))
+            X[:, i] = [xMapping[v] for v in X[:, i]]
+        end
     end
+
+    X = hcat(repeat([1], size(X, 1)), Matrix(X))
 
     Xₒ = X[ismissing.(y) .== 0, :]
     Xₘ = X[ismissing.(y) .== 1, :]
@@ -139,7 +146,42 @@ function pmmImpute(
 
     ŷₒ = Xₒ * β̂
     ŷₘ = Xₘ * β̇
-    
+
+    indices = matchIndex()
+
+    return yₒ[indices]    
+end
+
+function pmmImpute(
+    y::CategoricalArray = y,
+    X::DataFrame = X,
+    donors::Int = 5
+    )
+
+    for i in names(X)
+        if X[:, i] isa CategoricalArray
+            xMapping = Dict(levels(X[:, i])[j] => j for j in eachindex(levels(X[:, i])))
+            X[:, i] = [xMapping[v] for v in X[:, i]]
+        end
+    end
+
+    X = hcat(repeat([1], size(X, 1)), Matrix(X))
+
+    mapping = Dict(levels(y)[i] => i for i in eachindex(levels(y)))
+    yNum = [mapping[v] for v in y]
+
+    Xₒ = X[ismissing.(y) .== 0, :]
+    Xₘ = X[ismissing.(y) .== 1, :]
+    yₒ = yNum[ismissing.(y) .== 0]
+
+    β̂, β̇, = blrDraw()
+
+    ŷₒ = Xₒ * β̂
+    ẏₘ = Xₘ * β̇
+
+    indices = matchIndex()
+
+    return y[ismissing.(y) .== 0][indices]
 end
 
 function blrDraw(
@@ -167,68 +209,71 @@ function blrDraw(
     return β̂, β̇
 end
 
-using Random, StatsBase
+function matchIndex(
+    ŷₒ::Vector{Real} = ŷₒ, 
+    ẏₘ::Vector{Real} = ẏₘ,
+    donors::Int = 5
+    )
 
-function matchindex(yₒ::Vector{Real}, yₘ::Vector{Real}, donors = 5::Int)
     # Shuffle records to remove effects of ties
-    nₒ = length(yₒ)
+    nₒ = length(ŷₒ)
     ishuf = randperm(nₒ)
-    yshuf = yₒ[ishuf]
+    yshuf = ŷₒ[ishuf]
 
     # Obtain sorting order on shuffled data
     isort = sortperm(yshuf)
 
     # Calculate index on input data and sort
     id = ishuf[isort]
-    ysort = yₒ[id]
+    ysort = ŷₒ[id]
 
     # Pre-sample n0 values between 1 and k
-    nₘ = length(yₘ)
+    nₘ = length(ẏₘ)
     donors = min(donors, nₒ)
     donors = max(donors, 1)
     presample = sample(1:donors, nₘ, replace = true)
 
-    indices = similar(yₘ, Int)
+    indices = similar(ẏₘ, Int)
 
     # Loop over the target units
-    for i in eachindex(yₘ)
-        value = yₘ[i]
-        donor = presample[i]
+    for i in eachindex(ẏₘ)
+        value = ẏₘ[i]
+        donorID = presample[i]
         count = 0
 
         # Find the two adjacent neighbours
         r = searchsortedfirst(ysort, value)
         l = r - 1
 
-        ### CHECKED UP TO HERE
-
         # Find the h_i'th nearest neighbour
         # Store the index of that neighbour
-        while count < hi && l >= 1 && r <= n1
-            if val - ysort[l] < ysort[r] - val
-                idx[i] = id[l]
+        while count < donorID && l >= 1 && r <= nₒ
+            if value - ysort[l] < ysort[r] - value
+                indices[i] = id[l]
                 l -= 1
             else
-                idx[i] = id[r]
+                indices[i] = id[r]
                 r += 1
             end
             count += 1
         end
 
         # If right side is exhausted, take left elements
-        while count < hi && l >= 1
-            idx[i] = id[l]
+        while count < donorID && l >= 1
+            indices[i] = id[l]
             l -= 1
             count += 1
         end
 
         # If left side is exhausted, take right elements
-        while count < hi && r <= n1
-            idx[i] = id[r]
+        while count < donorID && r <= nₒ
+            indices[i] = id[r]
             r += 1
             count += 1
         end
     end
 
-    return idx
+    return indices
 end
+
+export Mids, makeMethods, makePredictorMatrix, initialiseImputations, initialiseTraces, sampler, pmmImpute, blrDraw, matchIndex
