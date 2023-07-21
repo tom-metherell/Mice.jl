@@ -6,7 +6,6 @@ module Mice
     # All functions and structs except the main 'mice' function are defined in this file
     include("micehelperfunctions.jl")
 
-
 """
     mice(data[, m, visitSequence, methods, predictorMatrix, iter])
 
