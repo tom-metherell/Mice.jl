@@ -1,10 +1,27 @@
-function makeMethods(data = data)
+function makeMonotoneSequence(data::DataFrame = data)
+    missingness = Vector{Int64}(undef, size(data, 2))
+
+    # Counting missing data in each column
+    for i in axes(data, 2)
+        missingness[i] = sum(ismissing.(data[:, i]))
+    end
+
+    # Sort the missingness vector in descending order
+    missingness = sortperm(missingness, rev = true)
+
+    # Sort the data frame names vector by missingness
+    visitSequence = names(data)[missingness]
+
+    return visitSequence
+end
+
+function makeMethods(data::DataFrame = data)
     methods = fill("pmm", ncol(data))
 
     return methods
 end
 
-function makePredictorMatrix(data = data)
+function makePredictorMatrix(data::DataFrame = data)
     predictorMatrix = Matrix{Bool}(fill(1, ncol(data), ncol(data)))
     for i in 1:ncol(data)
         predictorMatrix[i, i] = 0
@@ -29,7 +46,8 @@ function initialiseImputations(
         if methods[i] != ""
             relevantData = data[:, [var]][:, 1]
             presentLocations = BitVector(presentData[:, [var]][:, 1])
-            presentDataCount = sum(.!presentLocations)
+            presentDataCount = sum(presentLocations)
+            missingDataCount = sum(.!presentLocations)
             imputations[i] = Matrix{nonmissingtype(eltype(relevantData))}(undef, missingDataCount, m)
             if sum(presentLocations) > 0
                 for j in 1:m
@@ -72,9 +90,9 @@ function sampler(
     iter::Int = iter
     )
 
-    imputations = initialiseImputations()
+    imputations = initialiseImputations(data, m, visitSequence, methods)
 
-    meanTraces = initialiseTraces()
+    meanTraces = initialiseTraces(visitSequence, iter, m)
     varTraces = deepcopy(meanTraces)
 
     iterCounter = 1
@@ -83,17 +101,27 @@ function sampler(
         for i in eachindex(visitSequence)
             var = visitSequence[i]
             y = data[:, [var]][:, 1]
-            X = data[:, predictorMatrix[i, :]]
+            X = data[:, predictorMatrix[i, :]] # This is wrong
 
             if methods[i] == "pmm" && any(ismissing(y))
 
                 for j in 1:m
+
+                    # Doesn't work
                     for k in findall(predictorMatrix[i, :])
                         xVar = visitSequence[k]
-                        X[ismissing.(X) .== 1, [xVar]] = imputations[k][:, j]
+                        replacements = Vector{Union{Missing,nonmissingtype(eltype(X[:, [xVar]][:, 1]))}}(undef, size(X, 1))
+                        for i in 1:size(X, 1)
+                            counter = 1
+                            if ismissing(X[:, [xVar]][i, 1])
+                                replacements[i] = imputations[k][counter, j]
+                                counter += 1
+                            end
+                        end
+                        X[:, [xVar]][:, 1] = coalesce(X[:, [xVar]][:, 1], replacements)
                     end
 
-                    imputations[i][:, j] = pmmImpute()
+                    imputations[i][:, j] = pmmImpute(y, X, 5)
                     
                     plottingData = deepcopy(data[:, [var]][:, 1])
                     plottingData[ismissing.(plottingData) .== 1] = imputations[i][:, j]
@@ -135,12 +163,12 @@ function pmmImpute(
     Xₘ = X[ismissing.(y) .== 1, :]
     yₒ = y[ismissing.(y) .== 0]
 
-    β̂, β̇, = blrDraw()
+    β̂, β̇, = blrDraw(yₒ, Xₒ, 0.0001)
 
     ŷₒ = Xₒ * β̂
     ŷₘ = Xₘ * β̇
 
-    indices = matchIndex()
+    indices = matchIndex(ŷₒ, ẏₘ, 5)
 
     return yₒ[indices]    
 end
@@ -167,12 +195,12 @@ function pmmImpute(
     Xₘ = X[ismissing.(y) .== 1, :]
     yₒ = yNum[ismissing.(y) .== 0]
 
-    β̂, β̇, = blrDraw()
+    β̂, β̇, = blrDraw(yₒ, Xₒ, 0.0001)
 
     ŷₒ = Xₒ * β̂
     ẏₘ = Xₘ * β̇
 
-    indices = matchIndex()
+    indices = matchIndex(ŷₒ, ẏₘ, 5)
 
     return y[ismissing.(y) .== 0][indices]
 end
@@ -269,4 +297,4 @@ function matchIndex(
     return indices
 end
 
-export makeMethods, makePredictorMatrix, initialiseImputations, initialiseTraces, sampler, pmmImpute, blrDraw, matchIndex
+export makeMonotoneSequence, makeMethods, makePredictorMatrix, initialiseImputations, initialiseTraces, sampler, pmmImpute, blrDraw, matchIndex

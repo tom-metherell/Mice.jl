@@ -1,7 +1,7 @@
 module Mice
 
     # Dependencies
-    using Distributions, LinearAlgebra, Random, StatsBase, Statistics
+    using CategoricalArrays, DataFrames, Distributions, LinearAlgebra, Random, StatsBase, Statistics
 
     # All functions except the main 'mice' function are defined in this file
     include("micehelperfunctions.jl")
@@ -30,9 +30,9 @@ The variance of each variable across the imputations is stored as `varTraces`.
     mice(
         data::DataFrame, 
         m::Int = 5, 
-        visitSequence::Vector{String} = names(data), 
-        methods::Vector{String} = nothing, 
-        predictorMatrix::Matrix{Bool} = nothing, 
+        visitSequence = "monotone", 
+        methods = nothing, 
+        predictorMatrix = nothing, 
         iter::Int = 10
     )
 
@@ -42,7 +42,7 @@ Heavily based on the R package `mice` (Buuren & Groothuis-Oudshoorn, 2011).
 The number of imputations created is specified by `m`.
 
 The variables will be imputed in the order specified by `visitSequence`. 
-The default is the order in which they appear in the dataset; 
+The default is sorted by proportion of missing data in descending order ("monotone"); 
 the order can be customised using a vector of variable names in the desired order.
 
 The imputation method for each variable is specified by `methods`. 
@@ -59,21 +59,25 @@ The number of iterations is specified by `iter`.
     function mice(
         data::DataFrame, 
         m::Int = 5,
-        visitSequence::Vector{String} = names(data),
-        methods::Vector{String} = nothing,
-        predictorMatrix::Matrix{Bool} = nothing,
+        visitSequence = "monotone",
+        methods = nothing,
+        predictorMatrix = nothing,
         iter::Int = 10
         )
 
+        if visitSequence === "monotone"
+            visitSequence = makeMonotoneSequence(data)
+        end
+
         if methods === nothing
-            methods = makeMethods()
+            methods = makeMethods(data)
         end
 
         if predictorMatrix === nothing
-            predictorMatrix = makePredictorMatrix()
+            predictorMatrix = makePredictorMatrix(data)
         end
 
-        imputations, meanTraces, varTraces = sampler()
+        imputations, meanTraces, varTraces = sampler(data, m, methods, visitSequence, predictorMatrix, iter)
 
         midsObj = Mids(
             data,
