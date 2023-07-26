@@ -22,8 +22,8 @@ The variance of each variable across the imputations is stored as `varTraces`.
     struct Mids
         data::DataFrame
         imputations::Vector{Matrix}
-        meanTraces::AbstractVector
-        varTraces::AbstractVector
+        meanTraces::AbstractArray
+        varTraces::AbstractArray
     end
 
 """
@@ -76,6 +76,8 @@ The number of iterations is specified by `iter`.
         if predictorMatrix === nothing
             predictorMatrix = makePredictorMatrix(data)
         end
+
+        select!(data, visitSequence)
 
         imputations, meanTraces, varTraces = sampler(data, m, methods, visitSequence, predictorMatrix, iter)
 

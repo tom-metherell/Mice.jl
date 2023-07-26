@@ -42,10 +42,10 @@ function initialiseImputations(
     presentData = ismissing.(data) .== 0
 
     for i in eachindex(visitSequence)
-        var = visitSequence[i]
+        yVar = visitSequence[i]
         if methods[i] != ""
-            relevantData = data[:, [var]][:, 1]
-            presentLocations = BitVector(presentData[:, [var]][:, 1])
+            relevantData = data[:, [yVar]][:, 1]
+            presentLocations = BitVector(presentData[:, [yVar]][:, 1])
             presentDataCount = sum(presentLocations)
             missingDataCount = sum(.!presentLocations)
             imputations[i] = Matrix{nonmissingtype(eltype(relevantData))}(undef, missingDataCount, m)
@@ -76,7 +76,7 @@ function initialiseTraces(
     m::Int = m
     )
 
-    traces = [[Vector{Union{Missing, Float64}}(undef, m) for _ = 1:iter] for _ = eachindex(visitSequence)]
+    traces = [Matrix{Union{Missing, Float64}}(undef, m, iter) for _ = eachindex(visitSequence)]
 
     return traces
 end
@@ -93,52 +93,46 @@ function sampler(
     imputations = initialiseImputations(data, m, visitSequence, methods)
 
     meanTraces = initialiseTraces(visitSequence, iter, m)
-    varTraces = deepcopy(meanTraces)
+    varTraces = initialiseTraces(visitSequence, iter, m)
 
-    iterCounter = 1
-
-    while iterCounter <= iter
+    for iterCounter in 1:iter
         for i in eachindex(visitSequence)
-            var = visitSequence[i]
-            y = data[:, [var]][:, 1]
-            X = data[:, predictorMatrix[i, :]] # This is wrong
+            yVar = visitSequence[i]
+            y = data[:, [yVar]][:, 1]
+            X = data[:, predictorMatrix[i, :]]
 
             if methods[i] == "pmm" && any(ismissing(y))
-
                 for j in 1:m
-
-                    # Doesn't work
                     for k in findall(predictorMatrix[i, :])
                         xVar = visitSequence[k]
-                        replacements = Vector{Union{Missing,nonmissingtype(eltype(X[:, [xVar]][:, 1]))}}(undef, size(X, 1))
-                        for i in 1:size(X, 1)
-                            counter = 1
-                            if ismissing(X[:, [xVar]][i, 1])
+                        replacements = Vector{Union{Missing, nonmissingtype(eltype(X[:, [xVar]][:, 1]))}}(missing, size(X, 1))
+                        counter = 1
+                        for i in axes(X, 1)
+                            if ismissing(X[i, [xVar]][1])
                                 replacements[i] = imputations[k][counter, j]
                                 counter += 1
                             end
                         end
-                        X[:, [xVar]][:, 1] = coalesce(X[:, [xVar]][:, 1], replacements)
+                        X[:, [xVar]] = coalesce.(X[:, [xVar]], replacements)
                     end
 
                     imputations[i][:, j] = pmmImpute(y, X, 5)
-                    
-                    plottingData = deepcopy(data[:, [var]][:, 1])
-                    plottingData[ismissing.(plottingData) .== 1] = imputations[i][:, j]
-                end
 
-                if plottingData isa CategoricalArray
-                    mapping = Dict(levels(plottingData)[i] => i for i in eachindex(levels(plottingData)))
-    
-                    plottingData = [mapping[v] for v in plottingData]
+                    plottingData = deepcopy(data[:, [yVar]][:, 1])
+                    plottingData[ismissing.(plottingData) .== 1] = imputations[i][:, j]
+
+                    if plottingData isa CategoricalArray
+                        mapping = Dict(levels(plottingData)[i] => i for i in eachindex(levels(plottingData)))
+        
+                        plottingData = [mapping[v] for v in plottingData]
+                    end
+
+                    # Doesn't work
+                    meanTraces[i][j, iterCounter] = mean(plottingData)
+                    varTraces[i][j, iterCounter] = var(plottingData)
                 end
-    
-                meanTraces[i][iterCounter][j] = mean(plottingData)
-                varTraces[i][iterCounter][j] = var(plottingData)
             end
         end
-
-        iterCounter += 1
     end
 
     return imputations, meanTraces, varTraces
@@ -150,10 +144,13 @@ function pmmImpute(
     donors::Int = 5
     )
 
-    for i in names(X)
-        if X[:, i] isa CategoricalArray
-            xMapping = Dict(levels(X[:, i])[j] => j for j in eachindex(levels(X[:, i])))
-            X[:, i] = [xMapping[v] for v in X[:, i]]
+    for z in axes(X, 2)
+        if X[:, z] isa CategoricalArray
+            name = names(X)[z]
+            xArray = deepcopy(X[:, z])
+            select!(X, Not(z))
+            xMapping = Dict(levels(xArray)[j] => j for j in eachindex(levels(xArray)))
+            insertcols!(X, z, name => Vector{Int64}([xMapping[v] for v in xArray]))
         end
     end
 
@@ -163,10 +160,10 @@ function pmmImpute(
     Xₘ = X[ismissing.(y) .== 1, :]
     yₒ = y[ismissing.(y) .== 0]
 
-    β̂, β̇, = blrDraw(yₒ, Xₒ, 0.0001)
+    β̂, β̇ = Mice.blrDraw(yₒ, Xₒ, 0.0001)
 
     ŷₒ = Xₒ * β̂
-    ŷₘ = Xₘ * β̇
+    ẏₘ = Xₘ * β̇
 
     indices = matchIndex(ŷₒ, ẏₘ, 5)
 
@@ -179,23 +176,26 @@ function pmmImpute(
     donors::Int = 5
     )
 
-    for i in names(X)
-        if X[:, i] isa CategoricalArray
-            xMapping = Dict(levels(X[:, i])[j] => j for j in eachindex(levels(X[:, i])))
-            X[:, i] = [xMapping[v] for v in X[:, i]]
+    for z in axes(X, 2)
+        if X[:, z] isa CategoricalArray
+            name = names(X)[z]
+            xArray = deepcopy(X[:, z])
+            select!(X, Not(z))
+            xMapping = Dict(levels(xArray)[j] => j for j in eachindex(levels(xArray)))
+            insertcols!(X, z, name => Vector{Int64}([xMapping[v] for v in xArray]))
         end
     end
 
     X = hcat(repeat([1], size(X, 1)), Matrix(X))
 
-    mapping = Dict(levels(y)[i] => i for i in eachindex(levels(y)))
-    yNum = [mapping[v] for v in y]
-
     Xₒ = X[ismissing.(y) .== 0, :]
     Xₘ = X[ismissing.(y) .== 1, :]
-    yₒ = yNum[ismissing.(y) .== 0]
 
-    β̂, β̇, = blrDraw(yₒ, Xₒ, 0.0001)
+    yₒ = y[ismissing.(y) .== 0]
+    mapping = Dict(levels(yₒ)[i] => i for i in eachindex(levels(yₒ)))
+    yₒ = [mapping[v] for v in yₒ]
+
+    β̂, β̇ = blrDraw(yₒ, Xₒ, 0.0001)
 
     ŷₒ = Xₒ * β̂
     ẏₘ = Xₘ * β̇
@@ -208,12 +208,12 @@ end
 function blrDraw(
     yₒ = yₒ,
     Xₒ = Xₒ, 
-    κ = 0.0001::Float
+    κ::AbstractFloat = 0.0001
     )
 
     S = transpose(Xₒ) * Xₒ
 
-    V = inv(S + diag(S) * κ)
+    V = inv(S + diagm(diag(S)) * κ)
 
     β̂ = V * transpose(Xₒ) * yₒ
 
@@ -223,16 +223,16 @@ function blrDraw(
 
     ż = randn(size(Xₒ, 2))
 
-    sqrtV = cholesky(V)
+    sqrtV = cholesky((V + transpose(V)) / 2).factors
 
-    β̇ = β̂ + σ̇ * ż * sqrtV
+    β̇ = β̂ + σ̇ * sqrtV * ż 
 
     return β̂, β̇
 end
 
 function matchIndex(
-    ŷₒ::Vector{Real} = ŷₒ, 
-    ẏₘ::Vector{Real} = ẏₘ,
+    ŷₒ::Vector = ŷₒ, 
+    ẏₘ::Vector = ẏₘ,
     donors::Int = 5
     )
 
@@ -297,4 +297,4 @@ function matchIndex(
     return indices
 end
 
-export makeMonotoneSequence, makeMethods, makePredictorMatrix, initialiseImputations, initialiseTraces, sampler, pmmImpute, blrDraw, matchIndex
+export makeMonotoneSequence, makeMethods, makePredictorMatrix, initialiseImputations, sampler, pmmImpute, blrDraw, matchIndex
