@@ -79,7 +79,50 @@ The number of iterations is specified by `iter`.
 
         select!(data, visitSequence)
 
-        imputations, meanTraces, varTraces = sampler(data, m, methods, visitSequence, predictorMatrix, iter)
+        imputations = initialiseImputations(data, m, visitSequence, methods)
+
+        meanTraces = initialiseTraces(visitSequence, iter, m)
+        varTraces = initialiseTraces(visitSequence, iter, m)
+
+        for iterCounter in 1:iter
+            for i in eachindex(visitSequence)
+                yVar = visitSequence[i]
+                y = data[:, [yVar]][:, 1]
+                X = data[:, predictorMatrix[i, :]]
+
+                if methods[i] == "pmm" && any(ismissing(y))
+                    for j in 1:m
+                        for k in findall(predictorMatrix[i, :])
+                            xVar = visitSequence[k]
+                            replacements = Vector{Union{Missing, nonmissingtype(eltype(X[:, [xVar]][:, 1]))}}(missing, size(X, 1))
+                            counter = 1
+                            for z in axes(X, 1)
+                                if ismissing(X[z, [xVar]][1])
+                                    replacements[z] = imputations[k][counter, j]
+                                    counter += 1
+                                end
+                            end
+                            X[:, [xVar]] = coalesce.(X[:, [xVar]], replacements)
+                        end
+                    
+                        imputations[i][:, j] = pmmImpute(y, X, 5)
+                    
+                        plottingData = deepcopy(data[:, [yVar]][:, 1])
+                        plottingData[ismissing.(plottingData) .== 1] = imputations[i][:, j]
+                    
+                        if plottingData isa CategoricalArray
+                            mapping = Dict(levels(plottingData)[i] => i for i in eachindex(levels(plottingData)))
+                    
+                            plottingData = [mapping[v] for v in plottingData]
+                        end
+                    
+                        # Still doesn't work
+                        meanTraces[i][j, iterCounter] = mean(plottingData)
+                        varTraces[i][j, iterCounter] = var(plottingData)
+                    end
+                end
+            end
+        end
 
         midsObj = Mids(
             data,
