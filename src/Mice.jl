@@ -1,7 +1,7 @@
 module Mice
 
     # Dependencies
-    using CategoricalArrays, DataFrames, Distributions, LinearAlgebra, Random, StatsBase, Statistics
+    using CategoricalArrays, DataFrames, Distributions, LinearAlgebra, Plots, Random, StatsBase, Statistics
 
     # All functions except the main 'mice' function are defined in this file
     include("micehelperfunctions.jl")
@@ -15,6 +15,16 @@ The data originally supplied are stored as `data`.
 
 The imputed data are stored as `imputations` (one column per imputation).
 
+The number of imputations is stored as `m`.
+
+The imputation method for each variable is stored as `methods`.
+
+The predictor matrix is stored as `predictorMatrix`.
+
+The order in which the variables are imputed is stored as `visitSequence`.
+
+The number of iterations is stored as `iter`.
+
 The mean of each variable across the imputations is stored as `meanTraces`.
 
 The variance of each variable across the imputations is stored as `varTraces`.
@@ -22,8 +32,13 @@ The variance of each variable across the imputations is stored as `varTraces`.
     struct Mids
         data::DataFrame
         imputations::Vector{Matrix}
-        meanTraces::AbstractArray
-        varTraces::AbstractArray
+        m::Int
+        methods::Vector{String}
+        predictorMatrix::Matrix{Bool}
+        visitSequence::Vector{String}
+        iter::Int
+        meanTraces::Vector{Matrix}
+        varTraces::Vector{Matrix}
     end
 
 """
@@ -38,6 +53,8 @@ The variance of each variable across the imputations is stored as `varTraces`.
 
 Imputes missing values in a dataset using the MICE algorithm. 
 Heavily based on the R package `mice` (Buuren & Groothuis-Oudshoorn, 2011).
+
+The data containing missing values (`data`) must be supplied as a `DataFrame`.
 
 The number of imputations created is specified by `m`.
 
@@ -57,7 +74,7 @@ Any variable not predicting another variable can be marked as such in the matrix
 The number of iterations is specified by `iter`.
 """
     function mice(
-        data::DataFrame, 
+        data::DataFrame;
         m::Int = 5,
         visitSequence = "monotone",
         methods = nothing,
@@ -90,9 +107,9 @@ The number of iterations is specified by `iter`.
                 y = data[:, [yVar]][:, 1]
                 X = data[:, predictorMatrix[i, :]]
 
-                if methods[i] == "pmm" && any(ismissing(y))
+                if methods[i] == "pmm" && any(ismissing.(y))
                     for j in 1:m
-                        for k in findall(predictorMatrix[i, :])
+                        for k in findall(predictorMatrix[i, :])      
                             xVar = visitSequence[k]
                             replacements = Vector{Union{Missing, nonmissingtype(eltype(X[:, [xVar]][:, 1]))}}(missing, size(X, 1))
                             counter = 1
@@ -104,7 +121,7 @@ The number of iterations is specified by `iter`.
                             end
                             X[:, [xVar]] = coalesce.(X[:, [xVar]], replacements)
                         end
-                    
+                                        
                         imputations[i][:, j] = pmmImpute(y, X, 5)
                     
                         plottingData = deepcopy(data[:, [yVar]][:, 1])
@@ -112,11 +129,9 @@ The number of iterations is specified by `iter`.
                     
                         if plottingData isa CategoricalArray
                             mapping = Dict(levels(plottingData)[i] => i for i in eachindex(levels(plottingData)))
-                    
                             plottingData = [mapping[v] for v in plottingData]
                         end
                     
-                        # Still doesn't work
                         meanTraces[i][j, iterCounter] = mean(plottingData)
                         varTraces[i][j, iterCounter] = var(plottingData)
                     end
@@ -127,6 +142,11 @@ The number of iterations is specified by `iter`.
         midsObj = Mids(
             data,
             imputations,
+            m,
+            methods,
+            predictorMatrix,
+            visitSequence,
+            iter,
             meanTraces,
             varTraces
         )
@@ -134,5 +154,22 @@ The number of iterations is specified by `iter`.
         return midsObj
     end
 
-    export Mids, mice
+    function plot(
+        mids::Mids
+        )
+
+        meanTraces = mids.meanTraces
+        for i in axes(meanTraces)
+            meanTraces[i] = transpose(meanTraces[i])
+        end
+
+        varTraces = mids.varTraces
+        for i in axes(varTraces)
+            varTraces[i] = transpose(varTraces[i])
+        end
+
+        # Add plotting function!
+    end
+
+    export Mids, mice, plot
 end

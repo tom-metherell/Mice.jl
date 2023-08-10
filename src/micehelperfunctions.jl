@@ -76,7 +76,7 @@ function initialiseTraces(
     m::Int = m
     )
 
-    traces = [Matrix{Union{Missing, Float64}}(undef, m, iter) for _ = eachindex(visitSequence)]
+    traces = [Matrix{Float64}(undef, m, iter) for _ = eachindex(visitSequence)]
 
     return traces
 end
@@ -240,4 +240,4 @@ function matchIndex(
     return indices
 end
 
-export makeMonotoneSequence, makeMethods, makePredictorMatrix, initialiseImputations, sampler, pmmImpute, blrDraw, matchIndex
+export makeMonotoneSequence, makeMethods, makePredictorMatrix, initialiseImputations, pmmImpute, blrDraw, matchIndex
