@@ -132,8 +132,8 @@ The number of iterations is specified by `iter`.
                             plottingData = [mapping[v] for v in plottingData]
                         end
                     
-                        meanTraces[i][j, iterCounter] = mean(plottingData)
-                        varTraces[i][j, iterCounter] = var(plottingData)
+                        meanTraces[i][iterCounter, j] = mean(plottingData)
+                        varTraces[i][iterCounter, j] = var(plottingData)
                     end
                 end
             end
@@ -158,17 +158,14 @@ The number of iterations is specified by `iter`.
         mids::Mids
         )
 
-        meanTraces = mids.meanTraces
-        for i in axes(meanTraces)
-            meanTraces[i] = transpose(meanTraces[i])
+        plot_grid = Plots.plot(layout = (length(mids.meanTraces), 2), legend = false)
+
+        for i in eachindex(mids.meanTraces)
+            Plots.plot!(plot_grid[i, 1], mids.meanTraces[i], xlabel = "Iteration", ylabel = "Mean")
+            Plots.plot!(plot_grid[i, 2], mids.varTraces[i], xlabel = "Iteration", ylabel = "Variance")
         end
 
-        varTraces = mids.varTraces
-        for i in axes(varTraces)
-            varTraces[i] = transpose(varTraces[i])
-        end
-
-        # Add plotting function!
+        return plot_grid
     end
 
     export Mids, mice, plot

@@ -76,7 +76,7 @@ function initialiseTraces(
     m::Int = m
     )
 
-    traces = [Matrix{Float64}(undef, m, iter) for _ = eachindex(visitSequence)]
+    traces = [Matrix{Float64}(undef, iter, m) for _ = eachindex(visitSequence)]
 
     return traces
 end
