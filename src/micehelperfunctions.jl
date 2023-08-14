@@ -1,5 +1,5 @@
-function makeMonotoneSequence(data::DataFrame = data)
-    missingness = Vector{Int64}(undef, size(data, 2))
+function makeMonotoneSequence(data::DataFrame)
+    missingness = Vector{Int}(undef, size(data, 2))
 
     # Counting missing data in each column
     for i in axes(data, 2)
@@ -15,26 +15,31 @@ function makeMonotoneSequence(data::DataFrame = data)
     return visitSequence
 end
 
-function makeMethods(data::DataFrame = data)
-    methods = fill("pmm", ncol(data))
+function makeMethods(data::DataFrame)
+    methods = NamedArray(Vector{String}(fill("pmm", ncol(data))))
+
+    setnames!(methods, names(data), 1)
 
     return methods
 end
 
-function makePredictorMatrix(data::DataFrame = data)
-    predictorMatrix = Matrix{Bool}(fill(1, ncol(data), ncol(data)))
+function makePredictorMatrix(data::DataFrame)
+    predictorMatrix = NamedArray(Matrix{Bool}(fill(1, ncol(data), ncol(data))))
     for i in 1:ncol(data)
         predictorMatrix[i, i] = 0
     end
+
+    setnames!(predictorMatrix, names(data), 1)
+    setnames!(predictorMatrix, names(data), 2)
 
     return predictorMatrix
 end
 
 function initialiseImputations(
-    data::DataFrame = data,
-    m::Int = m,
-    visitSequence::AbstractVector = visitSequence,
-    methods::AbstractVector = methods
+    data::DataFrame,
+    m::Int,
+    visitSequence::AbstractVector,
+    methods::AbstractVector
     )
 
     imputations = Vector{Matrix}(undef, ncol(data))
@@ -43,9 +48,9 @@ function initialiseImputations(
 
     for i in eachindex(visitSequence)
         yVar = visitSequence[i]
-        if methods[i] != ""
-            relevantData = data[:, [yVar]][:, 1]
-            presentLocations = BitVector(presentData[:, [yVar]][:, 1])
+        if methods[yVar] != ""
+            relevantData = data[:, yVar]
+            presentLocations = BitVector(presentData[:, yVar])
             presentDataCount = sum(presentLocations)
             missingDataCount = sum(.!presentLocations)
             imputations[i] = Matrix{nonmissingtype(eltype(relevantData))}(undef, missingDataCount, m)
@@ -71,20 +76,20 @@ function initialiseImputations(
 end
 
 function initialiseTraces(
-    visitSequence::AbstractVector = visitSequence,
-    iter::Int = iter,
-    m::Int = m
+    visitSequence::AbstractVector,
+    iter::Int,
+    m::Int
     )
 
-    traces = [Matrix{Float64}(undef, iter, m) for _ = eachindex(visitSequence)]
+    traces = [Matrix{AbstractFloat}(undef, iter, m) for _ = eachindex(visitSequence)]
 
     return traces
 end
 
 function pmmImpute(
-    y::AbstractVector = y,
-    X::DataFrame = X,
-    donors::Int = 5
+    y::AbstractVector,
+    X::DataFrame,
+    donors::Int
     )
 
     for z in axes(X, 2)
@@ -108,15 +113,15 @@ function pmmImpute(
     ŷₒ = Xₒ * β̂
     ẏₘ = Xₘ * β̇
 
-    indices = matchIndex(ŷₒ, ẏₘ, 5)
+    indices = matchIndex(ŷₒ, ẏₘ, donors)
 
     return yₒ[indices]    
 end
 
 function pmmImpute(
-    y::CategoricalArray = y,
-    X::DataFrame = X,
-    donors::Int = 5
+    y::CategoricalArray,
+    X::DataFrame,
+    donors::Int
     )
 
     for z in axes(X, 2)
@@ -125,7 +130,7 @@ function pmmImpute(
             xArray = deepcopy(X[:, z])
             select!(X, Not(z))
             xMapping = Dict(levels(xArray)[j] => j for j in eachindex(levels(xArray)))
-            insertcols!(X, z, name => Vector{Int64}([xMapping[v] for v in xArray]))
+            insertcols!(X, z, name => Vector{Int}([xMapping[v] for v in xArray]))
         end
     end
 
@@ -143,15 +148,15 @@ function pmmImpute(
     ŷₒ = Xₒ * β̂
     ẏₘ = Xₘ * β̇
 
-    indices = matchIndex(ŷₒ, ẏₘ, 5)
+    indices = matchIndex(ŷₒ, ẏₘ, donors)
 
     return y[ismissing.(y) .== 0][indices]
 end
 
 function blrDraw(
-    yₒ = yₒ,
-    Xₒ = Xₒ, 
-    κ::AbstractFloat = 0.0001
+    yₒ,
+    Xₒ, 
+    κ::AbstractFloat
     )
 
     S = transpose(Xₒ) * Xₒ
@@ -174,9 +179,9 @@ function blrDraw(
 end
 
 function matchIndex(
-    ŷₒ::Vector = ŷₒ, 
-    ẏₘ::Vector = ẏₘ,
-    donors::Int = 5
+    ŷₒ::Vector, 
+    ẏₘ::Vector,
+    donors::Int
     )
 
     # Shuffle records to remove effects of ties

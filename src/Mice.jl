@@ -1,7 +1,7 @@
 module Mice
 
     # Dependencies
-    using CategoricalArrays, DataFrames, Distributions, LinearAlgebra, Plots, Random, StatsBase, Statistics
+    using CategoricalArrays, DataFrames, Distributions, LinearAlgebra, NamedArrays, Plots, Random, StatsBase, Statistics
 
     # All functions except the main 'mice' function are defined in this file
     include("micehelperfunctions.jl")
@@ -33,8 +33,8 @@ The variance of each variable across the imputations is stored as `varTraces`.
         data::DataFrame
         imputations::Vector{Matrix}
         m::Int
-        methods::Vector{String}
-        predictorMatrix::Matrix{Bool}
+        methods::NamedArray
+        predictorMatrix::NamedArray
         visitSequence::Vector{String}
         iter::Int
         meanTraces::Vector{Matrix}
@@ -43,16 +43,17 @@ The variance of each variable across the imputations is stored as `varTraces`.
 
 """
     mice(
-        data::DataFrame, 
-        m::Int = 5, 
-        visitSequence = "monotone", 
-        methods = nothing, 
-        predictorMatrix = nothing, 
-        iter::Int = 10
+        data::DataFrame;
+        m::Int = 5,
+        visitSequence = "monotone",
+        methods = nothing,
+        predictorMatrix = nothing,
+        iter::Int = 10,
+        args...
     )
 
 Imputes missing values in a dataset using the MICE algorithm. 
-Heavily based on the R package `mice` (Buuren & Groothuis-Oudshoorn, 2011).
+Heavily based on the R package `mice` (van Buuren & Groothuis-Oudshoorn, 2011).
 
 The data containing missing values (`data`) must be supplied as a `DataFrame`.
 
@@ -62,12 +63,12 @@ The variables will be imputed in the order specified by `visitSequence`.
 The default is sorted by proportion of missing data in descending order ("monotone"); 
 the order can be customised using a vector of variable names in the desired order.
 
-The imputation method for each variable is specified by `methods`. 
+The imputation method for each variable is specified by the `NamedArray` `methods`. 
 The default is to use predictive mean matching (`pmm`) for all variables. 
 Currently only `pmm` is supported. 
 Any variable not to be imputed can be marked as such using an empty string ("").
 
-The predictor matrix is specified by `predictorMatrix`. 
+The predictor matrix is specified by the `NamedArray` `predictorMatrix`. 
 The default is to use all other variables as predictors for each variable. 
 Any variable not predicting another variable can be marked as such in the matrix using a 0.
 
@@ -79,7 +80,8 @@ The number of iterations is specified by `iter`.
         visitSequence = "monotone",
         methods = nothing,
         predictorMatrix = nothing,
-        iter::Int = 10
+        iter::Int = 10,
+        args...
         )
 
         if visitSequence === "monotone"
@@ -104,27 +106,27 @@ The number of iterations is specified by `iter`.
         for iterCounter in 1:iter
             for i in eachindex(visitSequence)
                 yVar = visitSequence[i]
-                y = data[:, [yVar]][:, 1]
-                X = data[:, predictorMatrix[i, :]]
+                y = data[:, yVar]
+                X = data[:, predictorMatrix[yVar, :]]
 
-                if methods[i] == "pmm" && any(ismissing.(y))
+                if methods[yVar] == "pmm" && any(ismissing.(y))
                     for j in 1:m
-                        for k in findall(predictorMatrix[i, :])      
+                        for k in findall(predictorMatrix[yVar, :])      
                             xVar = visitSequence[k]
-                            replacements = Vector{Union{Missing, nonmissingtype(eltype(X[:, [xVar]][:, 1]))}}(missing, size(X, 1))
+                            replacements = Vector{Union{Missing, nonmissingtype(eltype(X[:, xVar]))}}(missing, size(X, 1))
                             counter = 1
                             for z in axes(X, 1)
-                                if ismissing(X[z, [xVar]][1])
+                                if ismissing(X[z, xVar])
                                     replacements[z] = imputations[k][counter, j]
                                     counter += 1
                                 end
                             end
-                            X[:, [xVar]] = coalesce.(X[:, [xVar]], replacements)
+                            X[:, xVar] = coalesce.(X[:, xVar], replacements)
                         end
                                         
                         imputations[i][:, j] = pmmImpute(y, X, 5)
                     
-                        plottingData = deepcopy(data[:, [yVar]][:, 1])
+                        plottingData = deepcopy(data[:, yVar])
                         plottingData[ismissing.(plottingData) .== 1] = imputations[i][:, j]
                     
                         if plottingData isa CategoricalArray
@@ -154,15 +156,17 @@ The number of iterations is specified by `iter`.
         return midsObj
     end
 
+    import Plots.plot
+
     function plot(
         mids::Mids
         )
 
-        plot_grid = Plots.plot(layout = (length(mids.meanTraces), 2), legend = false)
+        plot_grid = plot(layout = (length(mids.meanTraces), 2), legend = false, size = (1200, 400*length(mids.meanTraces)))
 
         for i in eachindex(mids.meanTraces)
-            Plots.plot!(plot_grid[i, 1], mids.meanTraces[i], xlabel = "Iteration", ylabel = "Mean")
-            Plots.plot!(plot_grid[i, 2], mids.varTraces[i], xlabel = "Iteration", ylabel = "Variance")
+            plot!(plot_grid[i, 1], mids.meanTraces[i], xlabel = "Iteration", ylabel = "Mean")
+            plot!(plot_grid[i, 2], mids.varTraces[i], xlabel = "Iteration", ylabel = "Variance")
         end
 
         return plot_grid
