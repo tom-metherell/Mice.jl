@@ -59,7 +59,7 @@ function initialiseImputations(
                     imputations[i][:, j] = sample(relevantData[presentLocations], missingDataCount)
                 end
             else
-                if isa(relevantData, CategoricalArray)
+                if relevantData isa CategoricalArray
                     for j in 1:m
                         imputations[i][:, j] = CategoricalArray{nonmissingtype(eltype(relevantData))}(sample(levels(relevantData), presentDataCount))
                     end
@@ -86,10 +86,50 @@ function initialiseTraces(
     return traces
 end
 
+function removeLinDeps(
+    X::DataFrame,
+    y::AbstractVector
+)
+
+    Xₒ = Matrix(X[ismissing.(y) .== 0, :])
+    yₒ = y[ismissing.(y) .== 0]
+
+    if !isa(yₒ, CategoricalArray) && var(yₒ) .< 1e-4
+        return nothing
+    end
+
+    keep = Vector{Bool}(undef, size(Xₒ, 2))
+    for i in axes(Xₒ, 2)
+        keep[i] = try
+            var(Xₒ[:, i]) > 1e-4 && cor(Xₒ[:, i], yₒ) < 0.99
+        catch
+            false
+        end
+    end
+
+    k = sum(keep)
+
+    if k <= 1
+        return X[:, keep]
+    end
+
+    xCorr = cor(Xₒ[:, keep])
+    eig = eigen(xCorr)
+    while eig.values[k] / eig.values[1] < 1e-4
+        keep[keep][(1:k)[sort(abs(eig.vectors[:, k]), rev = true)[1]]] = false
+        xCorr = xCorr[keep[keep], keep[keep]]
+        k -= 1
+        eig = eigen(xCorr)
+    end
+
+    return X[:, keep]
+end
+
 function pmmImpute(
     y::AbstractVector,
     X::DataFrame,
-    donors::Int
+    donors::Int,
+    ridge::AbstractFloat
     )
 
     for z in axes(X, 2)
@@ -109,13 +149,14 @@ function pmmImpute(
 
     if nonmissingtype(eltype(y)) <: AbstractString
         yₒ = y[ismissing.(y) .== 0]
-        mapping = Dict(levels(yₒ)[i] => i for i in eachindex(levels(yₒ)))
+        mapping = Dict(levels(yₒ)[i] => i-1 for i in eachindex(levels(yₒ)))
         yₒ = [mapping[v] for v in yₒ]
+        println(mapping)
     else
         yₒ = y[ismissing.(y) .== 0]
     end
 
-    β̂, β̇ = blrDraw(yₒ, Xₒ, 0.0001)
+    β̂, β̇ = blrDraw(yₒ, Xₒ, ridge)
 
     ŷₒ = Xₒ * β̂
     ẏₘ = Xₘ * β̇
@@ -128,7 +169,8 @@ end
 function pmmImpute(
     y::CategoricalArray,
     X::DataFrame,
-    donors::Int
+    donors::Int,
+    ridge::AbstractFloat
     )
 
     for z in axes(X, 2)
@@ -147,10 +189,11 @@ function pmmImpute(
     Xₘ = X[ismissing.(y) .== 1, :]
 
     yₒ = y[ismissing.(y) .== 0]
-    mapping = Dict(levels(yₒ)[i] => i for i in eachindex(levels(yₒ)))
+    mapping = Dict(levels(yₒ)[i] => i-1 for i in eachindex(levels(yₒ)))
+    println(mapping)
     yₒ = [mapping[v] for v in yₒ]
 
-    β̂, β̇ = blrDraw(yₒ, Xₒ, 0.00001)
+    β̂, β̇ = blrDraw(yₒ, Xₒ, ridge)
 
     ŷₒ = Xₒ * β̂
     ẏₘ = Xₘ * β̇
@@ -166,20 +209,22 @@ function blrDraw(
     κ::AbstractFloat
     )
 
-    S = transpose(Xₒ) * Xₒ
+    df = max(length(yₒ) - size(Xₒ, 2), 1)
 
-    V = inv(S + diagm(diag(S)) * κ)
+    β̂ = Xₒ \ yₒ
+    R = qr(Xₒ).R
 
-    β̂ = V * transpose(Xₒ) * yₒ
+    V = try
+        inv(transpose(R) * R)
+    catch
+        S = transpose(R) * R;
+        inv(S + diagm(diag(S)) * κ)
+    end
 
-    ġ = rand(Chisq(size(Xₒ, 1) - size(Xₒ, 2)))
-
-    σ̇ = sqrt((transpose(yₒ - Xₒ * β̂) * (yₒ - Xₒ * β̂)) / ġ)
-
+    ġ = rand(Chisq(df))
+    σ̇ = sqrt(sum((yₒ - Xₒ * β̂).^2)) / ġ
     ż = randn(size(Xₒ, 2))
-
     sqrtV = cholesky((V + transpose(V)) / 2).factors
-
     β̇ = β̂ + σ̇ * sqrtV * ż 
 
     return β̂, β̇
@@ -207,14 +252,14 @@ function matchIndex(
     nₘ = length(ẏₘ)
     donors = min(donors, nₒ)
     donors = max(donors, 1)
-    presample = sample(1:donors, nₘ, replace = true)
+    selections = sample(1:donors, nₘ, replace = true)
 
     indices = similar(ẏₘ, Int)
 
     # Loop over the target units
     for i in eachindex(ẏₘ)
         value = ẏₘ[i]
-        donorID = presample[i]
+        donorID = selections[i]
         count = 0
 
         # Find the two adjacent neighbours

@@ -114,35 +114,29 @@ If `progressReports` is `true`, a progress indicator will be displayed in the co
                 y = data[:, yVar]
                 X = data[:, predictorMatrix[:, yVar]]
 
-                if methods[yVar] == "pmm" && any(ismissing.(y))
+                X = removeLinDeps(X, y)
+
+                if methods[yVar] == "pmm" && any(ismissing.(y)) && !isnothing(X) && size(X, 2) > 0
                     for j in 1:m
                         for k in findall(predictorMatrix[:, yVar])
                             xVar = names(predictorMatrix)[2][k]
                             kVS = findfirst(visitSequence .== xVar)
-                            replacements = Vector{Union{Missing, nonmissingtype(eltype(X[:, xVar]))}}(missing, size(X, 1))
-                            counter = 1
-                            for z in axes(X, 1)
-                                if ismissing(X[z, xVar])
-                                    replacements[z] = imputations[kVS][counter, j]
-                                    counter += 1
-                                end
+                            if any(ismissing.(X[:, xVar]))
+                                X[ismissing.(X[:, xVar]) .== 1, xVar] = imputations[kVS][:, j]
                             end
-                            X[:, xVar] = coalesce.(X[:, xVar], replacements)
                         end
-                                        
-                        imputations[i][:, j] = pmmImpute(y, X, 5)
+                        imputations[i][:, j] = pmmImpute(y, X, 5, 1e-5)
                     
                         plottingData = deepcopy(data[:, yVar])
                         plottingData[ismissing.(plottingData) .== 1] = imputations[i][:, j]
                     
                         if plottingData isa CategoricalArray || nonmissingtype(eltype(plottingData)) <: AbstractString
-                            mapping = Dict(levels(plottingData)[i] => i for i in eachindex(levels(plottingData)))
+                            mapping = Dict(levels(plottingData)[i] => i-1 for i in eachindex(levels(plottingData)))
                             plottingData = [mapping[v] for v in plottingData]
                         end
                     
                         meanTraces[i][iterCounter, j] = mean(plottingData)
                         varTraces[i][iterCounter, j] = var(plottingData)
-
                         if(progressReports)
                             progress = ((iterCounter - 1)/iter + ((i-1)/length(visitSequence))/iter + (j/m)/length(visitSequence)/iter) * 100
                             miceEmojis = string(repeat("🐁", floor(Int8, progress/10)), repeat("🐭", ceil(Int8, (100 - progress)/10)))
