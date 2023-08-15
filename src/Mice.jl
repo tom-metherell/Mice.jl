@@ -1,7 +1,7 @@
 module Mice
 
     # Dependencies
-    using CategoricalArrays, DataFrames, Distributions, LinearAlgebra, NamedArrays, Plots, Random, StatsBase, Statistics
+    using CategoricalArrays, DataFrames, Distributions, LinearAlgebra, NamedArrays, Plots, Printf, Random, StatsBase, Statistics
 
     # All functions except the main 'mice' function are defined in this file
     include("micehelperfunctions.jl")
@@ -73,6 +73,8 @@ The default is to use all other variables as predictors for each variable.
 Any variable not predicting another variable can be marked as such in the matrix using a 0.
 
 The number of iterations is specified by `iter`.
+
+If `progressReports` is `true`, a progress indicator will be displayed in the console.
 """
     function mice(
         data::DataFrame;
@@ -81,6 +83,7 @@ The number of iterations is specified by `iter`.
         methods = nothing,
         predictorMatrix = nothing,
         iter::Int = 10,
+        progressReports::Bool = true,
         args...
         )
 
@@ -96,28 +99,31 @@ The number of iterations is specified by `iter`.
             predictorMatrix = makePredictorMatrix(data)
         end
 
-        select!(data, visitSequence)
-
         imputations = initialiseImputations(data, m, visitSequence, methods)
 
         meanTraces = initialiseTraces(visitSequence, iter, m)
         varTraces = initialiseTraces(visitSequence, iter, m)
 
+        if(progressReports)
+            @printf "======= MICE progress =======\n"
+        end
+
         for iterCounter in 1:iter
             for i in eachindex(visitSequence)
                 yVar = visitSequence[i]
                 y = data[:, yVar]
-                X = data[:, predictorMatrix[yVar, :]]
+                X = data[:, predictorMatrix[:, yVar]]
 
                 if methods[yVar] == "pmm" && any(ismissing.(y))
                     for j in 1:m
-                        for k in findall(predictorMatrix[yVar, :])      
-                            xVar = visitSequence[k]
+                        for k in findall(predictorMatrix[:, yVar])
+                            xVar = names(predictorMatrix)[2][k]
+                            kVS = findfirst(visitSequence .== xVar)
                             replacements = Vector{Union{Missing, nonmissingtype(eltype(X[:, xVar]))}}(missing, size(X, 1))
                             counter = 1
                             for z in axes(X, 1)
                                 if ismissing(X[z, xVar])
-                                    replacements[z] = imputations[k][counter, j]
+                                    replacements[z] = imputations[kVS][counter, j]
                                     counter += 1
                                 end
                             end
@@ -129,16 +135,26 @@ The number of iterations is specified by `iter`.
                         plottingData = deepcopy(data[:, yVar])
                         plottingData[ismissing.(plottingData) .== 1] = imputations[i][:, j]
                     
-                        if plottingData isa CategoricalArray
+                        if plottingData isa CategoricalArray || nonmissingtype(eltype(plottingData)) <: AbstractString
                             mapping = Dict(levels(plottingData)[i] => i for i in eachindex(levels(plottingData)))
                             plottingData = [mapping[v] for v in plottingData]
                         end
                     
                         meanTraces[i][iterCounter, j] = mean(plottingData)
                         varTraces[i][iterCounter, j] = var(plottingData)
+
+                        if(progressReports)
+                            progress = ((iterCounter - 1)/iter + ((i-1)/length(visitSequence))/iter + (j/m)/length(visitSequence)/iter) * 100
+                            miceEmojis = string(repeat("🐁", floor(Int8, progress/10)), repeat("🐭", ceil(Int8, (100 - progress)/10)))
+                            @printf "\33[2KIteration:  %u / %u\n\33[2KVariable:   %u / %u (%s)\n\33[2KImputation: %u / %u\n\33[2K%s   %.1f %%\n=============================\u1b[A\u1b[A\u1b[A\u1b[A\r" iterCounter iter i length(visitSequence) yVar j m miceEmojis progress
+                        end
                     end
                 end
             end
+        end
+
+        if(progressReports)
+            @printf "\u1b[A\33[2K"
         end
 
         midsObj = Mids(
@@ -159,17 +175,29 @@ The number of iterations is specified by `iter`.
     import Plots.plot
 
     function plot(
-        mids::Mids
+        mids::Mids,
+        var::String
         )
 
-        plot_grid = plot(layout = (length(mids.meanTraces), 2), legend = false, size = (1200, 400*length(mids.meanTraces)))
+        var_no = findfirst(mids.visitSequence .== var)
 
-        for i in eachindex(mids.meanTraces)
-            plot!(plot_grid[i, 1], mids.meanTraces[i], xlabel = "Iteration", ylabel = "Mean")
-            plot!(plot_grid[i, 2], mids.varTraces[i], xlabel = "Iteration", ylabel = "Variance")
-        end
+        a = plot(mids.meanTraces[var_no], xlabel = "Iteration", ylabel = "Mean")
+        b = plot(mids.varTraces[var_no], xlabel = "Iteration", ylabel = "Variance")
 
-        return plot_grid
+        plot(a, b, layout = (1, 2), legend = false, title = var)
+    end
+
+    function plot(
+        mids::Mids,
+        var_no::Int
+        )
+
+        var = mids.visitSequence[var_no]
+
+        a = plot(mids.meanTraces[var_no], xlabel = "Iteration", ylabel = "Mean")
+        b = plot(mids.varTraces[var_no], xlabel = "Iteration", ylabel = "Variance")
+
+        plot(a, b, layout = (1, 2), legend = false, title = var)
     end
 
     export Mids, mice, plot

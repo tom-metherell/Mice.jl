@@ -93,7 +93,7 @@ function pmmImpute(
     )
 
     for z in axes(X, 2)
-        if X[:, z] isa CategoricalArray
+        if X[:, z] isa CategoricalArray || nonmissingtype(eltype(X[:, z])) <: AbstractString
             name = names(X)[z]
             xArray = deepcopy(X[:, z])
             select!(X, Not(z))
@@ -106,16 +106,23 @@ function pmmImpute(
 
     Xₒ = X[ismissing.(y) .== 0, :]
     Xₘ = X[ismissing.(y) .== 1, :]
-    yₒ = y[ismissing.(y) .== 0]
 
-    β̂, β̇ = Mice.blrDraw(yₒ, Xₒ, 0.0001)
+    if nonmissingtype(eltype(y)) <: AbstractString
+        yₒ = y[ismissing.(y) .== 0]
+        mapping = Dict(levels(yₒ)[i] => i for i in eachindex(levels(yₒ)))
+        yₒ = [mapping[v] for v in yₒ]
+    else
+        yₒ = y[ismissing.(y) .== 0]
+    end
+
+    β̂, β̇ = blrDraw(yₒ, Xₒ, 0.0001)
 
     ŷₒ = Xₒ * β̂
     ẏₘ = Xₘ * β̇
 
     indices = matchIndex(ŷₒ, ẏₘ, donors)
 
-    return yₒ[indices]    
+    return y[ismissing.(y) .== 0][indices]    
 end
 
 function pmmImpute(
@@ -125,7 +132,7 @@ function pmmImpute(
     )
 
     for z in axes(X, 2)
-        if X[:, z] isa CategoricalArray
+        if X[:, z] isa CategoricalArray || nonmissingtype(eltype(X[:, z])) <: AbstractString
             name = names(X)[z]
             xArray = deepcopy(X[:, z])
             select!(X, Not(z))
@@ -143,7 +150,7 @@ function pmmImpute(
     mapping = Dict(levels(yₒ)[i] => i for i in eachindex(levels(yₒ)))
     yₒ = [mapping[v] for v in yₒ]
 
-    β̂, β̇ = blrDraw(yₒ, Xₒ, 0.0001)
+    β̂, β̇ = blrDraw(yₒ, Xₒ, 0.00001)
 
     ŷₒ = Xₒ * β̂
     ẏₘ = Xₘ * β̇
