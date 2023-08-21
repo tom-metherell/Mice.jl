@@ -38,34 +38,31 @@ end
 function initialiseImputations(
     data::DataFrame,
     m::Int,
-    visitSequence::AbstractVector,
-    methods::AbstractVector
+    visitSequence::Vector{String},
+    methods::Vector{String}
     )
 
     imputations = Vector{Matrix}(undef, ncol(data))
 
-    presentData = ismissing.(data) .== 0
-
     for i in eachindex(visitSequence)
         yVar = visitSequence[i]
         if methods[yVar] != ""
-            relevantData = data[:, yVar]
-            presentLocations = BitVector(presentData[:, yVar])
-            presentDataCount = sum(presentLocations)
-            missingDataCount = sum(.!presentLocations)
+            y = data[:, yVar]
+            yMissings = ismissing.(data[:, yVar])
+            missingDataCount = sum(yMissings)
             imputations[i] = Matrix{nonmissingtype(eltype(relevantData))}(undef, missingDataCount, m)
-            if sum(presentLocations) > 0
+            if !all(yMissings)
                 for j in 1:m
-                    imputations[i][:, j] = sample(relevantData[presentLocations], missingDataCount)
+                    imputations[i][:, j] = sample(y[.!yMissings], missingDataCount)
                 end
             else
-                if relevantData isa CategoricalArray
+                if y isa CategoricalArray
                     for j in 1:m
-                        imputations[i][:, j] = CategoricalArray{nonmissingtype(eltype(relevantData))}(sample(levels(relevantData), presentDataCount))
+                        imputations[i][:, j] = CategoricalArray{nonmissingtype(eltype(relevantData))}(sample(levels(y), length(y)))
                     end
                 else
                     for j in 1:m
-                        imputations[i][:, j] .= randn(presentDataCount)
+                        imputations[i][:, j] .= randn(length(y))
                     end
                 end
             end
@@ -76,7 +73,7 @@ function initialiseImputations(
 end
 
 function initialiseTraces(
-    visitSequence::AbstractVector,
+    visitSequence::Vector{String},
     iter::Int,
     m::Int
     )
@@ -86,74 +83,139 @@ function initialiseTraces(
     return traces
 end
 
-function removeLinDeps(
-    X::DataFrame,
-    y::AbstractVector
-)
+function sampler!(
+    imputations::Vector{Matrix},
+    meanTraces::Vector{Matrix{AbstractFloat}},
+    varTraces::Vector{Matrix{AbstractFloat}},
+    data::DataFrame,
+    m::Int,
+    methods::Vector{String},
+    predictorMatrix::Matrix{Bool},
+    iterCounter::Int,
+    i::Int;
+    kwargs...
+    )
 
-    Xₒ = Matrix(X[ismissing.(y) .== 0, :])
-    yₒ = y[ismissing.(y) .== 0]
+    yVar = visitSequence[i]
+    y = data[:, yVar]
+    predictorVector = predictorMatrix[:, yVar]
+    predictors = names(predictorMatrix)[2][predictorVector]
+    if length(predictors) > 0
+        X = data[:, predictors]
+        pacify!(X, predictors)
+        if methods[yVar] == "pmm" && any(ismissing.(y))
+            for j in 1:m
+                fillXMissings!(X, predictors, visitSequence, imputations, j)
+                
+                imputedData = pmmImpute(y, X, 5, 1e-5)
 
-    if !isa(yₒ, CategoricalArray) && var(yₒ) .< 1e-4
-        return nothing
-    end
+                updateTraces!(meanTraces, varTraces, data, yVar, imputedData, i, iterCounter, j)
 
-    keep = Vector{Bool}(undef, size(Xₒ, 2))
-    for i in axes(Xₒ, 2)
-        keep[i] = try
-            var(Xₒ[:, i]) > 1e-4 && cor(Xₒ[:, i], yₒ) < 0.99
-        catch
-            false
+                imputations[i][:, j] = imputedData
+
+                if(progressReports)
+                    progress = ((iterCounter - 1)/iter + ((i-1)/length(visitSequence))/iter + (j/m)/length(visitSequence)/iter) * 100
+                    miceEmojis = string(repeat("🐁", floor(Int8, progress/10)), repeat("🐭", ceil(Int8, (100 - progress)/10)))
+                    @printf "\33[2KIteration:  %u / %u\n\33[2KVariable:   %u / %u (%s)\n\33[2KImputation: %u / %u\n\33[2K%s   %.1f %%\n=============================\u1b[A\u1b[A\u1b[A\u1b[A\r" iterCounter iter i length(visitSequence) yVar j m miceEmojis progress
+                end
+            end
         end
     end
+end
 
-    k = sum(keep)
+function pacify!(
+    X::DataFrame,
+    predictors::Vector{String}
+    )
 
-    if k <= 1
-        return X[:, keep]
+    for p in predictors
+        if X[:, p] isa CategoricalArray || nonmissingtype(eltype(X[:, p])) <: AbstractString
+            x = X[:, p]
+            position = findfirst(names(X) .== p)
+            select!(X, Not(p))
+            xLevels = levels(x)
+            [insertcols!(X, position+q-2, p * string(xLevels[q]) => Vector{Float64}(x .== xLevels[q])) for q in eachindex(xLevels)[2:end]]
+        end
+    end
+end
+
+function pacify(y::Vector)
+    yLevels = levels(y)
+    yDummies = Matrix{Float64}(undef, length(y), length(yLevels))
+    for q in eachindex(yLevels)
+        yDummies[:, q] = y .== yLevels[q]
     end
 
-    xCorr = cor(Xₒ[:, keep])
-    eig = eigen(xCorr)
-    while eig.values[k] / eig.values[1] < 1e-4
-        keep[keep][(1:k)[sort(abs(eig.vectors[:, k]), rev = true)[1]]] = false
-        xCorr = xCorr[keep[keep], keep[keep]]
-        k -= 1
-        eig = eigen(xCorr)
+    return yDummies
+end
+
+function pacify(y::CategoricalArray)
+    yLevels = levels(y)
+    yDummies = Matrix{Float64}(undef, length(y), length(yLevels))
+    for q in eachindex(yLevels)
+        yDummies[:, q] = y .== yLevels[q]
     end
 
-    return X[:, keep]
+    return yDummies
+end
+
+function fillXMissings!(
+        X::DataFrame,
+        predictors::Vector{String},
+        visitSequence::Vector{String},
+        imputations::Vector{Matrix},
+        j::Int
+    )
+
+    for k in predictors
+        kVS = findfirst(visitSequence .== k)
+        xMissings = ismissing.(X[:, k])
+        if any(xMissings)
+            X[xMissings, k] = imputations[kVS][:, j]
+        end
+    end
+end
+
+function updateTraces!(
+        meanTraces::Vector{Matrix{AbstractFloat}},
+        varTraces::Vector{Matrix{AbstractFloat}},
+        data::DataFrame,
+        yVar::String,
+        imputedData::Vector,
+        i::Int,
+        iterCounter::Int,
+        j::Int
+    )
+
+    plottingData = deepcopy(data[:, yVar])
+    plottingData[ismissing.(plottingData)] = imputedData
+
+    if plottingData isa CategoricalArray || nonmissingtype(eltype(plottingData)) <: AbstractString
+        mapping = Dict(levels(plottingData)[i] => i-1 for i in eachindex(levels(plottingData)))
+        plottingData = [mapping[v] for v in plottingData]
+    end
+
+    meanTraces[i][iterCounter, j] = mean(plottingData)
+    varTraces[i][iterCounter, j] = var(plottingData)
 end
 
 function pmmImpute(
-    y::AbstractVector,
+    y::Vector,
     X::DataFrame,
     donors::Int,
     ridge::AbstractFloat
     )
 
-    for z in axes(X, 2)
-        if X[:, z] isa CategoricalArray || nonmissingtype(eltype(X[:, z])) <: AbstractString
-            name = names(X)[z]
-            xArray = deepcopy(X[:, z])
-            select!(X, Not(z))
-            xMapping = Dict(levels(xArray)[j] => j for j in eachindex(levels(xArray)))
-            insertcols!(X, z, name => Vector{Int64}([xMapping[v] for v in xArray]))
-        end
-    end
+    yMissings = ismissing.(y)
 
-    X = hcat(repeat([1], size(X, 1)), Matrix(X))
-
-    Xₒ = X[ismissing.(y) .== 0, :]
-    Xₘ = X[ismissing.(y) .== 1, :]
+    Xₒ = Matrix{Float64}(hcat(repeat[1], sum(.!yMissings), X[.!yMissings, :]))
+    Xₘ = Matrix{Float64}(hcat(repeat[1], sum(yMissings), X[yMissings, :]))
 
     if nonmissingtype(eltype(y)) <: AbstractString
-        yₒ = y[ismissing.(y) .== 0]
-        mapping = Dict(levels(yₒ)[i] => i-1 for i in eachindex(levels(yₒ)))
-        yₒ = [mapping[v] for v in yₒ]
-        println(mapping)
+        yₒ = y[.!yMissings]
+        quantify!(yₒ, Xₒ)
     else
-        yₒ = y[ismissing.(y) .== 0]
+        yₒ = y[.!yMissings]
     end
 
     β̂, β̇ = blrDraw(yₒ, Xₒ, ridge)
@@ -163,7 +225,7 @@ function pmmImpute(
 
     indices = matchIndex(ŷₒ, ẏₘ, donors)
 
-    return y[ismissing.(y) .== 0][indices]    
+    return y[.!yMissings][indices]    
 end
 
 function pmmImpute(
@@ -173,25 +235,13 @@ function pmmImpute(
     ridge::AbstractFloat
     )
 
-    for z in axes(X, 2)
-        if X[:, z] isa CategoricalArray || nonmissingtype(eltype(X[:, z])) <: AbstractString
-            name = names(X)[z]
-            xArray = deepcopy(X[:, z])
-            select!(X, Not(z))
-            xMapping = Dict(levels(xArray)[j] => j for j in eachindex(levels(xArray)))
-            insertcols!(X, z, name => Vector{Int}([xMapping[v] for v in xArray]))
-        end
-    end
+    yMissings = ismissing.(y)
 
-    X = hcat(repeat([1], size(X, 1)), Matrix(X))
+    Xₒ = Matrix{Float64}(hcat(repeat[1], sum(.!yMissings), X[.!yMissings, :]))
+    Xₘ = Matrix{Float64}(hcat(repeat[1], sum(yMissings), X[yMissings, :]))
 
-    Xₒ = X[ismissing.(y) .== 0, :]
-    Xₘ = X[ismissing.(y) .== 1, :]
-
-    yₒ = y[ismissing.(y) .== 0]
-    mapping = Dict(levels(yₒ)[i] => i-1 for i in eachindex(levels(yₒ)))
-    println(mapping)
-    yₒ = [mapping[v] for v in yₒ]
+    yₒ = y[.!yMissings]
+    quantify!(yₒ, Xₒ)
 
     β̂, β̇ = blrDraw(yₒ, Xₒ, ridge)
 
@@ -200,18 +250,35 @@ function pmmImpute(
 
     indices = matchIndex(ŷₒ, ẏₘ, donors)
 
-    return y[ismissing.(y) .== 0][indices]
+    return y[.!yMissings][indices]
 end
 
+####### QUANTIFY! FUNCTIONS NOT WORKING!!!!!!!
+
+function quantify!(
+    yₒ::Vector,
+    Xₒ::Matrix
+    )
+
+    yDummies = pacify(yₒ)
+    cca = fit(CCA, transpose(Xₒ), transpose(yDummies))
+    yₒ = 
+
+function quantify!(
+    yₒ::CategoricalArray,
+    Xₒ::Matrix
+    )
+
+    yDummies = pacify(yₒ)
+    cca = fit(CCA, Xₒ, yDummies)
+
 function blrDraw(
-    yₒ,
-    Xₒ, 
+    yₒ::Vector,
+    Xₒ::Matrix, 
     κ::AbstractFloat
     )
 
-    df = max(length(yₒ) - size(Xₒ, 2), 1)
-
-    β̂ = Xₒ \ yₒ
+    β̂ = Xₒ \ yₒ 
     R = qr(Xₒ).R
 
     V = try
@@ -221,11 +288,8 @@ function blrDraw(
         inv(S + diagm(diag(S)) * κ)
     end
 
-    ġ = rand(Chisq(df))
-    σ̇ = sqrt(sum((yₒ - Xₒ * β̂).^2)) / ġ
-    ż = randn(size(Xₒ, 2))
-    sqrtV = cholesky((V + transpose(V)) / 2).factors
-    β̇ = β̂ + σ̇ * sqrtV * ż 
+    σ̇ = sqrt(sum((yₒ - Xₒ * β̂).^2)) / rand(Chisq(max(length(yₒ) - size(Xₒ, 2), 1)))
+    β̇ = β̂ + σ̇ * cholesky((V + transpose(V)) / 2).factors * randn(size(Xₒ, 2))
 
     return β̂, β̇
 end
@@ -297,4 +361,4 @@ function matchIndex(
     return indices
 end
 
-export makeMonotoneSequence, makeMethods, makePredictorMatrix, initialiseImputations, pmmImpute, blrDraw, matchIndex
+export makeMonotoneSequence, makeMethods, makePredictorMatrix, initialiseImputations, sampler!

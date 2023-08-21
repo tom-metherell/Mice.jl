@@ -1,9 +1,9 @@
 module Mice
 
     # Dependencies
-    using CategoricalArrays, DataFrames, Distributions, LinearAlgebra, NamedArrays, Plots, Printf, Random, StatsBase, Statistics
+    using CategoricalArrays, DataFrames, Distributions, LinearAlgebra, MultivariateStats, NamedArrays, Plots, Printf, Random, StatsBase, Statistics
 
-    # All functions except the main 'mice' function are defined in this file
+    # Helper functions
     include("micehelperfunctions.jl")
 
 """
@@ -49,7 +49,7 @@ The variance of each variable across the imputations is stored as `varTraces`.
         methods = nothing,
         predictorMatrix = nothing,
         iter::Int = 10,
-        args...
+        kwargs...
     )
 
 Imputes missing values in a dataset using the MICE algorithm. 
@@ -84,7 +84,7 @@ If `progressReports` is `true`, a progress indicator will be displayed in the co
         predictorMatrix = nothing,
         iter::Int = 10,
         progressReports::Bool = true,
-        args...
+        kwargs...
         )
 
         if visitSequence === "monotone"
@@ -108,43 +108,8 @@ If `progressReports` is `true`, a progress indicator will be displayed in the co
             @printf "======= MICE progress =======\n"
         end
 
-        for iterCounter in 1:iter
-            for i in eachindex(visitSequence)
-                yVar = visitSequence[i]
-                y = data[:, yVar]
-                X = data[:, predictorMatrix[:, yVar]]
-
-                X = removeLinDeps(X, y)
-
-                if methods[yVar] == "pmm" && any(ismissing.(y)) && !isnothing(X) && size(X, 2) > 0
-                    for j in 1:m
-                        for k in findall(predictorMatrix[:, yVar])
-                            xVar = names(predictorMatrix)[2][k]
-                            kVS = findfirst(visitSequence .== xVar)
-                            if any(ismissing.(X[:, xVar]))
-                                X[ismissing.(X[:, xVar]) .== 1, xVar] = imputations[kVS][:, j]
-                            end
-                        end
-                        imputations[i][:, j] = pmmImpute(y, X, 5, 1e-5)
-                    
-                        plottingData = deepcopy(data[:, yVar])
-                        plottingData[ismissing.(plottingData) .== 1] = imputations[i][:, j]
-                    
-                        if plottingData isa CategoricalArray || nonmissingtype(eltype(plottingData)) <: AbstractString
-                            mapping = Dict(levels(plottingData)[i] => i-1 for i in eachindex(levels(plottingData)))
-                            plottingData = [mapping[v] for v in plottingData]
-                        end
-                    
-                        meanTraces[i][iterCounter, j] = mean(plottingData)
-                        varTraces[i][iterCounter, j] = var(plottingData)
-                        if(progressReports)
-                            progress = ((iterCounter - 1)/iter + ((i-1)/length(visitSequence))/iter + (j/m)/length(visitSequence)/iter) * 100
-                            miceEmojis = string(repeat("🐁", floor(Int8, progress/10)), repeat("🐭", ceil(Int8, (100 - progress)/10)))
-                            @printf "\33[2KIteration:  %u / %u\n\33[2KVariable:   %u / %u (%s)\n\33[2KImputation: %u / %u\n\33[2K%s   %.1f %%\n=============================\u1b[A\u1b[A\u1b[A\u1b[A\r" iterCounter iter i length(visitSequence) yVar j m miceEmojis progress
-                        end
-                    end
-                end
-            end
+        for iterCounter in 1:iter, i in eachindex(visitSequence)
+            sampler!(imputations, meanTraces, varTraces, data, m, methods, predictorMatrix, iterCounter, i)
         end
 
         if(progressReports)
