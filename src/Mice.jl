@@ -1,7 +1,7 @@
 module Mice
 
     # Dependencies
-    using CategoricalArrays, DataFrames, Distributions, LinearAlgebra, NamedArrays, Plots, Printf, Random, StatsBase, Statistics
+    using CategoricalArrays, DataFrames, Distributions, LinearAlgebra, NamedArrays, Plots, Printf, Random, Statistics, StatsBase, StatsModels
 
     # Helper functions
     include("micehelperfunctions.jl")
@@ -46,9 +46,9 @@ module Mice
         mice(
             data::DataFrame;
             m::Int = 5,
-            visitSequence = nothing,
-            methods = nothing,
-            predictorMatrix = nothing,
+            visitSequence::Union{Vector{String}, Nothing} = nothing,
+            methods::Union{NamedVector{String}, Nothing} = nothing,
+            predictorMatrix::Union{NamedMatrix{Bool}, Nothing} = nothing,
             iter::Int = 10,
             progressReports::Bool = true,
             kwargs...
@@ -81,9 +81,9 @@ module Mice
     function mice(
         data::DataFrame;
         m::Int = 5,
-        visitSequence = nothing,
-        methods = nothing,
-        predictorMatrix = nothing,
+        visitSequence::Union{Vector{String}, Nothing} = nothing,
+        methods::Union{NamedVector{String}, Nothing} = nothing,
+        predictorMatrix::Union{NamedMatrix{Bool}, Nothing} = nothing,
         iter::Int = 10,
         progressReports::Bool = true,
         kwargs...

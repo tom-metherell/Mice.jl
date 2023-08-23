@@ -107,11 +107,10 @@ function sampler!(
     if length(predictors) > 0
         if methods[yVar] == "pmm" && any(ismissing.(y))
             for j in 1:m
-                @printf "%u %u %u" iterCounter i j
                 X = data[:, predictors]
                 origNCol = size(X, 2)
                 fillXMissings!(X, predictors, visitSequence, imputations, j)
-                pacify!(X, predictors)
+                X = pacify(X, predictors)
                 removeLinDeps!(X, y)
 
                 if size(X, 2) > 0
@@ -159,20 +158,50 @@ function fillXMissings!(
     end
 end
 
-function pacify!(
+function pacify(
     X::DataFrame,
     predictors::Vector{String}
     )
 
-    for p in predictors
-        if X[:, p] isa CategoricalArray || nonmissingtype(eltype(X[:, p])) <: AbstractString
-            x = X[:, p]
-            position = findfirst(names(X) .== p)
-            select!(X, Not(p))
-            xLevels = levels(x)
-            [insertcols!(X, position+q-1, p * string(xLevels[q]) => Vector{Float64}(x .== xLevels[q])) for q in eachindex(xLevels)]
+    categoricalPredictors = Vector{String}([])
+
+    for xVar in predictors
+        x = X[:, xVar]
+        if x isa CategoricalArray || nonmissingtype(eltype(x)) <: AbstractString
+            if length(levels(x)) > 2
+                push!(categoricalPredictors, xVar)
+            end
+        elseif nonmissingtype(eltype(x)) <: Real
+            X[!, xVar] = convert.(Float64, X[:, xVar])
+            X[:, xVar] = standardize(UnitRangeTransform, X[:, xVar])
         end
     end
+
+    mf = ModelFrame(StatsModels.term(0) ~ sum(StatsModels.term.(predictors)), X)
+    setcontrasts!(mf, Dict([Symbol(xVar) => PolynomialCoding() for xVar in categoricalPredictors]))
+
+    X = ModelMatrix(mf).m[:, 2:end]
+
+    return X
+end
+
+mutable struct PolynomialCoding <: AbstractContrasts
+end
+
+import StatsModels.contrasts_matrix
+
+function contrasts_matrix(C::PolynomialCoding, _, n)
+    X = reduce(hcat, [((1:n) .- mean(1:n)) .^ i for i in 0:n-1])
+    qrX = qr(X)
+    Z = qrX.Q * Diagonal(qrX.R)
+    for i in axes(Z, 2)
+        Z[:, i] = Z[:, i] ./ sqrt(sum(Z[:, i].^2))
+    end
+    return Z[:, 2:end]
+end
+
+function termnames(C::PolynomialCoding, levels, _)
+    return Vector{String}([".^$i" for i in 1:length(levels)])
 end
 
 function pacify(y::Union{Vector, CategoricalArray})
@@ -186,7 +215,7 @@ function pacify(y::Union{Vector, CategoricalArray})
 end
 
 function removeLinDeps!(
-    X::DataFrame,
+    X::Matrix{Float64},
     y::Union{Vector, CategoricalArray}
     )
 
@@ -263,7 +292,7 @@ end
 
 function pmmImpute!(
     y::Vector,
-    X::DataFrame,
+    X::Matrix{Float64},
     donors::Int,
     ridge::Float64,
     yVar::String,
@@ -295,7 +324,7 @@ end
 
 function pmmImpute!(
     y::CategoricalArray,
-    X::DataFrame,
+    X::Matrix{Float64},
     donors::Int,
     ridge::Float64,
     yVar::String,
