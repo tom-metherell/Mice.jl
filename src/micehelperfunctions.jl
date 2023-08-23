@@ -6,8 +6,8 @@ function makeMonotoneSequence(data::DataFrame)
         missingness[i] = sum(ismissing.(data[:, i]))
     end
 
-    # Sort the missingness vector in descending order
-    missingness = sortperm(missingness, rev = true)
+    # Sort the missingness vector in ascending order
+    missingness = sortperm(missingness)
 
     # Sort the data frame names vector by missingness
     visitSequence = names(data)[missingness]
@@ -39,7 +39,7 @@ function initialiseImputations(
     data::DataFrame,
     m::Int,
     visitSequence::Vector{String},
-    methods::Vector{String}
+    methods::NamedVector{String}
     )
 
     imputations = Vector{Matrix}(undef, ncol(data))
@@ -50,7 +50,7 @@ function initialiseImputations(
             y = data[:, yVar]
             yMissings = ismissing.(data[:, yVar])
             missingDataCount = sum(yMissings)
-            imputations[i] = Matrix{nonmissingtype(eltype(relevantData))}(undef, missingDataCount, m)
+            imputations[i] = Matrix{nonmissingtype(eltype(y))}(undef, missingDataCount, m)
             if !all(yMissings)
                 for j in 1:m
                     imputations[i][:, j] = sample(y[.!yMissings], missingDataCount)
@@ -58,7 +58,7 @@ function initialiseImputations(
             else
                 if y isa CategoricalArray
                     for j in 1:m
-                        imputations[i][:, j] = CategoricalArray{nonmissingtype(eltype(relevantData))}(sample(levels(y), length(y)))
+                        imputations[i][:, j] = CategoricalArray{nonmissingtype(eltype(y))}(sample(levels(y), length(y)))
                     end
                 else
                     for j in 1:m
@@ -78,36 +78,52 @@ function initialiseTraces(
     m::Int
     )
 
-    traces = [Matrix{AbstractFloat}(undef, iter, m) for _ = eachindex(visitSequence)]
+    traces = [Matrix{Float64}(undef, iter, m) for _ = eachindex(visitSequence)]
 
     return traces
 end
 
 function sampler!(
     imputations::Vector{Matrix},
-    meanTraces::Vector{Matrix{AbstractFloat}},
-    varTraces::Vector{Matrix{AbstractFloat}},
+    meanTraces::Vector{Matrix{Float64}},
+    varTraces::Vector{Matrix{Float64}},
     data::DataFrame,
     m::Int,
-    methods::Vector{String},
-    predictorMatrix::Matrix{Bool},
+    visitSequence::Vector{String},
+    methods::NamedVector{String},
+    predictorMatrix::NamedArray{Bool},
+    iter::Int,
     iterCounter::Int,
-    i::Int;
+    i::Int,
+    progressReports::Bool,
+    loggedEvents::Vector{String};
     kwargs...
     )
 
     yVar = visitSequence[i]
     y = data[:, yVar]
     predictorVector = predictorMatrix[:, yVar]
-    predictors = names(predictorMatrix)[2][predictorVector]
+    predictors = names(predictorVector)[1][predictorVector]
     if length(predictors) > 0
-        X = data[:, predictors]
-        pacify!(X, predictors)
         if methods[yVar] == "pmm" && any(ismissing.(y))
             for j in 1:m
+                @printf "%u %u %u" iterCounter i j
+                X = data[:, predictors]
+                origNCol = size(X, 2)
                 fillXMissings!(X, predictors, visitSequence, imputations, j)
-                
-                imputedData = pmmImpute(y, X, 5, 1e-5)
+                pacify!(X, predictors)
+                removeLinDeps!(X, y)
+
+                if size(X, 2) > 0
+                    if size(X, 2) < origNCol
+                        diff = origNCol - size(X, 2)
+                        push!(loggedEvents, "Iteration $iterCounter, variable $yVar, imputation $j: $diff (dummy) predictors were dropped because of high multicollinearity.")
+                    end
+                    imputedData = pmmImpute!(y, X, 5, 1e-5, yVar, iterCounter, j, loggedEvents)
+                else
+                    push!(loggedEvents, "Iteration $iterCounter, variable $yVar, imputation $j: imputation skipped - all predictors dropped because of high multicollinearity.")
+                    imputedData = imputations[i][:, j]
+                end
 
                 updateTraces!(meanTraces, varTraces, data, yVar, imputedData, i, iterCounter, j)
 
@@ -115,10 +131,30 @@ function sampler!(
 
                 if(progressReports)
                     progress = ((iterCounter - 1)/iter + ((i-1)/length(visitSequence))/iter + (j/m)/length(visitSequence)/iter) * 100
-                    miceEmojis = string(repeat("🐁", floor(Int8, progress/10)), repeat("🐭", ceil(Int8, (100 - progress)/10)))
-                    @printf "\33[2KIteration:  %u / %u\n\33[2KVariable:   %u / %u (%s)\n\33[2KImputation: %u / %u\n\33[2K%s   %.1f %%\n=============================\u1b[A\u1b[A\u1b[A\u1b[A\r" iterCounter iter i length(visitSequence) yVar j m miceEmojis progress
+                    progressRound = floor(Int8, progress / 10)
+                    miceEmojis = string(repeat("🐁", progressRound), repeat("🐭", 10 - progressRound))
+                    @printf "\33[2KIteration:  %u / %u\n\33[2KVariable:   %u / %u (%s)\n\33[2KImputation: %u / %u\n\33[2K%s   %.1f %%\n\33[2KLogged events: %u\n=============================\u1b[A\u1b[A\u1b[A\u1b[A\u1b[A\r" iterCounter iter i length(visitSequence) yVar j m miceEmojis progress length(loggedEvents)
                 end
             end
+        else
+            push!(loggedEvents, "Iteration $iterCounter: imputation of variable $yVar was skipped - no missing data or method not supported.")
+        end
+    end
+end
+
+function fillXMissings!(
+    X::DataFrame,
+    predictors::Vector{String},
+    visitSequence::Vector{String},
+    imputations::Vector{Matrix},
+    j::Int
+)
+
+    for k in predictors
+        kVS = findfirst(visitSequence .== k)
+        xMissings = ismissing.(X[:, k])
+        if any(xMissings)
+            X[xMissings, k] = imputations[kVS][:, j]
         end
     end
 end
@@ -134,12 +170,12 @@ function pacify!(
             position = findfirst(names(X) .== p)
             select!(X, Not(p))
             xLevels = levels(x)
-            [insertcols!(X, position+q-2, p * string(xLevels[q]) => Vector{Float64}(x .== xLevels[q])) for q in eachindex(xLevels)[2:end]]
+            [insertcols!(X, position+q-1, p * string(xLevels[q]) => Vector{Float64}(x .== xLevels[q])) for q in eachindex(xLevels)]
         end
     end
 end
 
-function pacify(y::Vector)
+function pacify(y::Union{Vector, CategoricalArray})
     yLevels = levels(y)
     yDummies = Matrix{Float64}(undef, length(y), length(yLevels))
     for q in eachindex(yLevels)
@@ -149,39 +185,65 @@ function pacify(y::Vector)
     return yDummies
 end
 
-function pacify(y::CategoricalArray)
-    yLevels = levels(y)
-    yDummies = Matrix{Float64}(undef, length(y), length(yLevels))
-    for q in eachindex(yLevels)
-        yDummies[:, q] = y .== yLevels[q]
-    end
-
-    return yDummies
-end
-
-function fillXMissings!(
-        X::DataFrame,
-        predictors::Vector{String},
-        visitSequence::Vector{String},
-        imputations::Vector{Matrix},
-        j::Int
+function removeLinDeps!(
+    X::DataFrame,
+    y::Union{Vector, CategoricalArray}
     )
 
-    for k in predictors
-        kVS = findfirst(visitSequence .== k)
-        xMissings = ismissing.(X[:, k])
-        if any(xMissings)
-            X[xMissings, k] = imputations[kVS][:, j]
-        end
+    if all(ismissing.(y))
+        return
     end
+
+    Xₒ = Matrix{Float64}(X[.!ismissing.(y), :])
+    
+    if y isa CategoricalArray || nonmissingtype(eltype(y)) <: AbstractString
+        yₒ = y[.!ismissing.(y)]
+        mapping = Dict(levels(yₒ)[i] => i-1 for i in eachindex(levels(yₒ)))
+        yₒ = Vector{Float64}([mapping[v] for v in yₒ])
+    else
+        yₒ = Vector{Float64}(y[.!ismissing.(y)])
+    end
+
+    if var(yₒ) < 1e-4
+        select!(X, [])
+        return
+    end
+
+    keep = var.(eachcol(Xₒ)) .> 1e-4 .&& cor.(eachcol(Xₒ), [yₒ]) .< 0.99
+
+    keepSum = sum(keep)
+    if keepSum < 2
+        X = X[:, keep]
+        return
+    end
+
+    xCors = cor(Xₒ[:, keep])
+    eigenCors = eigen(xCors)
+
+    eigvalsorder = sortperm(abs.(eigenCors.values), rev = true)
+    sortedeigvals = eigenCors.values[eigvalsorder]
+    sortedeigvecs = eigenCors.vectors[:, eigvalsorder]
+
+    while sortedeigvals[keepSum] / sortedeigvals[1] < 1e-4
+        w = sortperm(abs.(sortedeigvecs[:, keepSum]), rev = true)[1]
+        keep[findall(keep)[w]] = false
+        nxCors = xCors[keep, keep]
+        keepSum -= 1
+        eigenCors = eigen(nxCors)
+        eigvalsorder = sortperm(abs.(eigenCors.values), rev = true)
+        sortedeigvals = eigenCors.values[eigvalsorder]
+        sortedeigvecs = eigenCors.vectors[:, eigvalsorder]
+    end
+
+    X = X[:, keep]
 end
 
 function updateTraces!(
-        meanTraces::Vector{Matrix{AbstractFloat}},
-        varTraces::Vector{Matrix{AbstractFloat}},
+        meanTraces::Vector{Matrix{Float64}},
+        varTraces::Vector{Matrix{Float64}},
         data::DataFrame,
         yVar::String,
-        imputedData::Vector,
+        imputedData::Union{Vector, CategoricalArray},
         i::Int,
         iterCounter::Int,
         j::Int
@@ -199,26 +261,29 @@ function updateTraces!(
     varTraces[i][iterCounter, j] = var(plottingData)
 end
 
-function pmmImpute(
+function pmmImpute!(
     y::Vector,
     X::DataFrame,
     donors::Int,
-    ridge::AbstractFloat
+    ridge::Float64,
+    yVar::String,
+    iterCounter::Int,
+    j::Int,
+    loggedEvents::Vector{String}
     )
 
     yMissings = ismissing.(y)
 
-    Xₒ = Matrix{Float64}(hcat(repeat[1], sum(.!yMissings), X[.!yMissings, :]))
-    Xₘ = Matrix{Float64}(hcat(repeat[1], sum(yMissings), X[yMissings, :]))
+    Xₒ = Matrix{Float64}(hcat(repeat([1], sum(.!yMissings)), X[.!yMissings, :]))
+    Xₘ = Matrix{Float64}(hcat(repeat([1], sum(yMissings)), X[yMissings, :]))
 
     if nonmissingtype(eltype(y)) <: AbstractString
-        yₒ = y[.!yMissings]
-        quantify!(yₒ, Xₒ)
+        yₒ = quantify(y[.!yMissings], Xₒ)
     else
-        yₒ = y[.!yMissings]
+        yₒ = Vector{Float64}(y[.!yMissings])
     end
 
-    β̂, β̇ = blrDraw(yₒ, Xₒ, ridge)
+    β̂, β̇ = blrDraw!(yₒ, Xₒ, ridge, yVar, iterCounter, j, loggedEvents)
 
     ŷₒ = Xₒ * β̂
     ẏₘ = Xₘ * β̇
@@ -228,22 +293,25 @@ function pmmImpute(
     return y[.!yMissings][indices]    
 end
 
-function pmmImpute(
+function pmmImpute!(
     y::CategoricalArray,
     X::DataFrame,
     donors::Int,
-    ridge::AbstractFloat
+    ridge::Float64,
+    yVar::String,
+    iterCounter::Int,
+    j::Int,
+    loggedEvents::Vector{String}
     )
 
     yMissings = ismissing.(y)
 
-    Xₒ = Matrix{Float64}(hcat(repeat[1], sum(.!yMissings), X[.!yMissings, :]))
-    Xₘ = Matrix{Float64}(hcat(repeat[1], sum(yMissings), X[yMissings, :]))
+    Xₒ = Matrix{Float64}(hcat(repeat([1], sum(.!yMissings)), X[.!yMissings, :]))
+    Xₘ = Matrix{Float64}(hcat(repeat([1], sum(yMissings)), X[yMissings, :]))
 
-    yₒ = y[.!yMissings]
-    quantify!(yₒ, Xₒ)
+    yₒ = quantify(y[.!yMissings], Xₒ)
 
-    β̂, β̇ = blrDraw(yₒ, Xₒ, ridge)
+    β̂, β̇ = blrDraw!(yₒ, Xₒ, ridge, yVar, iterCounter, j, loggedEvents)
 
     ŷₒ = Xₒ * β̂
     ẏₘ = Xₘ * β̇
@@ -253,29 +321,44 @@ function pmmImpute(
     return y[.!yMissings][indices]
 end
 
-####### QUANTIFY! FUNCTIONS NOT WORKING!!!!!!!
-
-function quantify!(
-    yₒ::Vector,
-    Xₒ::Matrix
+function quantify(
+    yₒ::Union{Vector{String}, CategoricalArray},
+    Xₒ::Matrix{Float64}
     )
 
     yDummies = pacify(yₒ)
-    cca = fit(CCA, transpose(Xₒ), transpose(yDummies))
-    yₒ = 
+    Ycoef = miceCCA(Xₒ, yDummies)
+    yₒ = Vector{Float64}(zscore(yDummies * Ycoef[:, 2]))
 
-function quantify!(
-    yₒ::CategoricalArray,
-    Xₒ::Matrix
+    return yₒ
+end
+
+function miceCCA(
+    X::Matrix{Float64},
+    Y::Matrix{Float64}
     )
 
-    yDummies = pacify(yₒ)
-    cca = fit(CCA, Xₒ, yDummies)
+    qrX = qr(X)
+    qrY = qr(Y)
+    nr = size(X, 1)
+    dx = rank(X)
+    dy = rank(Y)
 
-function blrDraw(
-    yₒ::Vector,
-    Xₒ::Matrix, 
-    κ::AbstractFloat
+    Z = svd((transpose(qrY.Q) * (qrX.Q * diagm(nr, dx, repeat([1], min(nr, dx)))))[1:dy, :])
+
+    Ycoef = qrY.R \ Z.U
+
+    return Ycoef
+end
+
+function blrDraw!(
+    yₒ::Vector{Float64},
+    Xₒ::Matrix{Float64}, 
+    κ::Float64,
+    yVar::String,
+    iterCounter::Int,
+    j::Int,
+    loggedEvents::Vector{String}
     )
 
     β̂ = Xₒ \ yₒ 
@@ -284,8 +367,9 @@ function blrDraw(
     V = try
         inv(transpose(R) * R)
     catch
+        push!(loggedEvents, "Iteration $iterCounter, variable $yVar, imputation $j: ridge penalty applied (unstable results) - predictors are highly multicollinear.")
         S = transpose(R) * R;
-        inv(S + diagm(diag(S)) * κ)
+        inv(S + Diagonal(S) * κ)
     end
 
     σ̇ = sqrt(sum((yₒ - Xₒ * β̂).^2)) / rand(Chisq(max(length(yₒ) - size(Xₒ, 2), 1)))
@@ -295,8 +379,8 @@ function blrDraw(
 end
 
 function matchIndex(
-    ŷₒ::Vector, 
-    ẏₘ::Vector,
+    ŷₒ::Vector{Float64}, 
+    ẏₘ::Vector{Float64},
     donors::Int
     )
 

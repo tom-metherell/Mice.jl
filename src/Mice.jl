@@ -1,34 +1,34 @@
 module Mice
 
     # Dependencies
-    using CategoricalArrays, DataFrames, Distributions, LinearAlgebra, MultivariateStats, NamedArrays, Plots, Printf, Random, StatsBase, Statistics
+    using CategoricalArrays, DataFrames, Distributions, LinearAlgebra, NamedArrays, Plots, Printf, Random, StatsBase, Statistics
 
     # Helper functions
     include("micehelperfunctions.jl")
 
-"""
-    Mids
+    """
+        Mids
 
-A multiply imputed dataset object.
+    A multiply imputed dataset object.
 
-The data originally supplied are stored as `data`.
+    The data originally supplied are stored as `data`.
 
-The imputed data are stored as `imputations` (one column per imputation).
+    The imputed data are stored as `imputations` (one column per imputation).
 
-The number of imputations is stored as `m`.
+    The number of imputations is stored as `m`.
 
-The imputation method for each variable is stored as `methods`.
+    The imputation method for each variable is stored as `methods`.
 
-The predictor matrix is stored as `predictorMatrix`.
+    The predictor matrix is stored as `predictorMatrix`.
 
-The order in which the variables are imputed is stored as `visitSequence`.
+    The order in which the variables are imputed is stored as `visitSequence`.
 
-The number of iterations is stored as `iter`.
+    The number of iterations is stored as `iter`.
 
-The mean of each variable across the imputations is stored as `meanTraces`.
+    The mean of each variable across the imputations is stored as `meanTraces`.
 
-The variance of each variable across the imputations is stored as `varTraces`.
-"""
+    The variance of each variable across the imputations is stored as `varTraces`.
+    """
     struct Mids
         data::DataFrame
         imputations::Vector{Matrix}
@@ -39,47 +39,49 @@ The variance of each variable across the imputations is stored as `varTraces`.
         iter::Int
         meanTraces::Vector{Matrix}
         varTraces::Vector{Matrix}
+        loggedEvents::Vector{String}
     end
 
-"""
-    mice(
-        data::DataFrame;
-        m::Int = 5,
-        visitSequence = "monotone",
-        methods = nothing,
-        predictorMatrix = nothing,
-        iter::Int = 10,
-        kwargs...
-    )
+    """
+        mice(
+            data::DataFrame;
+            m::Int = 5,
+            visitSequence = nothing,
+            methods = nothing,
+            predictorMatrix = nothing,
+            iter::Int = 10,
+            progressReports::Bool = true,
+            kwargs...
+        )
 
-Imputes missing values in a dataset using the MICE algorithm. 
-Heavily based on the R package `mice` (van Buuren & Groothuis-Oudshoorn, 2011).
+    Imputes missing values in a dataset using the MICE algorithm. 
+    Heavily based on the R package `mice` (van Buuren & Groothuis-Oudshoorn, 2011).
 
-The data containing missing values (`data`) must be supplied as a `DataFrame`.
+    The data containing missing values (`data`) must be supplied as a `DataFrame`.
 
-The number of imputations created is specified by `m`.
+    The number of imputations created is specified by `m`.
 
-The variables will be imputed in the order specified by `visitSequence`. 
-The default is sorted by proportion of missing data in descending order ("monotone"); 
-the order can be customised using a vector of variable names in the desired order.
+    The variables will be imputed in the order specified by `visitSequence`. 
+    The default is sorted by proportion of missing data in ascending order; 
+    the order can be customised using a vector of variable names in the desired order.
 
-The imputation method for each variable is specified by the `NamedArray` `methods`. 
-The default is to use predictive mean matching (`pmm`) for all variables. 
-Currently only `pmm` is supported. 
-Any variable not to be imputed can be marked as such using an empty string ("").
+    The imputation method for each variable is specified by the `NamedArray` `methods`. 
+    The default is to use predictive mean matching (`pmm`) for all variables. 
+    Currently only `pmm` is supported. 
+    Any variable not to be imputed can be marked as such using an empty string ("").
 
-The predictor matrix is specified by the `NamedArray` `predictorMatrix`. 
-The default is to use all other variables as predictors for each variable. 
-Any variable not predicting another variable can be marked as such in the matrix using a 0.
+    The predictor matrix is specified by the `NamedArray` `predictorMatrix`. 
+    The default is to use all other variables as predictors for each variable. 
+    Any variable not predicting another variable can be marked as such in the matrix using a 0.
 
-The number of iterations is specified by `iter`.
+    The number of iterations is specified by `iter`.
 
-If `progressReports` is `true`, a progress indicator will be displayed in the console.
-"""
+    If `progressReports` is `true`, a progress indicator will be displayed in the console.
+    """
     function mice(
         data::DataFrame;
         m::Int = 5,
-        visitSequence = "monotone",
+        visitSequence = nothing,
         methods = nothing,
         predictorMatrix = nothing,
         iter::Int = 10,
@@ -87,7 +89,7 @@ If `progressReports` is `true`, a progress indicator will be displayed in the co
         kwargs...
         )
 
-        if visitSequence === "monotone"
+        if visitSequence === nothing
             visitSequence = makeMonotoneSequence(data)
         end
 
@@ -104,12 +106,14 @@ If `progressReports` is `true`, a progress indicator will be displayed in the co
         meanTraces = initialiseTraces(visitSequence, iter, m)
         varTraces = initialiseTraces(visitSequence, iter, m)
 
+        loggedEvents = Vector{String}([])
+
         if(progressReports)
             @printf "======= MICE progress =======\n"
         end
 
         for iterCounter in 1:iter, i in eachindex(visitSequence)
-            sampler!(imputations, meanTraces, varTraces, data, m, methods, predictorMatrix, iterCounter, i)
+            sampler!(imputations, meanTraces, varTraces, data, m, visitSequence, methods, predictorMatrix, iter, iterCounter, i, progressReports, loggedEvents)
         end
 
         if(progressReports)
@@ -125,7 +129,8 @@ If `progressReports` is `true`, a progress indicator will be displayed in the co
             visitSequence,
             iter,
             meanTraces,
-            varTraces
+            varTraces,
+            loggedEvents
         )
 
         return midsObj
@@ -140,8 +145,8 @@ If `progressReports` is `true`, a progress indicator will be displayed in the co
 
         var_no = findfirst(mids.visitSequence .== var)
 
-        a = plot(mids.meanTraces[var_no], xlabel = "Iteration", ylabel = "Mean")
-        b = plot(mids.varTraces[var_no], xlabel = "Iteration", ylabel = "Variance")
+        a = plot(mids.meanTraces[var_no] / maximum(mids.imputations[var_no]), xlabel = "Iteration", ylabel = "Mean")
+        b = plot(sqrt(mids.varTraces[var_no]) / maximum(mids.imputations[var_no]), xlabel = "Iteration", ylabel = "Standard deviation")
 
         plot(a, b, layout = (1, 2), legend = false, title = var)
     end
@@ -153,8 +158,8 @@ If `progressReports` is `true`, a progress indicator will be displayed in the co
 
         var = mids.visitSequence[var_no]
 
-        a = plot(mids.meanTraces[var_no], xlabel = "Iteration", ylabel = "Mean")
-        b = plot(mids.varTraces[var_no], xlabel = "Iteration", ylabel = "Variance")
+        a = plot(mids.meanTraces[var_no] / maximum(mids.imputations[var_no]), xlabel = "Iteration", ylabel = "Mean")
+        b = plot(sqrt(mids.varTraces[var_no]) / maximum(mids.imputations[var_no]), xlabel = "Iteration", ylabel = "Standard deviation")
 
         plot(a, b, layout = (1, 2), legend = false, title = var)
     end
