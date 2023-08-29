@@ -145,8 +145,8 @@ module Mice
 
         var_no = findfirst(mids.visitSequence .== var)
 
-        a = plot(mids.meanTraces[var_no] / maximum(mids.imputations[var_no]), xlabel = "Iteration", ylabel = "Mean")
-        b = plot(sqrt(mids.varTraces[var_no]) / maximum(mids.imputations[var_no]), xlabel = "Iteration", ylabel = "Standard deviation")
+        a = plot(mids.meanTraces[var_no], xlabel = "Iteration", ylabel = "Mean")
+        b = plot(sqrt.(mids.varTraces[var_no]), xlabel = "Iteration", ylabel = "Standard deviation")
 
         plot(a, b, layout = (1, 2), legend = false, title = var)
     end
@@ -158,8 +158,8 @@ module Mice
 
         var = mids.visitSequence[var_no]
 
-        a = plot(mids.meanTraces[var_no] / maximum(mids.imputations[var_no]), xlabel = "Iteration", ylabel = "Mean")
-        b = plot(sqrt(mids.varTraces[var_no]) / maximum(mids.imputations[var_no]), xlabel = "Iteration", ylabel = "Standard deviation")
+        a = plot(mids.meanTraces[var_no], xlabel = "Iteration", ylabel = "Mean")
+        b = plot(sqrt.(mids.varTraces[var_no]), xlabel = "Iteration", ylabel = "Standard deviation")
 
         plot(a, b, layout = (1, 2), legend = false, title = var)
     end

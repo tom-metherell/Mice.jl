@@ -136,7 +136,13 @@ function sampler!(
                 end
             end
         else
-            push!(loggedEvents, "Iteration $iterCounter: imputation of variable $yVar was skipped - no missing data or method not supported.")
+            if methods[yVar] == ""
+                push!(loggedEvents, "Iteration $iterCounter, variable $yVar: imputation skipped - no method specified.")
+            elseif methods[yVar] != "pmm"
+                push!(loggedEvents, "Iteration $iterCounter, variable $yVar: imputation skipped - method not supported.")
+            else
+                push!(loggedEvents, "Iteration $iterCounter, variable $yVar: imputation skipped - no missing data.")
+            end
         end
     end
 end
@@ -202,7 +208,7 @@ end
 
 import StatsModels.termnames
 
-function termnames(C::PolynomialCoding, levels, _)
+function termnames(C::PolynomialCoding, levels::AbstractVector, _::Integer)
     return Vector{String}([".^$i" for i in 1:length(levels)])
 end
 
