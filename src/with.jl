@@ -3,7 +3,7 @@
         mids::Mids,
         imputation::Union{Int, Nothing} = nothing;
         action::Union{String, Nothing} = nothing
-    )
+        )
 
 Produces (a) DataFrame(s) with missings replaced with multiply imputed values.
 
@@ -25,7 +25,7 @@ function complete(
     mids::Mids,
     imputation::Union{Int, Nothing} = nothing;
     action::Union{String, Nothing} = nothing
-)
+    )
 
     if imputation === nothing && action === nothing
         throw(ArgumentError("Too few arguments."))
@@ -74,7 +74,7 @@ struct Mira(analyses::Vector)
     with(
         mids::Mids,
         functionCall::String
-    )
+        )
 
 Conducts repeated analyses of a multiply imputed dataset (`Mids`).
 
@@ -88,7 +88,7 @@ For example: `with(mids, "lm(@formula(y ~ x1 + x2), data, Bernoulli())")`
 function with(
     mids::Mids, 
     functionCall::String
-)
+    )
 
     analyses = Vector{Any}(undef, mids.m)
 
