@@ -62,7 +62,7 @@ function complete(
 end
 
 """
-    struct Mira(analyses::Vector)
+    Mira(analyses::Vector)
 
 A multiply imputed repeated analyses object.
 
@@ -71,7 +71,7 @@ The analyses are stored as a vector of analyses of individual imputations.
 struct Mira(analyses::Vector)
 
 """
-    function with(
+    with(
         mids::Mids,
         functionCall::String
     )
@@ -89,6 +89,7 @@ function with(
     mids::Mids, 
     functionCall::String
 )
+
     analyses = Vector{Any}(undef, mids.m)
 
     for i in 1:mids.m
