@@ -17,12 +17,16 @@ function complete(
     imputation::Int
     )
 
-    data = mids.data
+    data = deepcopy(mids.data)
 
     for i in eachindex(mids.visitSequence)
-        var = mids.visitSequence[i]
-        data[ismissing.(data[:, var]), var] = data.imputations[i][:, imputation]
+        if isassigned(mids.imputations, i)
+            var = mids.visitSequence[i]
+            data[ismissing.(data[:, var]), var] = mids.imputations[i][:, imputation]
+        end
     end
+
+    return data
 end
 
 """
@@ -50,10 +54,12 @@ function complete(
     else
         data = Vector{DataFrame}(undef, mids.m)
         for i in 1:mids.m
-            data[i] = mids.data
+            data[i] = deepcopy(mids.data)
             for j in eachindex(mids.visitSequence)
-                var = mids.visitSequence[i]
-                data[i][ismissing.(data[:, var]), var] = data.imputations[j][:, i]
+                if isassigned(mids.imputations, j)
+                    var = mids.visitSequence[j]
+                    data[i][ismissing.(data[:, var]), var] = mids.imputations[j][:, i]
+                end
             end
         end
         if action == "list"
@@ -74,7 +80,9 @@ A multiply imputed repeated analyses object.
 
 The analyses are stored as a vector of analyses of individual imputations.
 """
-struct Mira(analyses::Vector)
+struct Mira
+    analyses::Vector
+end
 
 """
     with(
@@ -100,7 +108,7 @@ function with(
 
     for i in 1:mids.m
         data = complete(mids, i)
-        analyses[i] = eval(parse(functionCall))
+        analyses[i] = eval(Meta.parse(functionCall))
     end
 
     mira = Mira(analyses)
