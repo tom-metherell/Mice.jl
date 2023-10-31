@@ -5,6 +5,7 @@ module Mice
 
     # Helper functions
     include("micehelperfunctions.jl")
+    include("with.jl")
 
     """
         Mids

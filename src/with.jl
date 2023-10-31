@@ -58,7 +58,7 @@ function complete(
             for j in eachindex(mids.visitSequence)
                 if isassigned(mids.imputations, j)
                     var = mids.visitSequence[j]
-                    data[i][ismissing.(data[:, var]), var] = mids.imputations[j][:, i]
+                    data[i][ismissing.(data[i][:, var]), var] = mids.imputations[j][:, i]
                 end
             end
         end
@@ -66,7 +66,7 @@ function complete(
             return data
         else
             for i in eachindex(data)
-                insertcols!(data[i], 1, imp => i)
+                insertcols!(data[i], 1, :imp => i)
             end
             return vcat(data...)
         end
@@ -97,22 +97,22 @@ then a function call (`functionCall`) expressed as a string.
 
 The function call should reflect that used to analyse an ordinary DataFrame.
 For the data argument in the function substitute the term `data`.
-For example: `with(mids, "lm(@formula(y ~ x1 + x2), data, Bernoulli())")`
+For example: `with(mids, "lm(@formula(y ~ x1 + x2), data)")`
 """
 function with(
-    mids::Mids, 
+    mids::Mids,
     functionCall::String
     )
 
     analyses = Vector{Any}(undef, mids.m)
+    datalist = complete(mids, "list")
 
-    for i in 1:mids.m
-        data = complete(mids, i)
-        analyses[i] = eval(Meta.parse(functionCall))
+    for i in eachindex(datalist)
+        data = datalist[i]
+        analyses[i] = eval(Expr(:let, :(data = $data), Meta.parse(functionCall)))
     end
 
-    mira = Mira(analyses)
-
-    return mira
+    return Mira(analyses)
 end
-            
+
+export complete, Mira, with
