@@ -27,7 +27,7 @@ Use the `mice()` function to perform multiple imputation on a DataFrame. The out
 ```
 mice(df, m = 5, visitSequence = nothing, methods = nothing, predictorMatrix = nothing, iter = 10, progressReports = true, ...)
 ```
-where
+where:
 
 `df` is the DataFrame.
 
@@ -61,8 +61,7 @@ Use the `with()` function to perform data analysis functions on a `Mids` object.
 ```
 with(mids, function)
 ```
-where
-`mids` is a `Mids` object.
+where `mids` is a `Mids` object.
 
 `function` is a data analysis function. It should take the form `data -> function(arguments, data, moreArguments...)`, where the placeholder `data` (which can take other names if necessary) signifies the position of the data argument in the function.
 
@@ -86,9 +85,7 @@ Use the `pool()` function to pool the parameter estimates from a `Mira` object. 
 ```
 pool(mira)
 ```
-where
-
-`mira` is a `Mira` object.
+where `mira` is a `Mira` object.
 
 #### Example
 ```
