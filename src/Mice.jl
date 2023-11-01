@@ -1,12 +1,10 @@
 module Mice
-
-    # Dependencies
     using CategoricalArrays: CategoricalArray, levels
     using DataFrames: DataFrame
     using Distributions: cdf, Chisq, Normal, TDist
     using LinearAlgebra: cholesky, Diagonal, diagm, eigen, inv, qr, rank, svd
     using NamedArrays: NamedArray, NamedMatrix, NamedVector, setnames!
-    using Plots: plot
+    import Plots: plot
     using Printf: @printf
     using Random: rand, randn
     using Statistics: cor, mean, quantile, var
@@ -50,7 +48,6 @@ module Mice
         loggedEvents::Vector{String}
     end
 
-    # Helper functions
     include("micehelperfunctions.jl")
     include("with.jl")
     include("pool.jl")
@@ -149,7 +146,51 @@ module Mice
         return midsObj
     end
 
-    import Plots.plot
+    function mice(
+        mids::Mids,
+        iter::Int = 10,
+        progressReports::Bool = true,
+        kwargs...
+        )
+
+        data = mids.data
+        imputations = mids.imputations
+        m = mids.m
+        methods = mids.methods
+        predictorMatrix = mids.predictorMatrix
+        visitSequence = mids.visitSequence
+        prevIter = mids.iter
+        meanTraces = mids.meanTraces
+        varTraces = mids.varTraces
+        loggedEvents = mids.loggedEvents
+
+        if(progressReports)
+            @printf "======= MICE progress =======\n"
+        end
+
+        for iterCounter in prevIter+1:prevIter+iter, i in eachindex(visitSequence)
+            sampler!(imputations, meanTraces, varTraces, data, m, visitSequence, methods, predictorMatrix, prevIter+iter, iterCounter, i, progressReports, loggedEvents)
+        end
+
+        if(progressReports)
+            @printf "\u1b[A\33[2K"
+        end
+
+        midsObj = Mids(
+            data,
+            imputations,
+            m,
+            methods,
+            predictorMatrix,
+            visitSequence,
+            prevIter+iter,
+            meanTraces,
+            varTraces,
+            loggedEvents
+        )
+        
+        return midsObj
+    end
 
     function plot(
         mids::Mids,
