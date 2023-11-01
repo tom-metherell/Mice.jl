@@ -183,7 +183,7 @@ function pacify(
         end
     end
 
-    mf = ModelFrame(StatsModels.term(0) ~ sum(StatsModels.term.(predictors)), X)
+    mf = ModelFrame(term(0) ~ sum(term.(predictors)), X)
     # setcontrasts!(mf, Dict([Symbol(xVar) => PolynomialCoding() for xVar in categoricalPredictors]))
 
     X = ModelMatrix(mf).m[:, 2:end]
@@ -206,7 +206,7 @@ end
 #     return Z[:, 2:end]
 # end
 # 
-# import StatsModels.termnames
+# import termnames
 # 
 # function termnames(C::PolynomialCoding, levels::AbstractVector, _::Integer)
 #     return Vector{String}([".^$i" for i in 1:length(levels)])

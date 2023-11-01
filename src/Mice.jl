@@ -1,15 +1,15 @@
 module Mice
     using CategoricalArrays: CategoricalArray, levels
-    using DataFrames: DataFrame
+    using DataFrames: DataFrame, ncol
     using Distributions: cdf, Chisq, Normal, TDist
     using LinearAlgebra: cholesky, Diagonal, diagm, eigen, inv, qr, rank, svd
     using NamedArrays: NamedArray, NamedMatrix, NamedVector, setnames!
     import Plots: plot
     using Printf: @printf
-    using Random: rand, randn
+    using Random: rand, randn, randperm
     using Statistics: cor, mean, quantile, var
     using StatsAPI: coef, coefnames, nobs, stderror
-    using StatsBase: CoefTable, PValue, sample, zscore
+    using StatsBase: CoefTable, PValue, sample, standardize, UnitRangeTransform, zscore
     using StatsModels: ModelFrame, ModelMatrix, term
 
     """
@@ -43,8 +43,8 @@ module Mice
         predictorMatrix::NamedArray
         visitSequence::Vector{String}
         iter::Int
-        meanTraces::Vector{Matrix}
-        varTraces::Vector{Matrix}
+        meanTraces::Vector{Matrix{Float64}}
+        varTraces::Vector{Matrix{Float64}}
         loggedEvents::Vector{String}
     end
 
@@ -124,6 +124,7 @@ module Mice
 
         for iterCounter in 1:iter, i in eachindex(visitSequence)
             sampler!(imputations, meanTraces, varTraces, data, m, visitSequence, methods, predictorMatrix, iter, iterCounter, i, progressReports, loggedEvents)
+            GC.gc()
         end
 
         if(progressReports)
@@ -147,7 +148,7 @@ module Mice
     end
 
     function mice(
-        mids::Mids,
+        mids::Mids;
         iter::Int = 10,
         progressReports::Bool = true,
         kwargs...
@@ -160,20 +161,31 @@ module Mice
         predictorMatrix = mids.predictorMatrix
         visitSequence = mids.visitSequence
         prevIter = mids.iter
-        meanTraces = mids.meanTraces
-        varTraces = mids.varTraces
+        prevMeanTraces = mids.meanTraces
+        prevVarTraces = mids.varTraces
         loggedEvents = mids.loggedEvents
+
+        meanTraces = initialiseTraces(visitSequence, iter+prevIter, m)
+        for w in eachindex(meanTraces)
+            meanTraces[w][1:prevIter, :] = prevMeanTraces[w]
+        end
+
+        varTraces = initialiseTraces(visitSequence, iter+prevIter, m)
+        for w in eachindex(meanTraces)
+            varTraces[w][1:prevIter, :] = prevVarTraces[w]
+        end
 
         if(progressReports)
             @printf "======= MICE progress =======\n"
         end
-
+ 
         for iterCounter in prevIter+1:prevIter+iter, i in eachindex(visitSequence)
             sampler!(imputations, meanTraces, varTraces, data, m, visitSequence, methods, predictorMatrix, prevIter+iter, iterCounter, i, progressReports, loggedEvents)
+            GC.gc()
         end
 
         if(progressReports)
-            @printf "\u1b[A\33[2K"
+            @printf "\u1b[A\33[2K\n\33[2K\n\33[2K\n\33[2K\n\33[2K\n\33[2K\u1b[A\u1b[A\u1b[A\u1b[A\u1b[A\r"
         end
 
         midsObj = Mids(

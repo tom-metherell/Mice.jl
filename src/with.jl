@@ -87,29 +87,28 @@ end
 """
     with(
         mids::Mids,
-        functionCall::String
+        func::Function
         )
 
 Conducts repeated analyses of a multiply imputed dataset (`Mids`).
 
 The function takes two arguments: firstly the `Mids` object itself,
-then a function call (`functionCall`) expressed as a string.
+then a function (`func`). The function should take the form
+`data -> analysisFunction(arguments, data, moreArguments...)`,
+where `data` represents the position of the data argument in the function.
 
-The function call should reflect that used to analyse an ordinary DataFrame.
-For the data argument in the function substitute the term `data`.
-For example: `with(mids, "lm(@formula(y ~ x1 + x2), data)")`
+For example: `with(mids, data -> lm(@formula(y ~ x1 + x2), data))`
 """
 function with(
-    mids::Mids,
-    functionCall::String
+    mids::Mids, 
+    func::Function
     )
-
     analyses = Vector{Any}(undef, mids.m)
     datalist = complete(mids, "list")
 
     for i in eachindex(datalist)
         data = datalist[i]
-        analyses[i] = eval(Expr(:let, :(data = $data), Meta.parse(functionCall)))
+        analyses[i] = func(data)
     end
 
     return Mira(analyses)

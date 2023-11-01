@@ -46,7 +46,7 @@ function pool(
     )
 
     return Mipo(
-        pooledCoefficients.
+        pooledCoefficients,
         coefnames(mira.analyses[1]),
         pooledCoefs,
         pooledStderrors,
