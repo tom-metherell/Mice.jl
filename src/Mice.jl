@@ -1,11 +1,18 @@
 module Mice
 
     # Dependencies
-    using CategoricalArrays, DataFrames, Distributions, LinearAlgebra, NamedArrays, Plots, Printf, Random, Statistics, StatsBase, StatsModels
-
-    # Helper functions
-    include("micehelperfunctions.jl")
-    include("with.jl")
+    using CategoricalArrays: CategoricalArray, levels
+    using DataFrames: DataFrame
+    using Distributions: cdf, Chisq, Normal, TDist
+    using LinearAlgebra: cholesky, Diagonal, diagm, eigen, inv, qr, rank, svd
+    using NamedArrays: NamedArray, NamedMatrix, NamedVector, setnames!
+    using Plots: plot
+    using Printf: @printf
+    using Random: rand, randn
+    using Statistics: cor, mean, quantile, var
+    using StatsAPI: coef, coefnames, nobs, stderror
+    using StatsBase: CoefTable, PValue, sample, zscore
+    using StatsModels: ModelFrame, ModelMatrix, term
 
     """
         Mids
@@ -42,6 +49,11 @@ module Mice
         varTraces::Vector{Matrix}
         loggedEvents::Vector{String}
     end
+
+    # Helper functions
+    include("micehelperfunctions.jl")
+    include("with.jl")
+    include("pool.jl")
 
     """
         mice(
