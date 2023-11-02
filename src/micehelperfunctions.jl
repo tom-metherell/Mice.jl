@@ -212,7 +212,7 @@ end
 #     return Vector{String}([".^$i" for i in 1:length(levels)])
 # end
 
-function pacify(y::Union{Vector, CategoricalArray})
+function pacify(y::AbstractArray)
     yLevels = levels(y)
     yDummies = Matrix{Float64}(undef, length(y), length(yLevels))
     for q in eachindex(yLevels)
