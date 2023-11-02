@@ -18,4 +18,8 @@ using CSV, DataFrames, Mice, Test
     predictorMatrix[:, ["ID", "N_Days"]] .= false
 
     imputedData = mice(data, m = 20, iter = 15)
+
+    imputedDataLong = complete(imputedData, "long")
+
+    @test sum(ismissing.(Matrix(imputedDataLong))) == 0
 end
