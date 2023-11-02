@@ -124,7 +124,6 @@ module Mice
 
         for iterCounter in 1:iter, i in eachindex(visitSequence)
             sampler!(imputations, meanTraces, varTraces, data, m, visitSequence, methods, predictorMatrix, iter, iterCounter, i, progressReports, loggedEvents)
-            GC.gc()
         end
 
         if(progressReports)

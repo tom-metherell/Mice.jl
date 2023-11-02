@@ -17,5 +17,5 @@ using CSV, DataFrames, Mice, Test
     predictorMatrix = makePredictorMatrix(data)
     predictorMatrix[:, ["ID", "N_Days"]] .= false
 
-    imputedData = mice(data)
+    imputedData = mice(data, m = 20, iter = 15)
 end
