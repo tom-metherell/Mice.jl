@@ -7,6 +7,9 @@ using CSV, DataFrames, Mice, Test
     for i in colsWithMissings
         replace!(data[!, i], "NA" => missing)
     end
+    for i in ["Cholesterol", "Copper", "Alk_Phos", "SGOT", "Tryglicerides", "Platelets", "Prothrombin"]
+        data[!, i] = passmissing(x -> parse(Float64, x)).(data[!, i])
+    end
 
     methods = makeMethods(data)
     methods[["ID", "N_Days"]] .= ""

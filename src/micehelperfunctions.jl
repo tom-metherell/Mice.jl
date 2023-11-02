@@ -360,7 +360,7 @@ function pmmImpute!(
 end
 
 function quantify(
-    yₒ::Union{Vector{String}, CategoricalArray},
+    yₒ::AbstractArray,
     Xₒ::Matrix{Float64}
     )
 
