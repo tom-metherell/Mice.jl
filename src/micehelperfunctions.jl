@@ -263,7 +263,7 @@ function removeLinDeps!(
 
     while sortedeigvals[keepSum] / sortedeigvals[1] < 1e-4
         w = sortperm(abs.(sortedeigvecs[:, keepSum]), rev = true)[1]
-        keep[findall(keep)][w] = false
+        keep[findall(keep)[w]] = false
         nxCors = xCors[findall(keep), findall(keep)]
         keepSum -= 1
         eigenCors = eigen(nxCors)
