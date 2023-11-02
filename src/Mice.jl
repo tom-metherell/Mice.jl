@@ -140,7 +140,7 @@ module Mice
         end
 
         if(progressReports)
-            @printf "\u1b[A\33[2K"
+            @printf "\u1b[A\33[2K\n\33[2K\n\33[2K\n\33[2K\n\33[2K\n\33[2K\n\33[2K\u1b[A\u1b[A\u1b[A\u1b[A\u1b[A\u1b[A\r"
         end
 
         midsObj = Mids(
@@ -200,7 +200,7 @@ module Mice
         end
 
         if(progressReports)
-            @printf "\u1b[A\33[2K\n\33[2K\n\33[2K\n\33[2K\n\33[2K\n\33[2K\u1b[A\u1b[A\u1b[A\u1b[A\u1b[A\r"
+            @printf "\u1b[A\33[2K\n\33[2K\n\33[2K\n\33[2K\n\33[2K\n\33[2K\n\33[2K\u1b[A\u1b[A\u1b[A\u1b[A\u1b[A\u1b[A\r"
         end
 
         midsObj = Mids(
