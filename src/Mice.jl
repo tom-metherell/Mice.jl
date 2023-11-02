@@ -61,6 +61,7 @@ module Mice
             predictorMatrix::Union{NamedMatrix{Bool}, Nothing} = nothing,
             iter::Int = 10,
             progressReports::Bool = true,
+            gcSchedule::Float64 = 1,
             kwargs...
         )
 
@@ -82,11 +83,19 @@ module Mice
 
     The predictor matrix is specified by the `NamedArray` `predictorMatrix`. 
     The default is to use all other variables as predictors for each variable. 
-    Any variable not predicting another variable can be marked as such in the matrix using a 0.
+    Any variable not predicting another variable can be marked as such in the matrix
+    using a 0.
 
     The number of iterations is specified by `iter`.
 
     If `progressReports` is `true`, a progress indicator will be displayed in the console.
+
+    `gcSchedule` dictates when the garbage collector will be (additionally) invoked. The 
+    number provided is the fraction of your RAM remaining at which the GC will be called.
+    For small datasets, you may get away with a value of `0` (never called), but for larger
+    datasets, it may be worthwhile to call it more frequently. The default is to call it 
+    after each iteration of each variable (`1`), but this may negatively affect
+    performance if it is not necessary for your dataset.
     """
     function mice(
         data::DataFrame;
@@ -96,6 +105,7 @@ module Mice
         predictorMatrix::Union{NamedMatrix{Bool}, Nothing} = nothing,
         iter::Int = 10,
         progressReports::Bool = true,
+        gcSchedule::Float64 = 1,
         kwargs...
         )
 
@@ -124,7 +134,7 @@ module Mice
 
         for iterCounter in 1:iter, i in eachindex(visitSequence)
             sampler!(imputations, meanTraces, varTraces, data, m, visitSequence, methods, predictorMatrix, iter, iterCounter, i, progressReports, loggedEvents)
-            if(Sys.free_memory()/Sys.total_memory() < 0.2)
+            if(Sys.free_memory()/Sys.total_memory() < gcSchedule)
                 GC.gc()
             end
         end
@@ -153,6 +163,7 @@ module Mice
         mids::Mids;
         iter::Int = 10,
         progressReports::Bool = true,
+        gcSchedule::Float64 = 1,
         kwargs...
         )
 
@@ -183,7 +194,7 @@ module Mice
  
         for iterCounter in prevIter+1:prevIter+iter, i in eachindex(visitSequence)
             sampler!(imputations, meanTraces, varTraces, data, m, visitSequence, methods, predictorMatrix, prevIter+iter, iterCounter, i, progressReports, loggedEvents)
-            if(Sys.free_memory()/Sys.total_memory() < 0.2)
+            if(Sys.free_memory()/Sys.total_memory() < gcSchedule)
                 GC.gc()
             end
         end
