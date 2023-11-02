@@ -281,7 +281,7 @@ function updateTraces!(
         varTraces::Vector{Matrix{Float64}},
         data::DataFrame,
         yVar::String,
-        imputedData::Union{Vector, CategoricalArray},
+        imputedData::AbstractArray,
         i::Int,
         iterCounter::Int,
         j::Int
