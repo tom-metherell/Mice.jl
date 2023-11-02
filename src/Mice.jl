@@ -230,5 +230,5 @@ module Mice
         plot(a, b, layout = (1, 2), legend = false, title = var)
     end
 
-    export Mids, mice, plot
+    export makeMethods, makePredictorMatrix, makeVisitSequence, Mids, mice, plot
 end

@@ -224,7 +224,7 @@ end
 
 function removeLinDeps!(
     X::Matrix{Float64},
-    y::Union{Vector, CategoricalArray}
+    y::AbstractArray
     )
 
     if all(ismissing.(y))
@@ -263,8 +263,8 @@ function removeLinDeps!(
 
     while sortedeigvals[keepSum] / sortedeigvals[1] < 1e-4
         w = sortperm(abs.(sortedeigvecs[:, keepSum]), rev = true)[1]
-        keep[findall(keep)[w]] = false
-        nxCors = xCors[keep, keep]
+        keep[findall(keep)][w] = false
+        nxCors = xCors[findall(keep), findall(keep)]
         keepSum -= 1
         eigenCors = eigen(nxCors)
         eigvalsorder = sortperm(abs.(eigenCors.values), rev = true)
@@ -299,7 +299,7 @@ function updateTraces!(
 end
 
 function pmmImpute!(
-    y::Vector,
+    y::AbstractArray,
     X::Matrix{Float64},
     donors::Int,
     ridge::Float64,
