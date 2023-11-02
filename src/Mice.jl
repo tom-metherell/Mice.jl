@@ -105,7 +105,7 @@ module Mice
         predictorMatrix::Union{NamedMatrix{Bool}, Nothing} = nothing,
         iter::Int = 10,
         progressReports::Bool = true,
-        gcSchedule::Float64 = 1,
+        gcSchedule::Float64 = 1.0,
         kwargs...
         )
 
@@ -163,7 +163,7 @@ module Mice
         mids::Mids;
         iter::Int = 10,
         progressReports::Bool = true,
-        gcSchedule::Float64 = 1,
+        gcSchedule::Float64 = 1.0,
         kwargs...
         )
 
