@@ -124,6 +124,9 @@ module Mice
 
         for iterCounter in 1:iter, i in eachindex(visitSequence)
             sampler!(imputations, meanTraces, varTraces, data, m, visitSequence, methods, predictorMatrix, iter, iterCounter, i, progressReports, loggedEvents)
+            if(Sys.free_memory()/Sys.total_memory() < 0.2)
+                GC.gc()
+            end
         end
 
         if(progressReports)
@@ -180,7 +183,9 @@ module Mice
  
         for iterCounter in prevIter+1:prevIter+iter, i in eachindex(visitSequence)
             sampler!(imputations, meanTraces, varTraces, data, m, visitSequence, methods, predictorMatrix, prevIter+iter, iterCounter, i, progressReports, loggedEvents)
-            GC.gc()
+            if(Sys.free_memory()/Sys.total_memory() < 0.2)
+                GC.gc()
+            end
         end
 
         if(progressReports)
