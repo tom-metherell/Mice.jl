@@ -254,8 +254,9 @@ function removeLinDeps!(
         return
     end
 
-    xCors = cor(Xₒ[:, keep])
-    eigenCors = eigen(xCors)
+    xCors = cor(Xₒ)
+    nxCors = xCors[findall(keep), findall(keep)]
+    eigenCors = eigen(nxCors)
 
     eigvalsorder = sortperm(abs.(eigenCors.values), rev = true)
     sortedeigvals = eigenCors.values[eigvalsorder]
