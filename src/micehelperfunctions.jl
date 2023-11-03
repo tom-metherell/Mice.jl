@@ -184,33 +184,33 @@ function pacify(
     end
 
     mf = ModelFrame(term(0) ~ sum(term.(predictors)), X)
-    # setcontrasts!(mf, Dict([Symbol(xVar) => PolynomialCoding() for xVar in categoricalPredictors]))
+    setcontrasts!(mf, Dict([Symbol(xVar) => PolynomialCoding() for xVar in categoricalPredictors]))
 
     X = ModelMatrix(mf).m[:, 2:end]
 
     return X
 end
 
-# mutable struct PolynomialCoding <: AbstractContrasts
-# end
-# 
-# import StatsModels.contrasts_matrix
-# 
-# function contrasts_matrix(C::PolynomialCoding, _, n)
-#     X = reduce(hcat, [((1:n) .- mean(1:n)) .^ i for i in 0:n-1])
-#     qrX = qr(X)
-#     Z = qrX.Q * Diagonal(qrX.R)
-#     for i in axes(Z, 2)
-#         Z[:, i] = Z[:, i] ./ sqrt(sum(Z[:, i].^2))
-#     end
-#     return Z[:, 2:end]
-# end
-# 
-# import termnames
-# 
-# function termnames(C::PolynomialCoding, levels::AbstractVector, _::Integer)
-#     return Vector{String}([".^$i" for i in 1:length(levels)])
-# end
+mutable struct PolynomialCoding <: AbstractContrasts
+end
+
+import StatsModels.contrasts_matrix
+
+function contrasts_matrix(C::PolynomialCoding, _, n)
+    X = reduce(hcat, [((1:n) .- mean(1:n)) .^ i for i in 0:n-1])
+    qrX = qr(X)
+    Z = qrX.Q * Diagonal(qrX.R)
+    for i in axes(Z, 2)
+        Z[:, i] = Z[:, i] ./ sqrt(sum(Z[:, i].^2))
+    end
+    return Z[:, 2:end]
+end
+
+import termnames
+
+function termnames(C::PolynomialCoding, levels::AbstractVector, _::Integer)
+    return Vector{String}([".^$i" for i in 1:length(levels)])
+end
 
 function pacify(y::AbstractArray)
     yLevels = levels(y)
