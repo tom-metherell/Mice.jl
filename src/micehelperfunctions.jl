@@ -108,9 +108,9 @@ function sampler!(
         if methods[yVar] == "pmm" && any(ismissing.(y))
             for j in 1:m
                 X = data[:, predictors]
-                origNCol = size(X, 2)
                 fillXMissings!(X, predictors, visitSequence, imputations, j)
                 X = pacify(X, predictors)
+                origNCol = size(X, 2)
                 removeLinDeps!(X, y)
 
                 if size(X, 2) > 0
@@ -316,7 +316,9 @@ function pmmImpute!(
     Xₘ = Matrix{Float64}(hcat(repeat([1], sum(yMissings)), X[yMissings, :]))
 
     if nonmissingtype(eltype(y)) <: AbstractString
-        yₒ = quantify(y[.!yMissings], Xₒ)
+        mapping = Dict(levels(y[.!yMissings])[i] => i-1 for i in eachindex(levels(y[.!yMissings])))
+        yₒ = Vector{Float64}([mapping[v] for v in y[.!yMissings]])
+        # yₒ = quantify(y[.!yMissings], Xₒ)
     else
         yₒ = Vector{Float64}(y[.!yMissings])
     end
