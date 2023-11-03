@@ -206,7 +206,7 @@ function contrasts_matrix(C::PolynomialCoding, _, n)
     return Z[:, 2:end]
 end
 
-import termnames
+import StatsModels.termnames
 
 function termnames(C::PolynomialCoding, levels::AbstractVector, _::Integer)
     return Vector{String}([".^$i" for i in 1:length(levels)])
