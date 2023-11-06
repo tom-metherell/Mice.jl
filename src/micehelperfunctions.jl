@@ -100,7 +100,8 @@ function sampler!(
     iterCounter::Int,
     i::Int,
     progressReports::Bool,
-    loggedEvents::Vector{String};
+    loggedEvents::Vector{String},
+    threads::Bool;
     kwargs...
     )
 
