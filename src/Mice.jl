@@ -106,7 +106,7 @@ module Mice
         iter::Int = 10,
         progressReports::Bool = true,
         gcSchedule::Float64 = 1.0,
-        threads = true,
+        threads::Bool = true,
         kwargs...
         )
 
@@ -169,7 +169,7 @@ module Mice
         iter::Int = 10,
         progressReports::Bool = true,
         gcSchedule::Float64 = 1.0,
-        threads = true,
+        threads::Bool = true,
         kwargs...
         )
 

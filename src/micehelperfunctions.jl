@@ -112,7 +112,7 @@ function sampler!(
     if length(predictors) > 0
         if methods[yVar] == "pmm" && any(ismissing.(y))
             if threads
-                lock = ReentrantLock()
+                lk = ReentrantLock()
 
                 Threads.@threads for j in 1:m
                     tempLog = Vector{String}([])
@@ -133,12 +133,13 @@ function sampler!(
                         imputedData = imputations[i][:, j]
                     end
 
-                    lock(lock)
+                    lock(lk)
                     try
                         updateTraces!(meanTraces, varTraces, imputedData, i, iterCounter, j)
                         imputations[i][:, j] = imputedData
+                        append!(loggedEvents, tempLog)
                     finally
-                        unlock(lock)
+                        unlock(lk)
                     end                    
                     
                     if progressReports
