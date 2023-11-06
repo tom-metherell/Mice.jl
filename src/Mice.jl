@@ -11,6 +11,7 @@ module Mice
     using StatsAPI: coef, coefnames, nobs, stderror
     using StatsBase: CoefTable, PValue, sample, standardize, UnitRangeTransform, zscore
     using StatsModels: AbstractContrasts, contrasts_matrix, ModelFrame, ModelMatrix, setcontrasts!, term, termnames
+    using Threads: @threads
 
     """
         Mids
@@ -106,6 +107,7 @@ module Mice
         iter::Int = 10,
         progressReports::Bool = true,
         gcSchedule::Float64 = 1.0,
+        threads = true,
         kwargs...
         )
 
@@ -128,19 +130,23 @@ module Mice
 
         loggedEvents = Vector{String}([])
 
-        if(progressReports)
+        if progressReports
             @printf "======= MICE progress =======\n"
         end
 
         for iterCounter in 1:iter, i in eachindex(visitSequence)
-            sampler!(imputations, meanTraces, varTraces, data, m, visitSequence, methods, predictorMatrix, iter, iterCounter, i, progressReports, loggedEvents)
-            if(Sys.free_memory()/Sys.total_memory() < gcSchedule)
+            sampler!(imputations, meanTraces, varTraces, data, m, visitSequence, methods, predictorMatrix, iter, iterCounter, i, progressReports, loggedEvents, threads)
+            if Sys.free_memory()/Sys.total_memory() < gcSchedule
                 GC.gc()
             end
         end
 
-        if(progressReports)
-            @printf "\u1b[A\33[2K\n\33[2K\n\33[2K\n\33[2K\n\33[2K\n\33[2K\n\33[2K\u1b[A\u1b[A\u1b[A\u1b[A\u1b[A\u1b[A\r"
+        if progressReports
+            if threads
+                @printf "\u1b[A\33[2K\n\33[2K\n\33[2K\n\33[2K\n\33[2K\n\33[2K\u1b[A\u1b[A\u1b[A\u1b[A\u1b[A\r"
+            else
+                @printf "\u1b[A\33[2K\n\33[2K\n\33[2K\n\33[2K\n\33[2K\n\33[2K\n\33[2K\u1b[A\u1b[A\u1b[A\u1b[A\u1b[A\u1b[A\r"
+            end
         end
 
         midsObj = Mids(
@@ -164,6 +170,7 @@ module Mice
         iter::Int = 10,
         progressReports::Bool = true,
         gcSchedule::Float64 = 1.0,
+        threads = true,
         kwargs...
         )
 
@@ -184,22 +191,22 @@ module Mice
         end
 
         varTraces = initialiseTraces(visitSequence, iter+prevIter, m)
-        for w in eachindex(meanTraces)
+        for w in eachindex(varTraces)
             varTraces[w][1:prevIter, :] = prevVarTraces[w]
         end
 
-        if(progressReports)
+        if progressReports
             @printf "======= MICE progress =======\n"
         end
  
         for iterCounter in prevIter+1:prevIter+iter, i in eachindex(visitSequence)
-            sampler!(imputations, meanTraces, varTraces, data, m, visitSequence, methods, predictorMatrix, prevIter+iter, iterCounter, i, progressReports, loggedEvents)
-            if(Sys.free_memory()/Sys.total_memory() < gcSchedule)
+            sampler!(imputations, meanTraces, varTraces, data, m, visitSequence, methods, predictorMatrix, prevIter+iter, iterCounter, i, progressReports, loggedEvents, threads)
+            if Sys.free_memory()/Sys.total_memory() < gcSchedule
                 GC.gc()
             end
         end
 
-        if(progressReports)
+        if progressReports
             @printf "\u1b[A\33[2K\n\33[2K\n\33[2K\n\33[2K\n\33[2K\n\33[2K\n\33[2K\u1b[A\u1b[A\u1b[A\u1b[A\u1b[A\u1b[A\r"
         end
 

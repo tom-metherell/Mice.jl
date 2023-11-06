@@ -110,33 +110,72 @@ function sampler!(
     predictors = names(predictorVector)[1][predictorVector]
     if length(predictors) > 0
         if methods[yVar] == "pmm" && any(ismissing.(y))
-            for j in 1:m
-                X = data[:, predictors]
-                fillXMissings!(X, predictors, visitSequence, imputations, j)
-                X = pacify(X, predictors)
-                origNCol = size(X, 2)
-                removeLinDeps!(X, y)
+            if threads
+                lock = ReentrantLock()
 
-                if size(X, 2) > 0
-                    if size(X, 2) < origNCol
-                        diff = origNCol - size(X, 2)
-                        push!(loggedEvents, "Iteration $iterCounter, variable $yVar, imputation $j: $diff (dummy) predictors were dropped because of high multicollinearity.")
+                @threads for j in 1:m
+                    tempLog = Vector{String}([])
+                    X = data[:, predictors]
+                    fillXMissings!(X, predictors, visitSequence, imputations, j)
+                    X = pacify(X, predictors)
+                    origNCol = size(X, 2)
+                    removeLinDeps!(X, y)
+
+                    if size(X, 2) > 0
+                        if size(X, 2) < origNCol
+                            diff = OrigNCol - size(X, 2)
+                            push!(tempLog, "Iteration $iterCounter, variable $yVar, imputation $j: $diff (dummy) predictors were dropped because of high multicollinearity.")
+                        end
+                        imputedData = pmmImpute!(y, X, 5, 1e-5, yVar, iterCounter, j, tempLog)
+                    else
+                        push!(tempLog, "Iteration $iterCounter, variable $yVar, imputation $j: imputation skipped - all predictors dropped because of high multicollinearity.")
+                        imputedData = imputations[i][:, j]
                     end
-                    imputedData = pmmImpute!(y, X, 5, 1e-5, yVar, iterCounter, j, loggedEvents)
-                else
-                    push!(loggedEvents, "Iteration $iterCounter, variable $yVar, imputation $j: imputation skipped - all predictors dropped because of high multicollinearity.")
-                    imputedData = imputations[i][:, j]
+
+                    lock(lock)
+                    try
+                        updateTraces!(meanTraces, varTraces, imputedData, i, iterCounter, j)
+                        imputations[i][:, j] = imputedData
+                    finally
+                        unlock(lock)
+                    end                    
+                    
+                    if progressReports
+                        progress = ((iterCounter - 1)/iter + ((i-1)/length(visitSequence))/iter) * 100
+                        progressRound = floor(Int8, progress / 10)
+                        miceEmojis = string(repeat("🐁", progressRound), repeat("🐭", 10 - progressRound))
+                        @printf "\33[2KIteration:  %u / %u\n\33[2KVariable:   %u / %u (%s)\n\33[2K%s   %.1f %%\n\33[2KLogged events: %u\n=============================\u1b[A\u1b[A\u1b[A\u1b[A\u1b[A\r" iterCounter iter i length(visitSequence) yVar miceEmojis progress length(loggedEvents)
+                    end
                 end
+            else
+                for j in 1:m
+                    X = data[:, predictors]
+                    fillXMissings!(X, predictors, visitSequence, imputations, j)
+                    X = pacify(X, predictors)
+                    origNCol = size(X, 2)
+                    removeLinDeps!(X, y)
 
-                updateTraces!(meanTraces, varTraces, imputedData, i, iterCounter, j)
+                    if size(X, 2) > 0
+                        if size(X, 2) < origNCol
+                            diff = origNCol - size(X, 2)
+                            push!(loggedEvents, "Iteration $iterCounter, variable $yVar, imputation $j: $diff (dummy) predictors were dropped because of high multicollinearity.")
+                        end
+                        imputedData = pmmImpute!(y, X, 5, 1e-5, yVar, iterCounter, j, loggedEvents)
+                    else
+                        push!(loggedEvents, "Iteration $iterCounter, variable $yVar, imputation $j: imputation skipped - all predictors dropped because of high multicollinearity.")
+                        imputedData = imputations[i][:, j]
+                    end
 
-                imputations[i][:, j] = imputedData
+                    updateTraces!(meanTraces, varTraces, imputedData, i, iterCounter, j)
 
-                if(progressReports)
-                    progress = ((iterCounter - 1)/iter + ((i-1)/length(visitSequence))/iter + (j/m)/length(visitSequence)/iter) * 100
-                    progressRound = floor(Int8, progress / 10)
-                    miceEmojis = string(repeat("🐁", progressRound), repeat("🐭", 10 - progressRound))
-                    @printf "\33[2KIteration:  %u / %u\n\33[2KVariable:   %u / %u (%s)\n\33[2KImputation: %u / %u\n\33[2K%s   %.1f %%\n\33[2KLogged events: %u\n=============================\u1b[A\u1b[A\u1b[A\u1b[A\u1b[A\r" iterCounter iter i length(visitSequence) yVar j m miceEmojis progress length(loggedEvents)
+                    imputations[i][:, j] = imputedData
+
+                    if progressReports
+                        progress = ((iterCounter - 1)/iter + ((i-1)/length(visitSequence))/iter + (j/m)/length(visitSequence)/iter) * 100
+                        progressRound = floor(Int8, progress / 10)
+                        miceEmojis = string(repeat("🐁", progressRound), repeat("🐭", 10 - progressRound))
+                        @printf "\33[2KIteration:  %u / %u\n\33[2KVariable:   %u / %u (%s)\n\33[2KImputation: %u / %u\n\33[2K%s   %.1f %%\n\33[2KLogged events: %u\n=============================\u1b[A\u1b[A\u1b[A\u1b[A\u1b[A\r" iterCounter iter i length(visitSequence) yVar j m miceEmojis progress length(loggedEvents)
+                    end
                 end
             end
         else
