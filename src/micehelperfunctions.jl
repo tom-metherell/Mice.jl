@@ -146,7 +146,7 @@ function sampler!(
                     progress = ((iterCounter - 1)/iter + ((i-1)/length(visitSequence))/iter) * 100
                     progressRound = floor(Int8, progress / 10)
                     miceEmojis = string(repeat("🐁", progressRound), repeat("🐭", 10 - progressRound))
-                    @printf "\33[2KIteration:  %u / %u\n\33[2KVariable:   %u / %u (%s)\n\33[2K%s   %.1f %%\n\33[2KLogged events: %u\n=============================\u1b[A\u1b[A\u1b[A\u1b[A\u1b[A\r" iterCounter iter i length(visitSequence) yVar miceEmojis progress length(loggedEvents)
+                    @printf "\33[2KIteration:  %u / %u\n\33[2KVariable:   %u / %u (%s)\n\33[2K%s   %.1f %%\n\33[2KLogged events: %u\n=============================\u1b[A\u1b[A\u1b[A\u1b[A\r" iterCounter iter i length(visitSequence) yVar miceEmojis progress length(loggedEvents)
                 end
             else
                 for j in 1:m
