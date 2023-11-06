@@ -2,7 +2,7 @@
 
 ## What is Mice.jl?
 
-`Mice.jl` is a Julia package for multiple imputation using chained equations. It is heavily based on the R package [mice](https://cran.r-project.org/web/packages/mice/index.html) by Stef van Buuren and Karin Groothuis-Oudshoorn.
+`Mice.jl` is a Julia package for multiple imputation using chained equations. It is heavily based on the R package [mice](https://cran.r-project.org/web/packages/mice/index.html) by Stef van Buuren and Karin Groothuis-Oudshoorn [[1]](#1).
 
 `Mice.jl`'s syntax is very similar to that of `mice` and it is intended to be used in conjunction with [DataFrames.jl](https://github.com/JuliaData/DataFrames.jl).
 
@@ -103,3 +103,27 @@ analyses = with(imputedData, data -> glm(@formula(y ~ x1 + x2), data, Poisson(),
 
 results = pool(analyses)
 ```
+
+## Benchmarks
+
+I have (very much not rigorously) benchmarked `Mice.jl` using the [test dataset](https://archive.ics.uci.edu/dataset/878) [[2]](#2). Each single-threaded Julia benchmark was repeated 3 times, while the R and multi-threaded Julia comparisons were only executed once.
+
+| Number of imputations | R (`mice`) (s) | `Mice.jl` (single-threaded) (s) | `Mice.jl` (multi-threaded) (s)|
+| --- | --- | --- | --- |
+| 1 | 2.01 | 21.42 | 23.16 |
+| 5 | 8.76 | 22.25 | 29.30 |
+| 10 | 16.87 | 25.32 | 33.83 |
+| 20 | 36.64 | 30.62 | 45.96 |
+| 50 | 99.78 | 44.22 | 50.66 |
+| 100 | 192.93 | 68.36 | 67.09 |
+
+### Why is `Mice.jl` so slow for small jobs?
+
+`Mice.jl` is written in Julia, which is a compiled language. This means that the first time a function is run, it is compiled into machine code, which takes time. This means that the first iteration of `mice()` will be (much) slower in Julia than in R, for example. However, subsequent iterations will be much faster, as all of the required functions are already compiled.
+
+## References
+<a id="1">[1]</a>
+van Buuren S, Groothuis-Oudshoorn K. 2011. mice: Multivariate Imputation by Chained Equations in R. *Journal of Statistical Software* **45**(3):1-67.
+
+<a id="2">[2]</a>
+Dickson E, Grambsch P, Fleming T, Fisher L, Langworthy A. 1989. Prognosis in primary biliary cirrhosis: Model for decision making. *Hepatology* **10**(1):1-7.
