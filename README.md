@@ -123,7 +123,11 @@ I have (very much not rigorously) benchmarked `Mice.jl` using the [test dataset]
 
 ### Why is `Mice.jl` so slow for small jobs?
 
-`Mice.jl` is written in Julia, which is a compiled language. This means that the first time a function is run, it is compiled into machine code, which takes time. This means that the first iteration of `mice()` will be (much) slower in Julia than in R, for example. However, subsequent iterations will be much faster, as all of the required functions are already compiled.
+`Mice.jl` is written in Julia, which is a compiled language. This means that the first time a function is run, it is compiled into machine code, which takes time. Therefore, the first iteration of `mice()` will be (much) slower in Julia than in R, for example. However, subsequent iterations will be much faster, as all of the required functions are already compiled.
+
+### Why is the first iteration so much slower than the rest?
+
+See [above](#why-is-micejl-so-slow-for-small-jobs).
 
 ## References
 <a id="1">[1]</a>
