@@ -108,9 +108,13 @@ analyses = with(imputedData, data -> glm(@formula(y ~ x1 + x2), data, Poisson(),
 results = pool(analyses)
 ```
 
+## Further information
+
+For more information about multiple imputation by chained equations, and how to solve common problems, see [Flexible Imputation of Missing Data](https://stefvanbuuren.name/fimd/) by Stef van Buuren [[2]](#2).
+
 ## Benchmarks
 
-I have (very much not rigorously) benchmarked `Mice.jl` using the [test dataset](https://archive.ics.uci.edu/dataset/878) [[2]](#2). Each single-threaded Julia benchmark was repeated 3 times (in a new session each time), while the R and multi-threaded Julia comparisons were only executed once (in the latter case, also in a new session each time).
+I have (very much not rigorously) benchmarked `Mice.jl` using the [test dataset](https://archive.ics.uci.edu/dataset/878) [[3]](#3). Each single-threaded Julia benchmark was repeated 3 times (in a new session each time), while the R and multi-threaded Julia comparisons were only executed once (in the latter case, also in a new session each time).
 
 | Number of imputations | R (`mice`) (s) | `Mice.jl` (single-threaded) (s) | `Mice.jl` (multi-threaded) (s)|
 | --- | --- | --- | --- |
@@ -129,9 +133,16 @@ I have (very much not rigorously) benchmarked `Mice.jl` using the [test dataset]
 
 See [above](#why-is-micejl-so-slow-for-small-jobs).
 
+## Issues
+
+This is a very early work in progress: there will be bugs. If you find any (or the performance is not what you expect), please report them in the [Issues](https://github.com/tom-metherell/Mice.jl/issues) tab above.
+
 ## References
 <a id="1">[1]</a>
 van Buuren S, Groothuis-Oudshoorn K. 2011. mice: Multivariate Imputation by Chained Equations in R. *Journal of Statistical Software* **45**(3):1-67.
 
 <a id="2">[2]</a>
+van Buuren S (ed.). 2018. Flexible imputation of missing data. 2nd ed. New York: Chapman & Hall/CRC. 444 p. ISBN: 9780429492259.
+
+<a id="3">[3]</a>
 Dickson E, Grambsch P, Fleming T, Fisher L, Langworthy A. 1989. Prognosis in primary biliary cirrhosis: Model for decision making. *Hepatology* **10**(1):1-7.
