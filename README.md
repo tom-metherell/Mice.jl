@@ -25,7 +25,7 @@ Use the `mice()` function to perform multiple imputation on a DataFrame. The out
 
 #### Usage
 ```
-mice(df, m = 5, visitSequence = nothing, methods = nothing, predictorMatrix = nothing, iter = 10, progressReports = true, ...)
+mice(df, m = 5, visitSequence = nothing, methods = nothing, predictorMatrix = nothing, iter = 10, progressReports = true, gcSchedule = 1.0, threads = true, ...)
 ```
 where:
 
@@ -42,6 +42,10 @@ where:
 `iter` is the number of iterations to perform.
 
 `progressReports` is a boolean indicating whether to print progress reports.
+
+`gcSchedule` determines how often the garbage collector is invoked (additionally to when it would be anyway). This can improve performance for large datasets. The value is the fraction of your machine's RAM that remains free at which the garbage collector will be invoked. The default is `1.0` (i.e. after every iteration of every variable), but this may be excessive for smaller jobs.
+
+`threads` determines whether the imputations are executed in parallel using multithreading. The default is `true`, but this may make performance worse for small jobs (see [Benchmarks](#benchmarks)). Note that unlike in R, [random number generation is thread-safe by default in Julia](https://julialang.org/blog/2021/11/julia-1.7-highlights/#new_rng_reproducible_rng_in_tasks).
 
 #### Example
 ```
@@ -104,7 +108,7 @@ analyses = with(imputedData, data -> glm(@formula(y ~ x1 + x2), data, Poisson(),
 results = pool(analyses)
 ```
 
-## Benchmarks
+<a id="benchmarks">## Benchmarks</a>
 
 I have (very much not rigorously) benchmarked `Mice.jl` using the [test dataset](https://archive.ics.uci.edu/dataset/878) [[2]](#2). Each single-threaded Julia benchmark was repeated 3 times, while the R and multi-threaded Julia comparisons were only executed once.
 
