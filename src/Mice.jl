@@ -11,7 +11,6 @@ module Mice
     using StatsAPI: coef, coefnames, nobs, stderror
     using StatsBase: CoefTable, PValue, sample, standardize, UnitRangeTransform, zscore
     using StatsModels: AbstractContrasts, contrasts_matrix, ModelFrame, ModelMatrix, setcontrasts!, term, termnames
-    using Threads: @threads
 
     """
         Mids

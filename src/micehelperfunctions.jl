@@ -113,7 +113,7 @@ function sampler!(
             if threads
                 lock = ReentrantLock()
 
-                @threads for j in 1:m
+                Threads.@threads for j in 1:m
                     tempLog = Vector{String}([])
                     X = data[:, predictors]
                     fillXMissings!(X, predictors, visitSequence, imputations, j)
