@@ -72,6 +72,8 @@ function initialiseImputations(
     return imputations
 end
 
+const initializeImputations = initialiseImputations
+
 function initialiseTraces(
     visitSequence::Vector{String},
     iter::Int,
@@ -82,6 +84,8 @@ function initialiseTraces(
 
     return traces
 end
+
+const initializeTraces = initialiseTraces
 
 function sampler!(
     imputations::Vector{Matrix},
@@ -124,7 +128,7 @@ function sampler!(
                     imputedData = imputations[i][:, j]
                 end
 
-                updateTraces!(meanTraces, varTraces, data, yVar, imputedData, i, iterCounter, j)
+                updateTraces!(meanTraces, varTraces, imputedData, i, iterCounter, j)
 
                 imputations[i][:, j] = imputedData
 
@@ -279,24 +283,19 @@ end
 function updateTraces!(
         meanTraces::Vector{Matrix{Float64}},
         varTraces::Vector{Matrix{Float64}},
-        data::DataFrame,
-        yVar::String,
         imputedData::AbstractArray,
         i::Int,
         iterCounter::Int,
         j::Int
     )
 
-    plottingData = deepcopy(data[:, yVar])
-    plottingData[ismissing.(plottingData)] = imputedData
-
-    if plottingData isa CategoricalArray || nonmissingtype(eltype(plottingData)) <: AbstractString
-        mapping = Dict(levels(plottingData)[i] => i-1 for i in eachindex(levels(plottingData)))
-        plottingData = [mapping[v] for v in plottingData]
+    if imputedData isa CategoricalArray || nonmissingtype(eltype(imputedData)) <: AbstractString
+        mapping = Dict(levels(imputedData)[i] => i-1 for i in eachindex(levels(imputedData)))
+        imputedData = [mapping[v] for v in imputedData]
     end
 
-    meanTraces[i][iterCounter, j] = mean(plottingData)
-    varTraces[i][iterCounter, j] = var(plottingData)
+    meanTraces[i][iterCounter, j] = mean(imputedData)
+    varTraces[i][iterCounter, j] = var(imputedData)
 end
 
 function pmmImpute!(
