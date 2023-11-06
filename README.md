@@ -108,7 +108,7 @@ analyses = with(imputedData, data -> glm(@formula(y ~ x1 + x2), data, Poisson(),
 results = pool(analyses)
 ```
 
-<a id="benchmarks">## Benchmarks</a>
+### Benchmarks
 
 I have (very much not rigorously) benchmarked `Mice.jl` using the [test dataset](https://archive.ics.uci.edu/dataset/878) [[2]](#2). Each single-threaded Julia benchmark was repeated 3 times (in a new session each time), while the R and multi-threaded Julia comparisons were only executed once (in the latter case, also in a new session each time).
 
