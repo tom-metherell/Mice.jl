@@ -1,4 +1,4 @@
-using CSV, DataFrames, Mice, Test
+using CSV, DataFrames, GLM, Mice, Test
 
 @testset "mice" begin
     data = CSV.read("data/cirrhosis.csv", DataFrame)
@@ -19,7 +19,17 @@ using CSV, DataFrames, Mice, Test
 
     imputedData = mice(data, m = 20, iter = 15, methods = theMethods, predictorMatrix = predictorMatrix, threads = false, gcSchedule = 0.3)
 
+    @test length(imputedData.loggedEvents) == 120
+
     imputedDataLong = complete(imputedData, "long")
 
     @test sum(ismissing.(Matrix(imputedDataLong))) == 0
+
+    analyses = with(imputedData, data -> lm(@formula(N_Days ~ Drug + Age + Stage + Bilirubin), data))
+
+    @test length(analyses.analyses) == 20
+
+    results = pool(analyses)
+
+    @test length(results.coefs) == 7
 end
