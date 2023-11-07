@@ -1,6 +1,6 @@
 module Mice
     using CategoricalArrays: CategoricalArray, levels
-    using DataFrames: DataFrame, ncol
+    using DataFrames: DataFrame, ncol, Not
     using Distributions: cdf, Chisq, Normal, TDist
     using LinearAlgebra: cholesky, Diagonal, diagm, eigen, inv, qr, rank, svd
     using NamedArrays: NamedArray, NamedMatrix, NamedVector, setnames!
