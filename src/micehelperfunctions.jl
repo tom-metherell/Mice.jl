@@ -107,7 +107,7 @@ function sampler!(
 
     yVar = visitSequence[i]
     y = data[:, yVar]
-    predictorVector = predictorMatrix[:, yVar]
+    predictorVector = predictorMatrix[yVar, :]
     predictors = names(predictorVector)[1][predictorVector]
     if length(predictors) > 0
         if methods[yVar] == "pmm" && any(ismissing.(y))
@@ -118,7 +118,7 @@ function sampler!(
                     tempLog = Vector{String}([])
                     X = data[:, predictors]
                     fillXMissings!(X, predictors, visitSequence, imputations, j)
-                    X = pacify(X, predictors)
+                    X = pacify(X, predictors, tempLog, iterCounter, yVar, j)
                     origNCol = size(X, 2)
                     removeLinDeps!(X, y)
 
@@ -152,7 +152,7 @@ function sampler!(
                 for j in 1:m
                     X = data[:, predictors]
                     fillXMissings!(X, predictors, visitSequence, imputations, j)
-                    X = pacify(X, predictors)
+                    X = pacify(X, predictors, loggedEvents, iterCounter, yVar, j)
                     origNCol = size(X, 2)
                     removeLinDeps!(X, y)
 
@@ -210,7 +210,11 @@ end
 
 function pacify(
     X::DataFrame,
-    predictors::Vector{String}
+    predictors::Vector{String},
+    loggedEvents::Vector{String},
+    iterCounter::Int,
+    yVar::AbstractString,
+    j::Int
     )
 
     categoricalPredictors = Vector{String}([])
@@ -218,8 +222,12 @@ function pacify(
     for xVar in predictors
         x = X[:, xVar]
         if x isa CategoricalArray || nonmissingtype(eltype(x)) <: AbstractString
-            if length(levels(x)) > 2
+            if length(levels(x)) > 1
                 push!(categoricalPredictors, xVar)
+            else
+                select!(X, Not(xVar))
+                predictors = predictors[predictors .!= xVar]
+                push!(loggedEvents, "Iteration $iterCounter, variable $yVar, imputation $j: predictor $xVar dropped because of zero variance.")
             end
         elseif nonmissingtype(eltype(x)) <: Real
             X[!, xVar] = convert.(Float64, X[:, xVar])
@@ -229,7 +237,7 @@ function pacify(
 
     mf = ModelFrame(term(0) ~ sum(term.(predictors)), X)
     setcontrasts!(mf, Dict([Symbol(xVar) => PolynomialCoding() for xVar in categoricalPredictors]))
-
+    
     X = ModelMatrix(mf).m[:, 2:end]
 
     return X
@@ -237,8 +245,6 @@ end
 
 mutable struct PolynomialCoding <: AbstractContrasts
 end
-
-import StatsModels.contrasts_matrix
 
 function contrasts_matrix(C::PolynomialCoding, _, n)
     X = reduce(hcat, [((1:n) .- mean(1:n)) .^ i for i in 0:n-1])
@@ -249,8 +255,6 @@ function contrasts_matrix(C::PolynomialCoding, _, n)
     end
     return Z[:, 2:end]
 end
-
-import StatsModels.termnames
 
 function termnames(C::PolynomialCoding, levels::AbstractVector, _::Integer)
     return Vector{String}([".^$i" for i in 1:length(levels)])

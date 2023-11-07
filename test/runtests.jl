@@ -11,13 +11,13 @@ using CSV, DataFrames, Mice, Test
         data[!, i] = passmissing(x -> parse(Float64, x)).(data[!, i])
     end
 
-    methods = makeMethods(data)
-    methods[["ID", "N_Days"]] .= ""
+    theMethods = makeMethods(data)
+    theMethods[["ID", "N_Days"]] .= ""
 
     predictorMatrix = makePredictorMatrix(data)
     predictorMatrix[:, ["ID", "N_Days"]] .= false
 
-    imputedData = mice(data, m = 20, iter = 15, threads = false, gcSchedule = 0.3)
+    imputedData = mice(data, m = 20, iter = 15, methods = theMethods, predictorMatrix = predictorMatrix, threads = false, gcSchedule = 0.3)
 
     imputedDataLong = complete(imputedData, "long")
 
