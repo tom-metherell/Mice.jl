@@ -1,6 +1,6 @@
 module Mice
     using CategoricalArrays: CategoricalArray, levels
-    using DataFrames: DataFrame, insertcols!, ncol, Not, select!
+    using DataFrames: DataFrame, ncol, Not, select!
     using Distributions: cdf, Chisq, Normal, TDist
     using LinearAlgebra: cholesky, Diagonal, diagm, eigen, inv, qr, rank, svd
     using NamedArrays: NamedArray, NamedMatrix, NamedVector, setnames!
@@ -10,6 +10,9 @@ module Mice
     using Statistics: cor, mean, quantile, var
     using StatsAPI: coef, coefnames, nobs, stderror
     using StatsBase: CoefTable, PValue, sample, standardize, UnitRangeTransform, zscore
+    import StatsModels: contrasts_matrix, termnames
+    using StatsModels: AbstractContrasts, ModelFrame, ModelMatrix, setcontrasts!, term
+
 
     """
         Mids
