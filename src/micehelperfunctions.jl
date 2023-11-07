@@ -254,7 +254,7 @@ function pacify(
 
     # X = ModelMatrix(mf).m[:, 2:end]
 
-    return X
+    return Matrix{Float64}(X)
 end
 
 function polynomialContrastsMatrix(n)
