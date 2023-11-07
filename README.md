@@ -114,16 +114,23 @@ For more information about multiple imputation by chained equations, and how to 
 
 ## Benchmarks
 
-I have (very much not rigorously) benchmarked `Mice.jl` using the [test dataset](https://archive.ics.uci.edu/dataset/878) [[3]](#3). Each single-threaded Julia benchmark was repeated 3 times (in a new session each time), while the R and multi-threaded Julia comparisons were only executed once (in the latter case, also in a new session each time).
+I have (very much not rigorously) benchmarked `Mice.jl` using the [test dataset](https://archive.ics.uci.edu/dataset/878) [[3]](#3), and also performed an equivalent benchmark of the R package `mice`.
 
-| Number of imputations | R (`mice`) (s) | `Mice.jl` (single-threaded) (s) | `Mice.jl` (multi-threaded) (s)|
-| --- | --- | --- | --- |
-| 1 | 2.01 | 21.42 | 23.16 |
-| 5 | 8.76 | 22.25 | 29.30 |
-| 10 | 16.87 | 25.32 | 33.83 |
-| 20 | 36.64 | 30.62 | 45.96 |
-| 50 | 99.78 | 44.22 | 50.66 |
-| 100 | 192.93 | 68.36 | 67.09 |
+System info: Single-threaded execution, Intel® Core™ i7-12700H 2.30GHz CPU, 32GB 4800MHz DDR5 RAM, running Windows 11 version 10.0.22621.
+
+### Imputation (`mice`)
+
+15 iterations were completed to impute 12 variables (of which 4 binary categorical, 1 other categorical and 7 numeric) using a set of 18 predictors (those 12 variables plus 6 complete variables: 1 binary categorical, 2 other categorical and 3 numeric).
+In `Mice.jl`, `gcSchedule` was set to `0.3`.
+
+| Number of imputations | R (`mice`) (s) | `Mice.jl` (s) |
+| --- | --- | --- |
+| 1 | 1.88 | 23.04 |
+| 5 | 8.84 | 25.08 |
+| 10 | 18.14 | 27.45 |
+| 20 | 38.42 | 32.57 |
+| 50 | 96.78 | 46.34 |
+| 100 | 199.33 | 69.85 |
 
 ### Why is `Mice.jl` so slow for small jobs?
 
