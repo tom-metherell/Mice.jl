@@ -118,7 +118,7 @@ function sampler!(
                     tempLog = Vector{String}([])
                     X = data[:, predictors]
                     fillXMissings!(X, predictors, visitSequence, imputations, j)
-                    X = pacify(X, predictors)
+                    X = pacify(X, predictors, tempLog, iterCounter, yVar, j)
                     origNCol = size(X, 2)
                     removeLinDeps!(X, y)
 
@@ -152,7 +152,7 @@ function sampler!(
                 for j in 1:m
                     X = data[:, predictors]
                     fillXMissings!(X, predictors, visitSequence, imputations, j)
-                    X = pacify(X, predictors)
+                    X = pacify(X, predictors, loggedEvents, iterCounter, yVar, j)
                     origNCol = size(X, 2)
                     removeLinDeps!(X, y)
 
