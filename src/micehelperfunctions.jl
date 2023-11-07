@@ -107,7 +107,7 @@ function sampler!(
 
     yVar = visitSequence[i]
     y = data[:, yVar]
-    predictorVector = predictorMatrix[:, yVar]
+    predictorVector = predictorMatrix[yVar, :]
     predictors = names(predictorVector)[1][predictorVector]
     if length(predictors) > 0
         if methods[yVar] == "pmm" && any(ismissing.(y))
@@ -210,7 +210,11 @@ end
 
 function pacify(
     X::DataFrame,
-    predictors::Vector{String}
+    predictors::Vector{String},
+    loggedEvents::Vector{String},
+    iterCounter::Int,
+    yVar::AbstractString
+    j::Int
     )
 
     categoricalPredictors = Vector{String}([])
@@ -218,8 +222,12 @@ function pacify(
     for xVar in predictors
         x = X[:, xVar]
         if x isa CategoricalArray || nonmissingtype(eltype(x)) <: AbstractString
-            if length(levels(x)) > 2
+            if length(levels(x)) > 1
                 push!(categoricalPredictors, xVar)
+            else
+                select!(X, Not(xVar))
+                predictors = predictors[predictors .!= xVar]
+                push!(loggedEvents, "Iteration $iterCounter, variable $yVar, imputation $j: predictor $xVar dropped because of zero variance.")
             end
         elseif nonmissingtype(eltype(x)) <: Real
             X[!, xVar] = convert.(Float64, X[:, xVar])
