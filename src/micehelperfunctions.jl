@@ -227,33 +227,44 @@ function pacify(
         end
     end
 
-    mf = ModelFrame(term(0) ~ sum(term.(predictors)), X)
-    setcontrasts!(mf, Dict([Symbol(xVar) => PolynomialCoding() for xVar in categoricalPredictors]))
+    for xVar in categoricalPredictors
+        x = X[:, xVar]
+        mapping = Dict(levels(x)[i] => i for i in eachindex(levels(x)))
+        x = Vector{Int64}([mapping[v] for v in x])
 
-    X = ModelMatrix(mf).m[:, 2:end]
+        n = length(x)
+        m = length(levels(x))
+        pcm = polynomialContrastsMatrix(m)
+
+        newX = Matrix{Float64}(undef, m-1, n)
+        for i in 1:n
+            newX[:, i] = pcm[:, x[i]]
+        end
+        newX = transpose(newX)
+
+        pos = findfirst(names(X) .== xVar)
+        select!(X, Not(xVar))
+        for i in axes(newX, 2)
+            insertcols!(X, pos+i-1, "$xVar.^$i" => newX[:, i])
+        end
+    end
+
+    # mf = ModelFrame(term(0) ~ sum(term.(predictors)), X)
+    # setcontrasts!(mf, Dict([Symbol(xVar) => PolynomialCoding() for xVar in categoricalPredictors]))
+
+    # X = ModelMatrix(mf).m[:, 2:end]
 
     return X
 end
 
-mutable struct PolynomialCoding <: AbstractContrasts
-end
-
-import StatsModels.contrasts_matrix
-
-function contrasts_matrix(C::PolynomialCoding, _, n)
+function polynomialContrastsMatrix(n)
     X = reduce(hcat, [((1:n) .- mean(1:n)) .^ i for i in 0:n-1])
     qrX = qr(X)
     Z = qrX.Q * Diagonal(qrX.R)
     for i in axes(Z, 2)
         Z[:, i] = Z[:, i] ./ sqrt(sum(Z[:, i].^2))
     end
-    return Z[:, 2:end]
-end
-
-import StatsModels.termnames
-
-function termnames(C::PolynomialCoding, levels::AbstractVector, _::Integer)
-    return Vector{String}([".^$i" for i in 1:length(levels)])
+    return transpose(Z[:, 2:end])
 end
 
 function pacify(y::AbstractArray)
