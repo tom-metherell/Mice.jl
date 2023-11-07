@@ -213,7 +213,7 @@ function pacify(
     predictors::Vector{String},
     loggedEvents::Vector{String},
     iterCounter::Int,
-    yVar::AbstractString
+    yVar::AbstractString,
     j::Int
     )
 
