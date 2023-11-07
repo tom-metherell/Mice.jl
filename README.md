@@ -1,4 +1,5 @@
 # Mice.jl
+Version 0.0.0
 
 ## What is Mice.jl?
 

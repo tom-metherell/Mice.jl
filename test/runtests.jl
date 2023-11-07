@@ -1,6 +1,6 @@
 using CSV, DataFrames, GLM, Mice, Test
 
-@testset "mice" begin
+@testset "Mice" begin
     data = CSV.read("data/cirrhosis.csv", DataFrame)
     colsWithMissings = ["Drug", "Ascites", "Hepatomegaly", "Spiders", "Cholesterol", "Copper", "Alk_Phos", "SGOT", "Tryglicerides", "Platelets", "Prothrombin", "Stage"]
     data[!, colsWithMissings] = allowmissing(data[!, colsWithMissings])

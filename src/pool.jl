@@ -1,3 +1,8 @@
+"""
+    Mipo
+
+    A type for storing the pooled results of multiply imputed repeated analyses (`Mira`).
+"""
 struct Mipo
     coeftable::CoefTable
     coefnames::Vector{String}
@@ -7,19 +12,31 @@ struct Mipo
     pvalues::Vector{PValue}
 end
 
+"""
+    pool(
+        mira::Mira
+        )
+
+    Pools the results of multiply imputed repeated analyses (`Mira`).
+    The function will work on any `Mira` object containing model outputs which are
+    receptive to the `coef`, `stderror` and `nobs` functions from StatsAPI.jl.
+"""
 function pool(
     mira::Mira
     )
 
+    # Grab coefficients and standard errors from each analysis
     coefs = transpose(reduce(hcat, coef.(mira.analyses)))
     stderrors = transpose(reduce(hcat, stderror.(mira.analyses)))
 
+    # Calculate pooled coefficients and standard errors
     pooledCoefs = mean.(eachcol(coefs))
     V_W = mean.(eachcol(stderrors .^ 2))
     V_B = var.(eachcol(coefs))
     V_T = V_W + V_B + V_B/length(mira.analyses)
-
     pooledStderrors = sqrt.(V_T)
+
+    # Calculate degrees of freedom, t-values and p-values
     λ = (V_B .+ V_B ./ length(mira.analyses)) ./ V_T 
     df_Old = (length(mira.analyses) - 1) ./ λ.^2
     n = nobs(mira.analyses[1])
@@ -29,6 +46,7 @@ function pool(
     tvalues = pooledCoefs ./ pooledStderrors
     pvalues = PValue.(1 .- cdf.(TDist.(df_Adjusted), abs.(tvalues)))
 
+    # Producing tidy table of coefficients (to mirror outputs from StatsModels.jl)
     pooledCoefficients = CoefTable(
         [
             pooledCoefs,

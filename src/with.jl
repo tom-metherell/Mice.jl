@@ -17,10 +17,14 @@ function complete(
     imputation::Int
     )
 
+    # Get the observed data
     data = deepcopy(mids.data)
 
+    # For each variable
     for i in eachindex(mids.visitSequence)
+        # If it was imputed
         if isassigned(mids.imputations, i)
+            # Replace missings with imputed values
             var = mids.visitSequence[i]
             data[ismissing.(data[:, var]), var] = mids.imputations[i][:, imputation]
         end
@@ -49,22 +53,32 @@ function complete(
     mids::Mids,
     action::String
 )
+    # Wrong action specified
     if !(action ∈ ["list", "long"])
         throw(ArgumentError("Action not defined. Valid arguments: \"list\", \"long\""))
     else
+        # Initialise output
         data = Vector{DataFrame}(undef, mids.m)
+
+        # For each imputation
         for i in 1:mids.m
+            # Get the observed data
             data[i] = deepcopy(mids.data)
+            # For each variable
             for j in eachindex(mids.visitSequence)
+                # If it was imputed
                 if isassigned(mids.imputations, j)
+                    # Replace missings with imputed values
                     var = mids.visitSequence[j]
                     data[i][ismissing.(data[i][:, var]), var] = mids.imputations[j][:, i]
                 end
             end
         end
+        
         if action == "list"
             return data
-        else
+        elseif action == "long"
+            # Concatenate the DataFrames
             for i in eachindex(data)
                 insertcols!(data[i], 1, :imp => i)
             end
@@ -103,10 +117,16 @@ function with(
     mids::Mids, 
     func::Function
     )
+
+    # Initialise output
     analyses = Vector{Any}(undef, mids.m)
+    
+    # Fill in the missing values
     datalist = complete(mids, "list")
 
+    # For each imputation
     for i in eachindex(datalist)
+        # Conduct the analysis on the completed data
         data = datalist[i]
         analyses[i] = func(data)
     end
