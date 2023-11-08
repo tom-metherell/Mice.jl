@@ -50,7 +50,7 @@ where:
 
 #### Example
 ```
-using CSV, Mice, Random
+using CSV, DataFrames, Mice, Random
 
 Random.seed!(1234)
 
@@ -74,7 +74,7 @@ where `mids` is a `Mids` object.
 
 #### Example
 ```
-using CSV, GLM, Mice, Random
+using CSV, DataFrames, GLM, Mice, Random
 
 Random.seed!(1234)
 
@@ -96,7 +96,7 @@ where `mira` is a `Mira` object.
 
 #### Example
 ```
-using CSV, GLM, Mice, Random
+using CSV, DataFrames, GLM, Mice, Random
 
 Random.seed!(1234)
 
