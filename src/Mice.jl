@@ -333,6 +333,6 @@ module Mice
     end
 
     export makeMethods, makePredictorMatrix, makeVisitSequence, Mids, mice, plot
-end
 
-include("precompile.jl")
+    include("precompile.jl")
+end
