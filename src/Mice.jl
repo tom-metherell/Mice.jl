@@ -6,6 +6,7 @@ module Mice
     using LinearAlgebra: cholesky, Diagonal, diagm, eigen, inv, qr, rank, svd
     using NamedArrays: NamedArray, NamedMatrix, NamedVector, setnames!
     import Plots: plot
+    using PrecompileTools: @compile_workload
     using Printf: @printf
     using Random: rand, randn, randperm
     using Statistics: cor, mean, quantile, var
@@ -333,3 +334,5 @@ module Mice
 
     export makeMethods, makePredictorMatrix, makeVisitSequence, Mids, mice, plot
 end
+
+include("precompile.jl")
