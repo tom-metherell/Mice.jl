@@ -64,17 +64,6 @@ function makePredictorMatrix(data::DataFrame)
     return predictorMatrix
 end
 
-"""
-    initialiseImputations(
-        data::DataFrame,
-        m::Int,
-        visitSequence::Vector{String},
-        methods::NamedVector{String}
-        )
-
-    Returns a vector of matrices in which imputed data will be stored. The initial values
-    are drawn at random from the observed data in `data` where possible.
-"""
 function initialiseImputations(
     data::DataFrame,
     m::Int,
@@ -137,16 +126,6 @@ end
 # Allow US spelling of initialise
 const initializeImputations = initialiseImputations
 
-"""
-    initialiseTraces(
-        visitSequence::Vector{String},
-        iter::Int,
-        m::Int
-        )
-    
-    Returns a vector of matrices in which the mean and variance of each imputed variable
-    across iterations will be stored. The initial values are undefined.
-"""
 function initialiseTraces(
     visitSequence::Vector{String},
     iter::Int,
@@ -720,4 +699,4 @@ function matchIndex(
     return indices
 end
 
-export makeMonotoneSequence, makeMethods, makePredictorMatrix, sampler!
+export makeMonotoneSequence, makeMethods, makePredictorMatrix
