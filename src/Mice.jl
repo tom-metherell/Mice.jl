@@ -69,7 +69,7 @@ module Mice
             )
 
     Imputes missing values in a dataset using the MICE algorithm. 
-    Heavily based on the R package `mice` (van Buuren & Groothuis-Oudshoorn, 2011).
+    The output is a `Mids` object.
 
     The data containing missing values (`data`) must be supplied as a `DataFrame`.
 
@@ -198,18 +198,8 @@ module Mice
 
     The number of *additional* iterations is specified by `iter`.
 
-    If `progressReports` is `true`, a progress indicator will be displayed in the console.
-
-    `gcSchedule` dictates when the garbage collector will be (additionally) invoked. The 
-    number provided is the fraction of your RAM remaining at which the GC will be called.
-    For small datasets, you may get away with a value of `0.0` (never called), but for larger
-    datasets, it may be worthwhile to call it more frequently. The default is to call it 
-    after each iteration of each variable (`1.0`), but this may negatively affect
-    performance if it is not necessary for your dataset.
-
-    `threads` dictates whether multi-threading will be used. This will improve performance
-    for larger jobs if and only if Julia has been launched with multiple threads (which you
-    can verify by calling `Threads.nthreads()`). The default is `true`.
+    `progressReports`, `gcSchedule` and `threads` can also be specified: all other
+    arguments will be ignored.
     """
     function mice(
         mids::Mids;
