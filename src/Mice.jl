@@ -332,6 +332,4 @@ module Mice
     end
 
     export makeMethods, makePredictorMatrix, makeVisitSequence, Mids, mice, plot
-
-    include("precompile.jl")
 end
