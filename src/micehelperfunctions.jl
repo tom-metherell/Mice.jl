@@ -1,9 +1,9 @@
 """
     makeMonotoneSequence(data::DataFrame)
 
-    Returns a vector of the column names in a DataFrame in ascending order of missingness.
-    This facilitates convergence in cases where missingness follows a "monotone" pattern.
-    It is the default visit sequence for the `mice()` function.
+Returns a vector of the column names in a DataFrame in ascending order of missingness.
+This facilitates convergence in cases where missingness follows a "monotone" pattern.
+It is the default visit sequence for the `mice()` function.
 """
 function makeMonotoneSequence(data::DataFrame)
     # Initialise missingness vector
@@ -26,9 +26,9 @@ end
 """
     makeMethods(data::DataFrame)
 
-    Returns a named vector of strings defining the method by which each variable in `data`
-    should be imputed in the `mice()` function. The default (and only supported) method is
-    predictive mean matching (pmm).
+Returns a named vector of strings defining the method by which each variable in `data`
+should be imputed in the `mice()` function. The default (and only supported) method is
+predictive mean matching (pmm).
 """
 function makeMethods(data::DataFrame)
     # Use pmm for all variables by default
@@ -43,10 +43,10 @@ end
 """
     makePredictorMatrix(data::DataFrame)
 
-    Returns a named matrix of booleans defining the predictors for each variable in `data`.
-    The variables to be predicted are on the rows, and the predictors are on the columns.
-    The default is to use all variables as predictors for all other variables (i.e. all
-    1s except for the diagonal, which is 0).
+Returns a named matrix of booleans defining the predictors for each variable in `data`.
+The variables to be predicted are on the rows, and the predictors are on the columns.
+The default is to use all variables as predictors for all other variables (i.e. all
+1s except for the diagonal, which is 0).
 """
 function makePredictorMatrix(data::DataFrame)
     # Initialise the predictor matrix with 1s
@@ -305,7 +305,8 @@ function fillXMissings!(
     visitSequence::Vector{String},
     imputations::Vector{Matrix},
     j::Int
-)
+    )
+
     # For each predictor
     for k in predictors
         # Find its position in the visit sequence
@@ -482,12 +483,12 @@ end
 
 # The updateTraces! function includes a ! as it updates meanTraces and varTraces in place
 function updateTraces!(
-        meanTraces::Vector{Matrix{Float64}},
-        varTraces::Vector{Matrix{Float64}},
-        imputedData::AbstractArray,
-        i::Int,
-        iterCounter::Int,
-        j::Int
+    meanTraces::Vector{Matrix{Float64}},
+    varTraces::Vector{Matrix{Float64}},
+    imputedData::AbstractArray,
+    i::Int,
+    iterCounter::Int,
+    j::Int
     )
 
     # If the imputed data are categorical

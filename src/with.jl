@@ -37,7 +37,7 @@ end
     complete(
         mids::Mids,
         action::String
-    )
+        )
 
 Summarises the outputs of all imputations in a multiply imputed dataset (`Mids`).
 
@@ -52,7 +52,8 @@ DataFrames.
 function complete(
     mids::Mids,
     action::String
-)
+    )
+
     # Wrong action specified
     if !(action ∈ ["list", "long"])
         throw(ArgumentError("Action not defined. Valid arguments: \"list\", \"long\""))
@@ -88,7 +89,7 @@ function complete(
 end
 
 """
-    Mira(analyses::Vector)
+    Mira
 
 A multiply imputed repeated analyses object.
 

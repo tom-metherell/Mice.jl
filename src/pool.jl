@@ -1,7 +1,7 @@
 """
     Mipo
 
-    A type for storing the pooled results of multiply imputed repeated analyses (`Mira`).
+A type for storing the pooled results of multiply imputed repeated analyses (`Mira`).
 """
 struct Mipo
     coeftable::CoefTable
@@ -13,17 +13,13 @@ struct Mipo
 end
 
 """
-    pool(
-        mira::Mira
-        )
+    pool(mira::Mira)
 
-    Pools the results of multiply imputed repeated analyses (`Mira`).
-    The function will work on any `Mira` object containing model outputs which are
-    receptive to the `coef`, `stderror` and `nobs` functions from StatsAPI.jl.
+Pools the results of multiply imputed repeated analyses (`Mira`).
+The function will work on any `Mira` object containing model outputs which are
+receptive to the `coef`, `stderror` and `nobs` functions from StatsAPI.jl.
 """
-function pool(
-    mira::Mira
-    )
+function pool(mira::Mira)
 
     # Grab coefficients and standard errors from each analysis
     coefs = transpose(reduce(hcat, coef.(mira.analyses)))
