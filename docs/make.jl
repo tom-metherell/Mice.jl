@@ -1,6 +1,6 @@
 using Documenter, DocumenterCitations, Mice
 
-bib = CitationBibliography("references.bib")
+bib = CitationBibliography("docs/references.bib")
 
 makedocs(
     sitename = "Mice.jl",
