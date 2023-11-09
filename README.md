@@ -11,13 +11,13 @@
 `Mice.jl` is not registered yet. To install the latest version:
 
 ```
-] clone https://github.com/tom-metherell/Mice.jl.git
+] add https://github.com/tom-metherell/Mice.jl.git
 ```
 
 or
 
 ```
-using Pkg; Pkg.clone("https://github.com/tom-metherell/Mice.jl.git")
+using Pkg; Pkg.add("https://github.com/tom-metherell/Mice.jl.git")
 ```
 
 ## Quick-start guide
