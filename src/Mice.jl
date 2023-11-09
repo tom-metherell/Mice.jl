@@ -5,9 +5,9 @@ module Mice
     using Distributions: cdf, Chisq, Normal, TDist
     using LinearAlgebra: cholesky, Diagonal, diagm, eigen, inv, qr, rank, svd
     using NamedArrays: NamedArray, NamedMatrix, NamedVector, setnames!
-    import Plots: plot
     using Printf: @printf
     using Random: rand, randn, randperm
+    import RecipesBase: plot
     using Statistics: cor, mean, quantile, var
     using StatsAPI: coef, coefnames, nobs, stderror
     using StatsBase: CoefTable, PValue, sample, standardize, UnitRangeTransform, zscore
@@ -441,5 +441,5 @@ module Mice
         return(midsObj)
     end
 
-    export bindImputations, makeMethods, makePredictorMatrix, makeVisitSequence, Mids, mice, plot
+    export bindImputations, makeMethods, makePredictorMatrix, Mids, mice, plot
 end
