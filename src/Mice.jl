@@ -337,7 +337,7 @@ module Mice
         )
 
         data = mids1.data
-        if data != mids2.data
+        if data !== mids2.data
             throw(error(ArgumentError, "Cannot bind these Mids objects: they appear to result from different datasets."))
         end
 
@@ -362,13 +362,15 @@ module Mice
         end
 
         m = mids1.m + mids2.m
-        loggedEvents = push(mids1.loggedEvents, mids2.loggedEvents)
+        loggedEvents = vcat(mids1.loggedEvents, mids2.loggedEvents)
 
         # Initialise new imputations object
         imputations = Vector{Matrix}(undef, length(mids1.imputations))
         # Concatenate imputations
         for i in eachindex(imputations)
-            imputations[i] = hcat(mids1.imputations[i], mids2.imputations[i])
+            if isassigned(mids1.imputations, i)
+                imputations[i] = hcat(mids1.imputations[i], mids2.imputations[i])
+            end
         end
 
         # Initialise new mean and variance traces
@@ -423,7 +425,7 @@ module Mice
 
     """
         bindImputations(
-            mids...::Mids
+            mids...
             )
 
     Combines any number of `Mids` objects into one `Mids` object. They must all have been

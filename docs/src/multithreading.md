@@ -33,7 +33,7 @@ imputedData = Vector{Mids}(undef, 10); # Initialise vector of Mids outputs
 
 Threads.@threads for i in 1:10 # Number of parallel runs
     # Produces 5 x 10 = 50 imputed datasets in 10 separate Mids objects
-    imputedData[i] = mice(myData, m = 5, predictorMatrix = myPredictorMatrix, methods = myMethods, threads = false)
+    imputedData[i] = mice(myData, m = 5, predictorMatrix = myPredictorMatrix, methods = myMethods, threads = false, progressReports = false)
 end
 
 imputedData = bindImputations(imputedData) # Binds the separate Mids objects into a single output
