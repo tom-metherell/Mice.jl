@@ -64,7 +64,7 @@ module Mice
             iter::Int = 10,
             progressReports::Bool = true,
             gcSchedule::Float64 = 1.0,
-            threads::Bool = true,
+            threads::Bool = false,
             kwargs...
             )
 
@@ -102,7 +102,7 @@ module Mice
 
     `threads` dictates whether multi-threading will be used. This will improve performance
     for larger jobs if and only if Julia has been launched with multiple threads (which you
-    can verify by calling `Threads.nthreads()`). The default is `true`.
+    can verify by calling `Threads.nthreads()`). The default is `false`.
     """
     function mice(
         data::DataFrame;
@@ -113,7 +113,7 @@ module Mice
         iter::Int = 10,
         progressReports::Bool = true,
         gcSchedule::Float64 = 1.0,
-        threads::Bool = true,
+        threads::Bool = false,
         kwargs...
         )
 
@@ -190,7 +190,7 @@ module Mice
             iter::Int = 10,
             progressReports::Bool = true,
             gcSchedule::Float64 = 1.0,
-            threads::Bool = true,
+            threads::Bool = false,
             kwargs...
             )
 
@@ -206,7 +206,7 @@ module Mice
         iter::Int = 10,
         progressReports::Bool = true,
         gcSchedule::Float64 = 1.0,
-        threads::Bool = true,
+        threads::Bool = false,
         kwargs...
         )
 
@@ -321,5 +321,123 @@ module Mice
         plot(a, b, layout = (1, 2), legend = false, title = var)
     end
 
-    export makeMethods, makePredictorMatrix, makeVisitSequence, Mids, mice, plot
+    """
+        bindImputations(
+            mids1::Mids,
+            mids2::Mids
+            )
+
+    Combines two `Mids` objects into one. The two objects must have been created from the
+    same dataset, with the same imputation methods, predictor matrix, visit sequence and
+    number of iterations. The numbers of imputations can be different.
+    """
+    function bindImputations(
+        mids1::Mids,
+        mids2::Mids
+        )
+
+        data = mids1.data
+        if data != mids2.data
+            throw(error(ArgumentError, "Cannot bind these Mids objects: they appear to result from different datasets."))
+        end
+
+        methods = mids1.methods
+        if methods != mids2.methods
+            throw(error(ArgumentError, "Cannot bind these Mids objects: the imputation methods are different."))
+        end
+
+        predictorMatrix = mids1.predictorMatrix
+        if predictorMatrix != mids2.predictorMatrix
+            throw(error(ArgumentError, "Cannot bind these Mids objects: the predictor matrices are different."))
+        end
+
+        visitSequence = mids1.visitSequence
+        if visitSequence != mids2.visitSequence
+            throw(error(ArgumentError, "Cannot bind these Mids objects: the visit sequences are different."))
+        end
+
+        iter = mids1.iter
+        if iter != mids2.iter
+            throw(error(ArgumentError, "Cannot bind these Mids objects: the numbers of iterations are different."))
+        end
+
+        m = mids1.m + mids2.m
+        loggedEvents = push(mids1.loggedEvents, mids2.loggedEvents)
+
+        # Initialise new imputations object
+        imputations = Vector{Matrix}(undef, length(mids1.imputations))
+        # Concatenate imputations
+        for i in eachindex(imputations)
+            imputations[i] = hcat(mids1.imputations[i], mids2.imputations[i])
+        end
+
+        # Initialise new mean and variance traces
+        meanTraces = Vector{Matrix}(undef, length(mids1.meanTraces))
+        varTraces = Vector{Matrix}(undef, length(mids1.varTraces))
+        # Concatenate traces
+        for i in eachindex(meanTraces)
+            meanTraces[i] = hcat(mids1.meanTraces[i], mids2.meanTraces[i])
+        end
+        for i in eachindex(varTraces)
+            varTraces[i] = hcat(mids1.varTraces[i], mids2.varTraces[i])
+        end    
+        
+        # Define the new Mids output
+        midsObj = Mids(
+            data,
+            imputations,
+            m,
+            methods,
+            predictorMatrix,
+            visitSequence,
+            iter,
+            meanTraces,
+            varTraces,
+            loggedEvents
+        )
+
+        return midsObj
+    end
+
+    """
+        bindImputations(
+            midsVector::Vector{Mids}
+            )
+
+    Combines a vector of `Mids` objects into one `Mids` object. They must all have been
+    created from the same dataset with the same imputation methods, predictor matrix,
+    visit sequence and number of iterations. The number of imputations can be different.
+    """
+    function bindImputations(
+        midsVector::Vector{Mids}
+        )
+
+        midsObj = midsVector[1]
+    
+        for i in eachindex(midsVector)[2:end]
+            midsObj = bindImputations(midsObj, midsVector[i])
+        end
+
+        return midsObj
+    end
+
+    """
+        bindImputations(
+            mids...::Mids
+            )
+
+    Combines any number of `Mids` objects into one `Mids` object. They must all have been
+    created from the same dataset with the same imputation methods, predictor matrix, visit
+    sequence and number of iterations. The number of imputations can be different.
+    """
+    function bindImputations(
+        mids...::Mids
+        )
+
+        midsObj = reduce(bindImputations, mids)
+
+        return(midsObj)
+    end
+
+    export bindImputations, makeMethods, makePredictorMatrix, makeVisitSequence, Mids, mice, plot
 end

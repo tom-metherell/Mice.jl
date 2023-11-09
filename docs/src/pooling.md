@@ -12,33 +12,33 @@ The `pool` function should work on any `Mira` of model outputs that accept the S
 For example:
 
 ```julia
-julia> using CSV, DataFrames, GLM, Mice, Random
+using CSV, DataFrames, GLM, Mice, Random
 
-julia> myData = CSV.read("test/data/cirrhosis.csv", DataFrame);
+myData = CSV.read("test/data/cirrhosis.csv", DataFrame);
 
 # Defining missing values
-julia> colsWithMissings = ["Drug", "Ascites", "Hepatomegaly", "Spiders", "Cholesterol", "Copper", "Alk_Phos", "SGOT", "Tryglicerides", "Platelets", "Prothrombin", "Stage"];
-julia> myData[!, colsWithMissings] = allowmissing(myData[!, colsWithMissings]);
-julia> for i in colsWithMissings
+colsWithMissings = ["Drug", "Ascites", "Hepatomegaly", "Spiders", "Cholesterol", "Copper", "Alk_Phos", "SGOT", "Tryglicerides", "Platelets", "Prothrombin", "Stage"];
+myData[!, colsWithMissings] = allowmissing(myData[!, colsWithMissings]);
+for i in colsWithMissings
     replace!(myData[!, i], "NA" => missing)
 end
-julia> for i in ["Cholesterol", "Copper", "Alk_Phos", "SGOT", "Tryglicerides", "Platelets", "Prothrombin"]
+for i in ["Cholesterol", "Copper", "Alk_Phos", "SGOT", "Tryglicerides", "Platelets", "Prothrombin"]
     myData[!, i] = passmissing(x -> parse(Float64, x)).(myData[!, i])
 end
 
-julia> myMethods = makeMethods(myData);
-julia> myMethods[["ID", "N_Days"]] .= "";
+myMethods = makeMethods(myData);
+myMethods[["ID", "N_Days"]] .= "";
 
-julia> myPredictorMatrix = makePredictorMatrix(myData);
-julia> myPredictorMatrix[:, ["ID", "N_Days"]] .= false;
+myPredictorMatrix = makePredictorMatrix(myData);
+myPredictorMatrix[:, ["ID", "N_Days"]] .= false;
 
-julia> Random.seed!(1234); # Set random seed for reproducibility
+Random.seed!(1234); # Set random seed for reproducibility
 
-julia> imputedData = mice(myData, predictorMatrix = myPredictorMatrix, methods = myMethods);
+imputedData = mice(myData, predictorMatrix = myPredictorMatrix, methods = myMethods);
 
-julia> analysesLMs = with(imputedData, data -> lm(@formula(N_Days ~ Drug + Age + Stage + Bilirubin), data));
+analysesLMs = with(imputedData, data -> lm(@formula(N_Days ~ Drug + Age + Stage + Bilirubin), data));
 # returns Mira of linear model outputs from each imputed dataset
 
-julia> resultsLMs = pool(analysesLMs);
+resultsLMs = pool(analysesLMs);
 # returns Mipo of pooled linear model results
 ```

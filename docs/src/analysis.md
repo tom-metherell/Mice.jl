@@ -21,33 +21,33 @@ with
 The `with` function requires the use of a closure, which then permits the function to run the specified analysis procedure on each imputed dataset in turn. For example:
 
 ```julia
-julia> using CSV, DataFrames, GLM, Mice, Random, Statistics
+using CSV, DataFrames, GLM, Mice, Random, Statistics
 
-julia> myData = CSV.read("test/data/cirrhosis.csv", DataFrame);
+myData = CSV.read("test/data/cirrhosis.csv", DataFrame);
 
 # Defining missing values
-julia> colsWithMissings = ["Drug", "Ascites", "Hepatomegaly", "Spiders", "Cholesterol", "Copper", "Alk_Phos", "SGOT", "Tryglicerides", "Platelets", "Prothrombin", "Stage"];
-julia> myData[!, colsWithMissings] = allowmissing(myData[!, colsWithMissings]);
-julia> for i in colsWithMissings
+colsWithMissings = ["Drug", "Ascites", "Hepatomegaly", "Spiders", "Cholesterol", "Copper", "Alk_Phos", "SGOT", "Tryglicerides", "Platelets", "Prothrombin", "Stage"];
+myData[!, colsWithMissings] = allowmissing(myData[!, colsWithMissings]);
+for i in colsWithMissings
     replace!(myData[!, i], "NA" => missing)
 end
-julia> for i in ["Cholesterol", "Copper", "Alk_Phos", "SGOT", "Tryglicerides", "Platelets", "Prothrombin"]
+for i in ["Cholesterol", "Copper", "Alk_Phos", "SGOT", "Tryglicerides", "Platelets", "Prothrombin"]
     myData[!, i] = passmissing(x -> parse(Float64, x)).(myData[!, i])
 end
 
-julia> myMethods = makeMethods(myData);
-julia> myMethods[["ID", "N_Days"]] .= "";
+myMethods = makeMethods(myData);
+myMethods[["ID", "N_Days"]] .= "";
 
-julia> myPredictorMatrix = makePredictorMatrix(myData);
-julia> myPredictorMatrix[:, ["ID", "N_Days"]] .= false;
+myPredictorMatrix = makePredictorMatrix(myData);
+myPredictorMatrix[:, ["ID", "N_Days"]] .= false;
 
-julia> Random.seed!(1234); # Set random seed for reproducibility
+Random.seed!(1234); # Set random seed for reproducibility
 
-julia> imputedData = mice(myData, predictorMatrix = myPredictorMatrix, methods = myMethods);
+imputedData = mice(myData, predictorMatrix = myPredictorMatrix, methods = myMethods);
 
-julia> analysesMeans = with(imputedData, data -> mean(data.Cholesterol));
+analysesMeans = with(imputedData, data -> mean(data.Cholesterol));
 # returns Mira of the mean of Bilirubin in each imputed dataset
 
-julia> analysesLMs = with(imputedData, data -> lm(@formula(N_Days ~ Drug + Age + Stage + Bilirubin), data));
+analysesLMs = with(imputedData, data -> lm(@formula(N_Days ~ Drug + Age + Stage + Bilirubin), data));
 # returns Mira of linear model outputs from each imputed dataset
 ```
