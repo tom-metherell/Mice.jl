@@ -431,7 +431,7 @@ module Mice
     sequence and number of iterations. The number of imputations can be different.
     """
     function bindImputations(
-        mids...::Mids
+        mids...
         )
 
         midsObj = reduce(bindImputations, mids)
