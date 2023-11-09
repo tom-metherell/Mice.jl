@@ -21,5 +21,5 @@ makedocs(
 )
 
 deploydocs(
-    repo = "https://github.com/tom-metherell/Mice.jl.git"
+    repo = "github.com/tom-metherell/Mice.jl.git"
 )

@@ -1,11 +1,17 @@
 # Getting started
 
 ## Installation
-To install Mice.jl through the Julia REPL, you can type `] add Mice` or:
+`Mice.jl` is not registered yet. To install the current pre-release version:
+
+```
+] add https://github.com/tom-metherell/Mice.jl.git#v0.0.0
+```
+
+or
 
 ```julia
 using Pkg
-Pkg.add("Mice")
+Pkg.add(url = "https://github.com/tom-metherell/Mice.jl.git", rev = "v0.0.0")
 ```
 
 ## Usage
