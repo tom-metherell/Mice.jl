@@ -9,16 +9,16 @@
 
 ## Installation
 
-`Mice.jl` is not registered yet. To install the latest version:
+`Mice.jl` is not registered yet. To install the current pre-release version:
 
 ```
-] add https://github.com/tom-metherell/Mice.jl.git
+] add https://github.com/tom-metherell/Mice.jl.git#v0.0.0
 ```
 
 or
 
 ```
-using Pkg; Pkg.add("https://github.com/tom-metherell/Mice.jl.git")
+using Pkg; Pkg.add(url = "https://github.com/tom-metherell/Mice.jl.git", rev = "v0.0.0")
 ```
 
 ## Quick-start guide
