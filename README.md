@@ -1,5 +1,4 @@
 # Mice.jl
-Version 0.0.0
 
 ## What is Mice.jl?
 
@@ -9,14 +8,16 @@ Version 0.0.0
 
 ## Installation
 
+`Mice.jl` is not registered yet. To install the latest version:
+
 ```
-] add Mice
+] clone https://github.com/tom-metherell/Mice.jl.git
 ```
 
 or
 
 ```
-using Pkg; Pkg.add("Mice")
+using Pkg; Pkg.clone("https://github.com/tom-metherell/Mice.jl.git")
 ```
 
 ## Quick-start guide
