@@ -17,7 +17,7 @@ using CSV, DataFrames, GLM, Mice, Test
     predictorMatrix = makePredictorMatrix(data)
     predictorMatrix[:, ["ID", "N_Days"]] .= false
 
-    imputedData = mice(data, m = 20, iter = 15, methods = theMethods, predictorMatrix = predictorMatrix, threads = false, gcSchedule = 0.3)
+    imputedData = mice(data, m = 20, iter = 15, methods = theMethods, predictorMatrix = predictorMatrix, threads = false, gcSchedule = 0.3, progressReports = false)
 
     @test length(imputedData.loggedEvents) == 120
 
