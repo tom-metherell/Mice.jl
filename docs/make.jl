@@ -6,6 +6,8 @@ makedocs(
     sitename = "Mice.jl",
     modules = [Mice],
     pages = ["index.md",
+             "gettingstarted.md",
+             "wrangling.md",
              "imputation.md",
              "analysis.md",
              "pooling.md",

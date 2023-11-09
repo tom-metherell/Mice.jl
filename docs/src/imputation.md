@@ -54,7 +54,7 @@ myVisitSequence2 = ["col3", "col1", "col2"]
 mice(myData, visitSequence = myVisitSequence2)
 ```
 
-Assuming that the imputations converge normally, changing the visit sequence should not dramatically affect the output. However, it can be useful to change the visit sequence if you want to impute variables in a particular order for a specific reason. The sequence used by default in `Mice.jl` can make convergence faster in cases where the data follow a (near-)"monotone" missing data pattern [gelman_multivariate_2018](@cite).
+Assuming that the imputations converge normally, changing the visit sequence should not dramatically affect the output. However, it can be useful to change the visit sequence if you want to impute variables in a particular order for a specific reason. The sequence used by default in `Mice.jl` can make convergence faster in cases where the data follow a (near-)"monotone" missing data pattern [van_buuren_flexible_2011](@cite).
 
 ### Predictor matrix
 The predictor matrix defines which variables in the imputation model are used to predict which others. By default, every variable predicts every other variable, but there are a wide range of cases in which this is not desirable. For example, if your dataset includes an ID column, this is clearly useless for imputation and should be ignored.
