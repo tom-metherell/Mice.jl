@@ -1,4 +1,5 @@
 # Mice.jl
+[![](https://img.shields.io/badge/docs-stable-blue.svg)](https://tom-metherell.github.io/Mice.jl/stable)
 [![](https://img.shields.io/badge/docs-dev-blue.svg)](https://tom-metherell.github.io/Mice.jl/dev)
 
 ## What is Mice.jl?
