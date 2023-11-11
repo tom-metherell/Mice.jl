@@ -1,13 +1,10 @@
 # Data wrangling in Julia
 The procedures used for data wrangling in Julia are often very similar to those used in R. However, there are some fundamental differences between the languages that it is important to be aware of.
 
-## Better sources of information than this
-`Mice.jl` is intended to be used with `DataFrames.jl`. The [documentation](https://dataframes.juliadata.org/stable/man/missing/) for that package contains a comprehensive overview of using DataFrames.
-
 ## Data types
 Julia has a number of different data types. These include integers, floats, strings (known in R as "characters"), booleans and missing values.
 
-In a `DataFrame`, each column will have at least one type assigned to it. For example:
+In a `DataFrame` or other table, each column will have at least one type assigned to it. For example:
 
 ```julia
 using DataFrames
@@ -101,7 +98,7 @@ myData.col3
 
 ## Preparing your data for `mice`
 
-The `mice` function in `Mice.jl` requires a `DataFrame` as its first argument. Columns which contain values of the `missing` type will be imputed (unless you specify otherwise: more on this later).
+The `mice` function in `Mice.jl` requires a `Tables.jl`-compatible table as its first argument. Columns which contain values of the `missing` type will be imputed (unless you specify otherwise: more on this later).
 
 (Continuous) numeric variables don't require any special treatment. However, categorical variables are handled differently and may require some additional preparation.
 
