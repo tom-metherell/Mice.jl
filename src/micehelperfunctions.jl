@@ -1,11 +1,13 @@
 """
-    makeMonotoneSequence(data::DataFrame)
+    makeMonotoneSequence(data)
 
-Returns a vector of the column names in a DataFrame in ascending order of missingness.
+Returns a vector of the column names in a data table in ascending order of missingness.
 This facilitates convergence in cases where missingness follows a "monotone" pattern.
 It is the default visit sequence for the `mice()` function.
 """
-function makeMonotoneSequence(data::DataFrame)
+function makeMonotoneSequence(data::T) where {T}
+    istable(T) || throw(ArgumentError("Data not provided as a Tables.jl table."))
+
     # Initialise missingness vector
     missingness = Vector{Int}(undef, size(data, 2))
 
@@ -24,15 +26,17 @@ function makeMonotoneSequence(data::DataFrame)
 end
 
 """
-    makeMethods(data::DataFrame)
+    makeMethods(data)
 
 Returns a named vector of strings defining the method by which each variable in `data`
 should be imputed in the `mice()` function. The default (and only supported) method is
 predictive mean matching (pmm).
 """
-function makeMethods(data::DataFrame)
+function makeMethods(data::T) where {T}
+    istable(T) || throw(ArgumentError("Data not provided as a Tables.jl table."))
+
     # Use pmm for all variables by default
-    methods = NamedArray(Vector{String}(fill("pmm", ncol(data))))
+    methods = NamedArray(Vector{String}(fill("pmm", size(data, 2))))
 
     # Grab the names of the variables
     setnames!(methods, names(data), 1)
@@ -41,19 +45,21 @@ function makeMethods(data::DataFrame)
 end
 
 """
-    makePredictorMatrix(data::DataFrame)
+    makePredictorMatrix(data)
 
 Returns a named matrix of booleans defining the predictors for each variable in `data`.
 The variables to be predicted are on the rows, and the predictors are on the columns.
 The default is to use all variables as predictors for all other variables (i.e. all
 1s except for the diagonal, which is 0).
 """
-function makePredictorMatrix(data::DataFrame)
+function makePredictorMatrix(data::T) where {T}
+    istable(T) || throw(ArgumentError("Data not provided as a Tables.jl table."))
+
     # Initialise the predictor matrix with 1s
-    predictorMatrix = NamedArray(Matrix{Bool}(fill(1, ncol(data), ncol(data))))
+    predictorMatrix = NamedArray(Matrix{Bool}(fill(1, size(data, 2), size(data, 2))))
     
     # Set the diagonal to 0
-    for i in 1:ncol(data)
+    for i in 1:size(data, 2)
         predictorMatrix[i, i] = 0
     end
 
@@ -65,14 +71,15 @@ function makePredictorMatrix(data::DataFrame)
 end
 
 function initialiseImputations(
-    data::DataFrame,
+    data::T,
     m::Int,
     visitSequence::Vector{String},
     methods::NamedVector{String}
-    )
+    ) where {T}
+    istable(T) || throw(ArgumentError("Data not provided as a Tables.jl table."))
 
     # Initialise vector of imputations matrices
-    imputations = Vector{Matrix}(undef, ncol(data))
+    imputations = Vector{Matrix}(undef, size(data, 2))
 
     # For each variable
     for i in eachindex(visitSequence)
@@ -145,7 +152,7 @@ function sampler!(
     imputations::Vector{Matrix},
     meanTraces::Vector{Matrix{Float64}},
     varTraces::Vector{Matrix{Float64}},
-    data::DataFrame,
+    data::T,
     m::Int,
     visitSequence::Vector{String},
     methods::NamedVector{String},
@@ -157,7 +164,8 @@ function sampler!(
     loggedEvents::Vector{String},
     threads::Bool;
     kwargs...
-    )
+    ) where {T}
+    istable(T) || throw(ArgumentError("Data not provided as a Tables.jl table."))
     
     # Grab name of variable to be imputed
     yVar = visitSequence[i]
@@ -300,12 +308,13 @@ end
 
 # The fillXMissings! function includes a ! as it updates X in place
 function fillXMissings!(
-    X::DataFrame,
+    X::T,
     predictors::Vector{String},
     visitSequence::Vector{String},
     imputations::Vector{Matrix},
     j::Int
-    )
+    ) where {T}
+    istable(T) || throw(ArgumentError("Data not provided as a Tables.jl table."))
 
     # For each predictor
     for k in predictors
@@ -325,13 +334,14 @@ end
 
 # The pacify! function includes a ! as it updates loggedEvents in place
 function pacify!(
-    X::DataFrame,
+    X::U,
     predictors::Vector{String},
     loggedEvents::Vector{String},
     iterCounter::Int,
     yVar::AbstractString,
     j::Int
-    )
+    ) where{U}
+    istable(U) || throw(ArgumentError("Data not provided as a Tables.jl table."))
 
     # Initialise vector of categorical predictors
     categoricalPredictors = Vector{String}([])
@@ -349,7 +359,10 @@ function pacify!(
                 push!(categoricalPredictors, xVar)
             else
                 # Otherwise, drop this variable
-                select!(X, Not(xVar))
+                T = typeof(X)
+                rt = rowtable(X)
+                rt = [NamedTuple{setdiff(names(r), [xVar])}(r) for r in rt]
+                X = T(rt)
                 predictors = predictors[predictors .!= xVar]
 
                 # Log that this predictor has been dropped
@@ -438,7 +451,7 @@ function removeLinDeps!(
 
     # If the variance of observed y-values falls below the allowed threshold, delete all predictors and stop now
     if var(yₒ) < 1e-4
-        select!(X, [])
+        X = X[:, []]
         return
     end
 
