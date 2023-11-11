@@ -732,4 +732,4 @@ function matchIndex(
     return indices
 end
 
-export makeMethods, makePredictorMatrix
+export findMissings, makeMethods, makePredictorMatrix
