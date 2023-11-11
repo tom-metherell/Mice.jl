@@ -290,7 +290,7 @@ function sampler!(
                             diff = origNCol - size(X, 2)
                             push!(loggedEvents, "Iteration $iterCounter, variable $yVar, imputation $j: $diff (dummy) predictors were dropped because of high multicollinearity.")
                         end
-                        imputedData = pmmImpute!(y, X, whereY, 5, 1e-5, yVar, iterCounter, j, tempLog)
+                        imputedData = pmmImpute!(y, X, whereY, 5, 1e-5, yVar, iterCounter, j, loggedEvents)
                     else
                         push!(loggedEvents, "Iteration $iterCounter, variable $yVar, imputation $j: imputation skipped - all predictors dropped because of high multicollinearity.")
                         imputedData = imputations[i][:, j]
