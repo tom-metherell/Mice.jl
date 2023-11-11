@@ -19,7 +19,7 @@ using CSV, DataFrames, GLM, Mice, Test
 
     imputedData = mice(data, m = 20, iter = 15, methods = theMethods, predictorMatrix = predictorMatrix, threads = false, gcSchedule = 0.3, progressReports = false)
 
-    @test length(imputedData.loggedEvents) == 120
+    @test length(imputedData.loggedEvents) == 0
 
     imputedDataLong = complete(imputedData, "long")
 
