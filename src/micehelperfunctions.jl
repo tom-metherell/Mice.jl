@@ -24,12 +24,12 @@ It is the default visit sequence for the `mice()` function.
 function makeMonotoneSequence(imputeWhere::NamedVector{Vector{Bool}})
     missingness = sum.(imputeWhere)
 
-    numberOfIncompletes = sum(sum.(imputeWhere) .!= 0)
+    numberOfCompletes = sum(sum.(imputeWhere) .== 0)
 
     missingness = sort(missingness)
 
     # Sort the data frame names vector by missingness
-    visitSequence = names(missingness)[1][1:numberOfIncompletes]
+    visitSequence = names(missingness)[1][numberOfCompletes+1:end]
 
     return visitSequence
 end
