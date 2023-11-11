@@ -4,7 +4,7 @@
         imputation::Int
         )
 
-Produces a DataFrame with missings replaced with imputed values from a
+Produces a data table with missings replaced with imputed values from a
 multiply imputed dataset (`Mids`) object.
 
 The Mids object must be supplied first.
@@ -44,10 +44,10 @@ Summarises the outputs of all imputations in a multiply imputed dataset (`Mids`)
 The Mids object must be supplied first.
 
 The `action` argument is a string identifying what format the output should take.
-If specified as "long", the function will return a single DataFrame, containing
+If specified as "long", the function will return a single data table, containing
 the results of each imputation in succession with an identifier (`imp`).
 If specified as "list", the function will return a vector of individual
-DataFrames.
+data tables.
 """
 function complete(
     mids::Mids,
@@ -58,8 +58,11 @@ function complete(
     if !(action ∈ ["list", "long"])
         throw(ArgumentError("Action not defined. Valid arguments: \"list\", \"long\""))
     else
+        # Detect type of data object
+        T = typeof(mids.data)
+
         # Initialise output
-        data = Vector{DataFrame}(undef, mids.m)
+        data = Vector{T}(undef, mids.m)
 
         # For each imputation
         for i in 1:mids.m
@@ -79,9 +82,12 @@ function complete(
         if action == "list"
             return data
         elseif action == "long"
-            # Concatenate the DataFrames
+            # Concatenate the data tables
             for i in eachindex(data)
-                insertcols!(data[i], 1, :imp => i)
+                T = typeof(data[i])
+                rt = rowtable(data[i])
+                rt = [merge(r, (imp = i,)) for r in rt]
+                data[i] = T(rt)
             end
             return vcat(data...)
         end

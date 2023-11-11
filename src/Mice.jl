@@ -1,7 +1,6 @@
 module Mice
     # Dependencies
     using CategoricalArrays: CategoricalArray, levels
-    using DataFrames: DataFrame, insertcols!, ncol, Not, select!
     using Distributions: cdf, Chisq, Normal, TDist
     using LinearAlgebra: cholesky, Diagonal, diagm, eigen, inv, qr, rank, svd
     using NamedArrays: NamedArray, NamedMatrix, NamedVector, setnames!
@@ -13,6 +12,7 @@ module Mice
     using StatsBase: CoefTable, PValue, sample, standardize, UnitRangeTransform, zscore
     import StatsModels: contrasts_matrix, termnames
     using StatsModels: AbstractContrasts, ModelFrame, ModelMatrix, setcontrasts!, term
+    using Tables: istable, rowtable
 
     """
         Mids
@@ -38,7 +38,7 @@ module Mice
     The variance of each variable across the imputations is stored as `varTraces`.
     """
     struct Mids
-        data::DataFrame
+        data
         imputations::Vector{Matrix}
         m::Int
         methods::NamedArray
@@ -48,6 +48,11 @@ module Mice
         meanTraces::Vector{Matrix{Float64}}
         varTraces::Vector{Matrix{Float64}}
         loggedEvents::Vector{String}
+
+        function Mids(data, imputations, m, methods, predictorMatrix, visitSequence, iter, meanTraces, varTraces, loggedEvents)
+            istable(data) || throw(ArgumentError("Data not provided as a Tables.jl table."))
+            new(data, imputations, m, methods, predictorMatrix, visitSequence, iter, meanTraces, varTraces, loggedEvents)
+        end
     end
 
     include("micehelperfunctions.jl")
@@ -56,7 +61,7 @@ module Mice
 
     """
         mice(
-            data::DataFrame;
+            data;
             m::Int = 5,
             visitSequence::Union{Vector{String}, Nothing} = nothing,
             methods::Union{NamedVector{String}, Nothing} = nothing,
@@ -71,7 +76,7 @@ module Mice
     Imputes missing values in a dataset using the MICE algorithm. 
     The output is a `Mids` object.
 
-    The data containing missing values (`data`) must be supplied as a `DataFrame`.
+    The data containing missing values (`data`) must be supplied as a `Tables.jl` table.
 
     The number of imputations created is specified by `m`.
 
@@ -105,7 +110,7 @@ module Mice
     can verify by calling `Threads.nthreads()`). The default is `false`.
     """
     function mice(
-        data::DataFrame;
+        data::T;
         m::Int = 5,
         visitSequence::Union{Vector{String}, Nothing} = nothing,
         methods::Union{NamedVector{String}, Nothing} = nothing,
@@ -115,7 +120,8 @@ module Mice
         gcSchedule::Float64 = 1.0,
         threads::Bool = false,
         kwargs...
-        )
+        ) where {T}
+        istable(T) || throw(ArgumentError("Data not provided as a Tables.jl table."))
 
         # If no visit sequence specified: sort by proportion of missing data
         if visitSequence === nothing
@@ -338,27 +344,27 @@ module Mice
 
         data = mids1.data
         if data !== mids2.data
-            throw(error(ArgumentError, "Cannot bind these Mids objects: they appear to result from different datasets."))
+            throw(ArgumentError("Cannot bind these Mids objects: they appear to result from different datasets."))
         end
 
         methods = mids1.methods
         if methods != mids2.methods
-            throw(error(ArgumentError, "Cannot bind these Mids objects: the imputation methods are different."))
+            throw(ArgumentError("Cannot bind these Mids objects: the imputation methods are different."))
         end
 
         predictorMatrix = mids1.predictorMatrix
         if predictorMatrix != mids2.predictorMatrix
-            throw(error(ArgumentError, "Cannot bind these Mids objects: the predictor matrices are different."))
+            throw(ArgumentError("Cannot bind these Mids objects: the predictor matrices are different."))
         end
 
         visitSequence = mids1.visitSequence
         if visitSequence != mids2.visitSequence
-            throw(error(ArgumentError, "Cannot bind these Mids objects: the visit sequences are different."))
+            throw(ArgumentError("Cannot bind these Mids objects: the visit sequences are different."))
         end
 
         iter = mids1.iter
         if iter != mids2.iter
-            throw(error(ArgumentError, "Cannot bind these Mids objects: the numbers of iterations are different."))
+            throw(ArgumentError("Cannot bind these Mids objects: the numbers of iterations are different."))
         end
 
         m = mids1.m + mids2.m
