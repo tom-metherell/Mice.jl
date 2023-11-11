@@ -6,7 +6,7 @@
 
 `Mice.jl` is a Julia package for multiple imputation using chained equations. It is heavily based on the R package [mice](https://cran.r-project.org/web/packages/mice/index.html) by Stef van Buuren and Karin Groothuis-Oudshoorn [[1]](#1).
 
-`Mice.jl`'s syntax is very similar to that of `mice` and it is intended to be used in conjunction with [DataFrames.jl](https://github.com/JuliaData/DataFrames.jl).
+`Mice.jl`'s syntax is very similar to that of `mice` and it is intended to be used in conjunction with [Tables.jl](https://github.com/JuliaData/Tables.jl)-compatible tables, including [DataFrames](https://github.com/JuliaData/DataFrames.jl).
 
 ## Installation
 
@@ -29,11 +29,11 @@ Use the `mice()` function to perform multiple imputation on a DataFrame. The out
 
 #### Usage
 ```
-mice(df, m = 5, visitSequence = nothing, methods = nothing, predictorMatrix = nothing, iter = 10, progressReports = true, gcSchedule = 1.0, threads = true, ...)
+mice(data, m = 5, visitSequence = nothing, methods = nothing, predictorMatrix = nothing, iter = 10, progressReports = true, gcSchedule = 1.0, threads = true, ...)
 ```
 where:
 
-`df` is the DataFrame.
+`data` is the data table.
 
 `m` is the number of imputations.
 
