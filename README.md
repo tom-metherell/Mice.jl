@@ -25,7 +25,7 @@ using Pkg; Pkg.add(url = "https://github.com/tom-metherell/Mice.jl.git", rev = "
 ## Quick-start guide
 
 ### Imputation (`mice()`)
-Use the `mice()` function to perform multiple imputation on a DataFrame. The output is a multiply imputed dataset (`Mids`) object.
+Use the `mice()` function to perform multiple imputation on a data table. The output is a multiply imputed dataset (`Mids`) object.
 
 #### Usage
 ```
