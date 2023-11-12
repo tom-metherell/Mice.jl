@@ -1,26 +1,28 @@
 """
-    makeMonotoneSequence(data)
+    findMissings(data)
 
-Returns a vector of the column names in a data table in ascending order of missingness.
-This facilitates convergence in cases where missingness follows a "monotone" pattern.
-It is the default visit sequence for the `mice()` function.
+Returns a named vector of boolean vectors describing the locations of missing data in each
+column of the provided data table.
 """
-function makeMonotoneSequence(data::T) where {T}
+function findMissings(data::T) where{T}
     istable(T) || throw(ArgumentError("Data not provided as a Tables.jl table."))
 
-    # Initialise missingness vector
-    missingness = Vector{Int}(undef, size(data, 2))
+    imputeWhere = NamedArray([Vector{Bool}(ismissing.(columns(data)[i])) for i in 1:length(columns(data))])
 
-    # Count missing data in each column
-    for i in axes(data, 2)
-        missingness[i] = sum(ismissing.(data[:, i]))
-    end
+    setnames!(imputeWhere, collect(string.(columnnames(data))), 1)
 
-    # Sort the missingness vector in ascending order
-    missingness = sortperm(missingness)
+    return imputeWhere
+end
+
+function makeMonotoneSequence(imputeWhere::NamedVector{Vector{Bool}})
+    missingness = sum.(imputeWhere)
+
+    numberOfCompletes = sum(sum.(imputeWhere) .== 0)
+
+    missingness = sort(missingness)
 
     # Sort the data frame names vector by missingness
-    visitSequence = names(data)[missingness]
+    visitSequence = names(missingness)[1][numberOfCompletes+1:end]
 
     return visitSequence
 end
@@ -36,10 +38,10 @@ function makeMethods(data::T) where {T}
     istable(T) || throw(ArgumentError("Data not provided as a Tables.jl table."))
 
     # Use pmm for all variables by default
-    methods = NamedArray(Vector{String}(fill("pmm", size(data, 2))))
+    methods = NamedArray(Vector{String}(fill("pmm", length(columns(data)))))
 
     # Grab the names of the variables
-    setnames!(methods, names(data), 1)
+    setnames!(methods, collect(string.(columnnames(data))), 1)
 
     return methods
 end
@@ -56,22 +58,23 @@ function makePredictorMatrix(data::T) where {T}
     istable(T) || throw(ArgumentError("Data not provided as a Tables.jl table."))
 
     # Initialise the predictor matrix with 1s
-    predictorMatrix = NamedArray(Matrix{Bool}(fill(1, size(data, 2), size(data, 2))))
+    predictorMatrix = NamedArray(Matrix{Bool}(fill(1, length(columns(data)), length(columns(data)))))
     
     # Set the diagonal to 0
-    for i in 1:size(data, 2)
+    for i in 1:length(columns(data))
         predictorMatrix[i, i] = 0
     end
 
     # Grab the names of the variables
-    setnames!(predictorMatrix, names(data), 1)
-    setnames!(predictorMatrix, names(data), 2)
+    setnames!(predictorMatrix, collect(string.(columnnames(data))), 1)
+    setnames!(predictorMatrix, collect(string.(columnnames(data))), 2)
 
     return predictorMatrix
 end
 
 function initialiseImputations(
     data::T,
+    imputeWhere::NamedVector{Vector{Bool}},
     m::Int,
     visitSequence::Vector{String},
     methods::NamedVector{String}
@@ -79,7 +82,7 @@ function initialiseImputations(
     istable(T) || throw(ArgumentError("Data not provided as a Tables.jl table."))
 
     # Initialise vector of imputations matrices
-    imputations = Vector{Matrix}(undef, size(data, 2))
+    imputations = Vector{Matrix}(undef, length(visitSequence))
 
     # For each variable
     for i in eachindex(visitSequence)
@@ -91,23 +94,23 @@ function initialiseImputations(
         if methods[yVar] != ""
 
             # Grab the variable data
-            y = data[:, yVar]
+            y = getcolumn(data, Symbol(yVar))
             
-            # Get locations of missing data in column
-            yMissings = ismissing.(data[:, yVar])
+            # Get locations of data to be imputed in column
+            whereY = imputeWhere[yVar]
 
-            # Count missing data in column
-            missingDataCount = sum(yMissings)
+            # Count data to be imputed in column
+            whereCount = sum(whereY)
 
             # Initialise imputation matrix
-            imputations[i] = Matrix{nonmissingtype(eltype(y))}(undef, missingDataCount, m)
+            imputations[i] = Matrix{nonmissingtype(eltype(y))}(undef, whereCount, m)
 
             # If there are at least some non-missing data
-            if !all(yMissings)
+            if whereCount < length(y)
                 # For each imputation
                 for j in 1:m
                     # Sample observed data at random to serve as initial values
-                    imputations[i][:, j] = sample(y[.!yMissings], missingDataCount)
+                    imputations[i][:, j] = sample(y[.!whereY], whereCount)
                 end
             else
                 if y isa CategoricalArray
@@ -153,6 +156,7 @@ function sampler!(
     meanTraces::Vector{Matrix{Float64}},
     varTraces::Vector{Matrix{Float64}},
     data::T,
+    imputeWhere::NamedVector{Vector{Bool}},
     m::Int,
     visitSequence::Vector{String},
     methods::NamedVector{String},
@@ -171,7 +175,16 @@ function sampler!(
     yVar = visitSequence[i]
 
     # Grab the variable data
-    y = data[:, yVar]
+    y = deepcopy(getcolumn(data, Symbol(yVar)))
+
+    # Grab locations of data to be imputed, and set these values to missing (in case of over-imputation)
+    whereY = imputeWhere[yVar]
+    if sum(whereY) > 0
+        if !(Missing <: eltype(y))
+            y = similar(y, Union{Missing, eltype(y)}) .= y
+        end
+        y[whereY] .= missing
+    end
 
     # Grab the variable's predictors
     predictorVector = predictorMatrix[yVar, :]
@@ -183,8 +196,8 @@ function sampler!(
     if length(predictors) > 0
 
         # For variables using pmm (in v0.0.0 this is the only supported method)
-        # Also check that there is actually missing data in the column
-        if methods[yVar] == "pmm" && any(ismissing.(y))
+        # Also check that there are actually data to be imputed in the column
+        if methods[yVar] == "pmm" && any(whereY)
 
             # For multithreaded execution
             if threads
@@ -197,10 +210,10 @@ function sampler!(
                     tempLog = Vector{String}([])
 
                     # Grab the predictors' data
-                    X = data[:, predictors]
+                    X = deepcopy(columntable(NamedTuple{Tuple(Symbol.(predictors))}(Tuple(columntable(data)[c] for c in Symbol.(predictors)))))
 
                     # Fill missings in the predictors with their imputed values
-                    fillXMissings!(X, predictors, visitSequence, imputations, j)
+                    fillXMissings!(X, imputeWhere, predictors, visitSequence, imputations, j)
 
                     # Convert categorical variables to dummy equivalents
                     # NB: "pacifier" = "dummy" in British English
@@ -210,7 +223,7 @@ function sampler!(
                     origNCol = size(X, 2)
 
                     # Remove linear dependencies
-                    removeLinDeps!(X, y)
+                    removeLinDeps!(X, y, whereY)
 
                     # If there are still some predictors
                     if size(X, 2) > 0
@@ -224,7 +237,7 @@ function sampler!(
                         end
 
                         # Impute the missing data by predictive mean matching
-                        imputedData = pmmImpute!(y, X, 5, 1e-5, yVar, iterCounter, j, tempLog)
+                        imputedData = pmmImpute!(y, X, whereY, 5, 1e-5, yVar, iterCounter, j, tempLog)
                     else
                         # Log an event explaining why the imputation was skipped
                         push!(tempLog, "Iteration $iterCounter, variable $yVar, imputation $j: imputation skipped - all predictors dropped because of high multicollinearity.")
@@ -259,18 +272,18 @@ function sampler!(
             else
                 # Comments are as above
                 for j in 1:m
-                    X = data[:, predictors]
-                    fillXMissings!(X, predictors, visitSequence, imputations, j)
+                    X = deepcopy(columntable(NamedTuple{Tuple(Symbol.(predictors))}(Tuple(columntable(data)[c] for c in Symbol.(predictors)))))
+                    fillXMissings!(X, imputeWhere, predictors, visitSequence, imputations, j)
                     X = pacify!(X, predictors, loggedEvents, iterCounter, yVar, j)
                     origNCol = size(X, 2)
-                    removeLinDeps!(X, y)
+                    removeLinDeps!(X, y, whereY)
 
                     if size(X, 2) > 0
                         if size(X, 2) < origNCol
                             diff = origNCol - size(X, 2)
                             push!(loggedEvents, "Iteration $iterCounter, variable $yVar, imputation $j: $diff (dummy) predictors were dropped because of high multicollinearity.")
                         end
-                        imputedData = pmmImpute!(y, X, 5, 1e-5, yVar, iterCounter, j, loggedEvents)
+                        imputedData = pmmImpute!(y, X, whereY, 5, 1e-5, yVar, iterCounter, j, loggedEvents)
                     else
                         push!(loggedEvents, "Iteration $iterCounter, variable $yVar, imputation $j: imputation skipped - all predictors dropped because of high multicollinearity.")
                         imputedData = imputations[i][:, j]
@@ -309,6 +322,7 @@ end
 # The fillXMissings! function includes a ! as it updates X in place
 function fillXMissings!(
     X::T,
+    imputeWhere::NamedVector{Vector{Bool}},
     predictors::Vector{String},
     visitSequence::Vector{String},
     imputations::Vector{Matrix},
@@ -321,13 +335,13 @@ function fillXMissings!(
         # Find its position in the visit sequence
         kVS = findfirst(visitSequence .== k)
 
-        # Find the positions of missing data in the predictor column
-        xMissings = ismissing.(X[:, k])
+        # Find the positions of data to be imputed in the predictor column
+        whereX = imputeWhere[k]
 
         # If there are any missing data
-        if any(xMissings)
+        if any(whereX)
             # Fill them with the imputed values
-            X[xMissings, k] = imputations[kVS][:, j]
+            X[Symbol(k)][whereX] = imputations[kVS][:, j]
         end
     end
 end
@@ -344,12 +358,12 @@ function pacify!(
     istable(U) || throw(ArgumentError("Data not provided as a Tables.jl table."))
 
     # Initialise vector of categorical predictors
-    categoricalPredictors = Vector{String}([])
+    categoricalPredictors = Vector{Symbol}([])
 
     # For each predictor
-    for xVar in predictors
+    for xVar in Symbol.(predictors)
         # Grab the predictor data
-        x = X[:, xVar]
+        x = getcolumn(X, xVar)
 
         # If the data are categorical (either CategoricalArray or a vector of strings)
         if x isa CategoricalArray || nonmissingtype(eltype(x)) <: AbstractString
@@ -359,19 +373,12 @@ function pacify!(
                 push!(categoricalPredictors, xVar)
             else
                 # Otherwise, drop this variable
-                T = typeof(X)
-                rt = rowtable(X)
-                rt = [NamedTuple{setdiff(names(r), [xVar])}(r) for r in rt]
-                X = T(rt)
-                predictors = predictors[predictors .!= xVar]
+                X = columntable(NamedTuple{Tuple(setdiff(columnnames(X), [xVar]))}([X[c] for c in setdiff(columnnames(X), [xVar])]))
+                predictors = predictors[predictors .!= string(xVar)]
 
                 # Log that this predictor has been dropped
                 push!(loggedEvents, "Iteration $iterCounter, variable $yVar, imputation $j: predictor $xVar dropped because of zero variance.")
             end
-        # Otherwise, convert the data to float and standardise
-        elseif nonmissingtype(eltype(x)) <: Real
-            X[!, xVar] = convert.(Float64, X[:, xVar])
-            X[:, xVar] = standardize(UnitRangeTransform, X[:, xVar])
         end
     end
 
@@ -379,10 +386,15 @@ function pacify!(
     mf = ModelFrame(term(0) ~ sum(term.(predictors)), X)
 
     # Set contrast coding for categorical predictors to orthogonal polynomial
-    setcontrasts!(mf, Dict([Symbol(xVar) => PolynomialCoding() for xVar in categoricalPredictors]))
+    setcontrasts!(mf, Dict([xVar => PolynomialCoding() for xVar in categoricalPredictors]))
 
     # Produce the model matrix
     X = ModelMatrix(mf).m[:, 2:end]
+
+    # Standardise everything
+    for i in axes(X, 2)
+        X[:, i] = standardize(UnitRangeTransform, X[:, i])
+    end
 
     return X
 end
@@ -425,28 +437,29 @@ end
 # The removeLinDeps! function includes a ! as it updates X in place
 function removeLinDeps!(
     X::Matrix{Float64},
-    y::AbstractArray
+    y::AbstractArray,
+    whereY::Vector{Bool}
     )
 
     # If all y-values are missing, stop now
-    if all(ismissing.(y))
+    if sum(whereY) == length(whereY)
         return
     end
 
     # Grab observed predictor data
-    Xₒ = Matrix{Float64}(X[.!ismissing.(y), :])
+    Xₒ = Matrix{Float64}(X[.!whereY, :])
     
     # If y is categorical
     if y isa CategoricalArray || nonmissingtype(eltype(y)) <: AbstractString
         # Grab observed y-values
-        yₒ = y[.!ismissing.(y)]
+        yₒ = y[.!whereY]
 
         # Convert y to dummy variables (as floats)
         mapping = Dict(levels(yₒ)[i] => i-1 for i in eachindex(levels(yₒ)))
         yₒ = Vector{Float64}([mapping[v] for v in yₒ])
     else
         # Grab observed y-values (as floats)
-        yₒ = Vector{Float64}(y[.!ismissing.(y)])
+        yₒ = Vector{Float64}(y[.!whereY])
     end
 
     # If the variance of observed y-values falls below the allowed threshold, delete all predictors and stop now
@@ -520,6 +533,7 @@ end
 function pmmImpute!(
     y::AbstractArray,
     X::Matrix{Float64},
+    whereY::Vector{Bool},
     donors::Int,
     ridge::Float64,
     yVar::String,
@@ -528,22 +542,19 @@ function pmmImpute!(
     loggedEvents::Vector{String}
     )
 
-    # Get the positions of missing y-values
-    yMissings = ismissing.(y)
-
     # Get the X-values for the rows with observed and missing y-values, respectively
-    Xₒ = Matrix{Float64}(hcat(repeat([1], sum(.!yMissings)), X[.!yMissings, :]))
-    Xₘ = Matrix{Float64}(hcat(repeat([1], sum(yMissings)), X[yMissings, :]))
+    Xₒ = Matrix{Float64}(hcat(repeat([1], sum(.!whereY)), X[.!whereY, :]))
+    Xₘ = Matrix{Float64}(hcat(repeat([1], sum(whereY)), X[whereY, :]))
 
     # If y is categorical
     if nonmissingtype(eltype(y)) <: AbstractString
         # Convert to dummy variables (as floats) via CCA
-        mapping = Dict(levels(y[.!yMissings])[i] => i-1 for i in eachindex(levels(y[.!yMissings])))
-        yₒ = Vector{Float64}([mapping[v] for v in y[.!yMissings]])
-        yₒ = quantify(y[.!yMissings], Xₒ)
+        mapping = Dict(levels(y[.!whereY])[i] => i-1 for i in eachindex(levels(y[.!whereY])))
+        yₒ = Vector{Float64}([mapping[v] for v in y[.!whereY]])
+        yₒ = quantify(y[.!whereY], Xₒ)
     else
         # Grab observed y-values (as floats)
-        yₒ = Vector{Float64}(y[.!yMissings])
+        yₒ = Vector{Float64}(y[.!whereY])
     end
 
     # Draw from Bayesian linear regression
@@ -556,13 +567,14 @@ function pmmImpute!(
     # Match predicted y-values with donors
     indices = matchIndex(ŷₒ, ẏₘ, donors)
 
-    return y[.!yMissings][indices]    
+    return y[.!whereY][indices]    
 end
 
 # Comments are as above
 function pmmImpute!(
     y::CategoricalArray,
     X::Matrix{Float64},
+    whereY::Vector{Bool},
     donors::Int,
     ridge::Float64,
     yVar::String,
@@ -571,12 +583,10 @@ function pmmImpute!(
     loggedEvents::Vector{String}
     )
 
-    yMissings = ismissing.(y)
+    Xₒ = Matrix{Float64}(hcat(repeat([1], sum(.!whereY)), X[.!whereY, :]))
+    Xₘ = Matrix{Float64}(hcat(repeat([1], sum(whereY)), X[whereY, :]))
 
-    Xₒ = Matrix{Float64}(hcat(repeat([1], sum(.!yMissings)), X[.!yMissings, :]))
-    Xₘ = Matrix{Float64}(hcat(repeat([1], sum(yMissings)), X[yMissings, :]))
-
-    yₒ = quantify(y[.!yMissings], Xₒ)
+    yₒ = quantify(y[.!whereY], Xₒ)
 
     β̂, β̇ = blrDraw!(yₒ, Xₒ, ridge, yVar, iterCounter, j, loggedEvents)
 
@@ -585,7 +595,7 @@ function pmmImpute!(
 
     indices = matchIndex(ŷₒ, ẏₘ, donors)
 
-    return y[.!yMissings][indices]
+    return y[.!whereY][indices]
 end
 
 function quantify(
@@ -713,4 +723,4 @@ function matchIndex(
     return indices
 end
 
-export makeMonotoneSequence, makeMethods, makePredictorMatrix
+export findMissings, makeMethods, makePredictorMatrix

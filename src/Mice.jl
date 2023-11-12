@@ -12,7 +12,7 @@ module Mice
     using StatsBase: CoefTable, PValue, sample, standardize, UnitRangeTransform, zscore
     import StatsModels: contrasts_matrix, termnames
     using StatsModels: AbstractContrasts, ModelFrame, ModelMatrix, setcontrasts!, term
-    using Tables: istable, rowtable
+    using Tables: columnnames, columns, columntable, getcolumn, istable
 
     """
         Mids
@@ -22,6 +22,8 @@ module Mice
     The data originally supplied are stored as `data`.
 
     The imputed data are stored as `imputations` (one column per imputation).
+
+    The locations at which data have been imputed are stored as `imputeWhere`.
 
     The number of imputations is stored as `m`.
 
@@ -40,6 +42,7 @@ module Mice
     struct Mids
         data
         imputations::Vector{Matrix}
+        imputeWhere::NamedVector{Vector{Bool}}
         m::Int
         methods::NamedArray
         predictorMatrix::NamedArray
@@ -49,9 +52,9 @@ module Mice
         varTraces::Vector{Matrix{Float64}}
         loggedEvents::Vector{String}
 
-        function Mids(data, imputations, m, methods, predictorMatrix, visitSequence, iter, meanTraces, varTraces, loggedEvents)
+        function Mids(data, imputations, imputeWhere, m, methods, predictorMatrix, visitSequence, iter, meanTraces, varTraces, loggedEvents)
             istable(data) || throw(ArgumentError("Data not provided as a Tables.jl table."))
-            new(data, imputations, m, methods, predictorMatrix, visitSequence, iter, meanTraces, varTraces, loggedEvents)
+            new(data, imputations, imputeWhere, m, methods, predictorMatrix, visitSequence, iter, meanTraces, varTraces, loggedEvents)
         end
     end
 
@@ -63,6 +66,7 @@ module Mice
         mice(
             data;
             m::Int = 5,
+            imputeWhere::Union{NamedVector{Vector{Bool}}, Nothing} = nothing,
             visitSequence::Union{Vector{String}, Nothing} = nothing,
             methods::Union{NamedVector{String}, Nothing} = nothing,
             predictorMatrix::Union{NamedMatrix{Bool}, Nothing} = nothing,
@@ -80,9 +84,13 @@ module Mice
 
     The number of imputations created is specified by `m`.
 
+    `imputeWhere` is a `NamedVector` of boolean vectors specifying where data are to be
+    imputed. The default is to impute all missing data.
+
     The variables will be imputed in the order specified by `visitSequence`. 
     The default is sorted by proportion of missing data in ascending order; 
     the order can be customised using a vector of variable names in the desired order.
+    Any column not to be imputed at all can be left out of the visit sequence.
 
     The imputation method for each variable is specified by the `NamedArray` `methods`. 
     The default is to use predictive mean matching (`pmm`) for all variables. 
@@ -112,6 +120,7 @@ module Mice
     function mice(
         data::T;
         m::Int = 5,
+        imputeWhere::Union{NamedVector{Vector{Bool}}, Nothing} = nothing,
         visitSequence::Union{Vector{String}, Nothing} = nothing,
         methods::Union{NamedVector{String}, Nothing} = nothing,
         predictorMatrix::Union{NamedMatrix{Bool}, Nothing} = nothing,
@@ -123,9 +132,19 @@ module Mice
         ) where {T}
         istable(T) || throw(ArgumentError("Data not provided as a Tables.jl table."))
 
-        # If no visit sequence specified: sort by proportion of missing data
+        # If locations to impute not specified: find locations of missing data
+        if imputeWhere === nothing
+            imputeWhere = findMissings(data)
+        end
+
+        # If nothing to be imputed: throw error
+        if sum(sum.(imputeWhere)) == 0
+            throw(ArgumentError("Provided dataset contains no missing data to be imputed."))
+        end
+
+        # If no visit sequence specified: sort by proportion of data to impute
         if visitSequence === nothing
-            visitSequence = makeMonotoneSequence(data)
+            visitSequence = makeMonotoneSequence(imputeWhere)
         end
 
         # If no methods specified: use pmm for all variables
@@ -139,7 +158,7 @@ module Mice
         end
 
         # Initialise imputations with random draws from the observed data
-        imputations = initialiseImputations(data, m, visitSequence, methods)
+        imputations = initialiseImputations(data, imputeWhere, m, visitSequence, methods)
 
         # Initialise mean and variance traces (for plotting)
         meanTraces = initialiseTraces(visitSequence, iter, m)
@@ -156,7 +175,7 @@ module Mice
         # For each iteration, for each variable
         for iterCounter in 1:iter, i in eachindex(visitSequence)
             # Run the Gibbs sampler
-            sampler!(imputations, meanTraces, varTraces, data, m, visitSequence, methods, predictorMatrix, iter, iterCounter, i, progressReports, loggedEvents, threads)
+            sampler!(imputations, meanTraces, varTraces, data, imputeWhere, m, visitSequence, methods, predictorMatrix, iter, iterCounter, i, progressReports, loggedEvents, threads)
             
             # If free RAM falls below specified threshold, invoke the garbage collector
             if Sys.free_memory()/Sys.total_memory() < gcSchedule
@@ -177,6 +196,7 @@ module Mice
         midsObj = Mids(
             data,
             imputations,
+            imputeWhere,
             m,
             methods,
             predictorMatrix,
@@ -219,6 +239,7 @@ module Mice
         # Grab existing parameters from the input Mids
         data = mids.data
         imputations = mids.imputations
+        imputeWhere = mids.imputeWhere
         m = mids.m
         methods = mids.methods
         predictorMatrix = mids.predictorMatrix
@@ -247,7 +268,7 @@ module Mice
         # For each new iteration, for each variable
         for iterCounter in prevIter+1:prevIter+iter, i in eachindex(visitSequence)
             # Run the Gibbs sampler
-            sampler!(imputations, meanTraces, varTraces, data, m, visitSequence, methods, predictorMatrix, prevIter+iter, iterCounter, i, progressReports, loggedEvents, threads)
+            sampler!(imputations, meanTraces, varTraces, data, imputeWhere, m, visitSequence, methods, predictorMatrix, prevIter+iter, iterCounter, i, progressReports, loggedEvents, threads)
             
             # If free RAM falls below specified threshold, invoke the garbage collector
             if Sys.free_memory()/Sys.total_memory() < gcSchedule
@@ -264,6 +285,7 @@ module Mice
         midsObj = Mids(
             data,
             imputations,
+            imputeWhere,
             m,
             methods,
             predictorMatrix,
@@ -347,6 +369,11 @@ module Mice
             throw(ArgumentError("Cannot bind these Mids objects: they appear to result from different datasets."))
         end
 
+        imputeWhere = mids1.imputeWhere
+        if imputeWhere !== mids2.imputeWhere
+            throw(ArgumentError("Cannot bind these Mids objects: the locations of imputed data are different."))
+        end
+
         methods = mids1.methods
         if methods != mids2.methods
             throw(ArgumentError("Cannot bind these Mids objects: the imputation methods are different."))
@@ -394,6 +421,7 @@ module Mice
         midsObj = Mids(
             data,
             imputations,
+            imputeWhere,
             m,
             methods,
             predictorMatrix,

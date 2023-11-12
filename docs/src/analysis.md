@@ -3,10 +3,11 @@ Once you have a `Mids` object containing imputed data, you can use it to perform
 
 ## Inspecting imputed data
 
-If you just want to inspect the outcome of the imputation process, you can use the `complete` function to fill in the missing values in the original data frame.
+If you just want to inspect the outcome of the imputation process, you can use the `complete`/`listComplete` function to fill in the missing values in the original data frame.
 
 ```@docs
 complete
+listComplete
 ```
 
 ## Data analysis

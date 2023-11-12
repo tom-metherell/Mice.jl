@@ -34,64 +34,40 @@ function complete(
 end
 
 """
-    complete(
-        mids::Mids,
-        action::String
+    listComplete(
+        mids::Mids
         )
 
-Summarises the outputs of all imputations in a multiply imputed dataset (`Mids`).
-
-The Mids object must be supplied first.
-
-The `action` argument is a string identifying what format the output should take.
-If specified as "long", the function will return a single data table, containing
-the results of each imputation in succession with an identifier (`imp`).
-If specified as "list", the function will return a vector of individual
-data tables.
+Summarises the outputs of all imputations in a multiply imputed dataset (`Mids`) as a list
+of completed datasets.
 """
-function complete(
-    mids::Mids,
-    action::String
+function listComplete(
+    mids::Mids
     )
 
-    # Wrong action specified
-    if !(action ∈ ["list", "long"])
-        throw(ArgumentError("Action not defined. Valid arguments: \"list\", \"long\""))
-    else
-        # Detect type of data object
-        T = typeof(mids.data)
+    # Detect type of data object
+    T = typeof(mids.data)
 
-        # Initialise output
-        data = Vector{T}(undef, mids.m)
+    # Initialise output
+    data = Vector{T}(undef, mids.m)
 
-        # For each imputation
-        for i in 1:mids.m
-            # Get the observed data
-            data[i] = deepcopy(mids.data)
-            # For each variable
-            for j in eachindex(mids.visitSequence)
-                # If it was imputed
-                if isassigned(mids.imputations, j)
-                    # Replace missings with imputed values
-                    var = mids.visitSequence[j]
-                    data[i][ismissing.(data[i][:, var]), var] = mids.imputations[j][:, i]
-                end
+    # For each imputation
+    for i in 1:mids.m
+        # Get the observed data
+        theseData = deepcopy(columntable(mids.data))
+        # For each variable
+        for j in eachindex(mids.visitSequence)
+            # If it was imputed
+            if isassigned(mids.imputations, j)
+                # Replace missings with imputed values
+                var = Symbol(mids.visitSequence[j])
+                theseData[var][mids.imputeWhere[string(var)]] = mids.imputations[j][:, i]
+                data[i] = T(theseData)
             end
-        end
-        
-        if action == "list"
-            return data
-        elseif action == "long"
-            # Concatenate the data tables
-            for i in eachindex(data)
-                T = typeof(data[i])
-                rt = rowtable(data[i])
-                rt = [merge(r, (imp = i,)) for r in rt]
-                data[i] = T(rt)
-            end
-            return vcat(data...)
         end
     end
+        
+    return data
 end
 
 """
@@ -129,7 +105,7 @@ function with(
     analyses = Vector{Any}(undef, mids.m)
     
     # Fill in the missing values
-    datalist = complete(mids, "list")
+    datalist = listComplete(mids)
 
     # For each imputation
     for i in eachindex(datalist)
@@ -141,4 +117,4 @@ function with(
     return Mira(analyses)
 end
 
-export complete, Mira, with
+export complete, listComplete, Mira, with
