@@ -7,9 +7,9 @@ column of the provided data table.
 function findMissings(data::T) where{T}
     istable(T) || throw(ArgumentError("Data not provided as a Tables.jl table."))
 
-    imputeWhere = NamedArray([Vector{Bool}(ismissing.(data[:, i])) for i in axes(data, 2)])
+    imputeWhere = NamedArray([Vector{Bool}(ismissing.(columns(data)[i])) for i in 1:length(columns(data))])
 
-    setnames!(imputeWhere, names(data), 1)
+    setnames!(imputeWhere, collect(string.(columnnames(data))), 1)
 
     return imputeWhere
 end
@@ -45,10 +45,10 @@ function makeMethods(data::T) where {T}
     istable(T) || throw(ArgumentError("Data not provided as a Tables.jl table."))
 
     # Use pmm for all variables by default
-    methods = NamedArray(Vector{String}(fill("pmm", size(data, 2))))
+    methods = NamedArray(Vector{String}(fill("pmm", length(columns(data)))))
 
     # Grab the names of the variables
-    setnames!(methods, names(data), 1)
+    setnames!(methods, collect(string.(columnnames(data))), 1)
 
     return methods
 end
@@ -65,16 +65,16 @@ function makePredictorMatrix(data::T) where {T}
     istable(T) || throw(ArgumentError("Data not provided as a Tables.jl table."))
 
     # Initialise the predictor matrix with 1s
-    predictorMatrix = NamedArray(Matrix{Bool}(fill(1, size(data, 2), size(data, 2))))
+    predictorMatrix = NamedArray(Matrix{Bool}(fill(1, length(columns(data)), length(columns(data)))))
     
     # Set the diagonal to 0
-    for i in 1:size(data, 2)
+    for i in 1:length(columns(data))
         predictorMatrix[i, i] = 0
     end
 
     # Grab the names of the variables
-    setnames!(predictorMatrix, names(data), 1)
-    setnames!(predictorMatrix, names(data), 2)
+    setnames!(predictorMatrix, collect(string.(columnnames(data))), 1)
+    setnames!(predictorMatrix, collect(string.(columnnames(data))), 2)
 
     return predictorMatrix
 end
@@ -89,7 +89,7 @@ function initialiseImputations(
     istable(T) || throw(ArgumentError("Data not provided as a Tables.jl table."))
 
     # Initialise vector of imputations matrices
-    imputations = Vector{Matrix}(undef, size(data, 2))
+    imputations = Vector{Matrix}(undef, length(visitSequence))
 
     # For each variable
     for i in eachindex(visitSequence)
@@ -101,7 +101,7 @@ function initialiseImputations(
         if methods[yVar] != ""
 
             # Grab the variable data
-            y = data[:, yVar]
+            y = getcolumn(data, Symbol(yVar))
             
             # Get locations of data to be imputed in column
             whereY = imputeWhere[yVar]
@@ -182,7 +182,7 @@ function sampler!(
     yVar = visitSequence[i]
 
     # Grab the variable data
-    y = data[:, yVar]
+    y = deepcopy(getcolumn(data, Symbol(yVar)))
 
     # Grab locations of data to be imputed, and set these values to missing (in case of over-imputation)
     whereY = imputeWhere[yVar]
@@ -217,7 +217,7 @@ function sampler!(
                     tempLog = Vector{String}([])
 
                     # Grab the predictors' data
-                    X = data[:, predictors]
+                    X = deepcopy(columntable(NamedTuple{Tuple(Symbol.(predictors))}(Tuple(columntable(data)[c] for c in Symbol.(predictors)))))
 
                     # Fill missings in the predictors with their imputed values
                     fillXMissings!(X, imputeWhere, predictors, visitSequence, imputations, j)
@@ -279,7 +279,7 @@ function sampler!(
             else
                 # Comments are as above
                 for j in 1:m
-                    X = data[:, predictors]
+                    X = deepcopy(columntable(NamedTuple{Tuple(Symbol.(predictors))}(Tuple(columntable(data)[c] for c in Symbol.(predictors)))))
                     fillXMissings!(X, imputeWhere, predictors, visitSequence, imputations, j)
                     X = pacify!(X, predictors, loggedEvents, iterCounter, yVar, j)
                     origNCol = size(X, 2)
@@ -348,7 +348,7 @@ function fillXMissings!(
         # If there are any missing data
         if any(whereX)
             # Fill them with the imputed values
-            X[whereX, k] = imputations[kVS][:, j]
+            X[Symbol(k)][whereX] = imputations[kVS][:, j]
         end
     end
 end
@@ -365,12 +365,12 @@ function pacify!(
     istable(U) || throw(ArgumentError("Data not provided as a Tables.jl table."))
 
     # Initialise vector of categorical predictors
-    categoricalPredictors = Vector{String}([])
+    categoricalPredictors = Vector{Symbol}([])
 
     # For each predictor
-    for xVar in predictors
+    for xVar in Symbol.(predictors)
         # Grab the predictor data
-        x = X[:, xVar]
+        x = getcolumn(X, xVar)
 
         # If the data are categorical (either CategoricalArray or a vector of strings)
         if x isa CategoricalArray || nonmissingtype(eltype(x)) <: AbstractString
@@ -380,19 +380,12 @@ function pacify!(
                 push!(categoricalPredictors, xVar)
             else
                 # Otherwise, drop this variable
-                T = typeof(X)
-                rt = rowtable(X)
-                rt = [NamedTuple{setdiff(names(r), [xVar])}(r) for r in rt]
-                X = T(rt)
-                predictors = predictors[predictors .!= xVar]
+                X = columntable(NamedTuple{Tuple(setdiff(columnnames(X), [xVar]))}([X[c] for c in setdiff(columnnames(X), [xVar])]))
+                predictors = predictors[predictors .!= string(xVar)]
 
                 # Log that this predictor has been dropped
                 push!(loggedEvents, "Iteration $iterCounter, variable $yVar, imputation $j: predictor $xVar dropped because of zero variance.")
             end
-        # Otherwise, convert the data to float and standardise
-        elseif nonmissingtype(eltype(x)) <: Real
-            X[!, xVar] = convert.(Float64, X[:, xVar])
-            X[:, xVar] = standardize(UnitRangeTransform, X[:, xVar])
         end
     end
 
@@ -400,10 +393,15 @@ function pacify!(
     mf = ModelFrame(term(0) ~ sum(term.(predictors)), X)
 
     # Set contrast coding for categorical predictors to orthogonal polynomial
-    setcontrasts!(mf, Dict([Symbol(xVar) => PolynomialCoding() for xVar in categoricalPredictors]))
+    setcontrasts!(mf, Dict([xVar => PolynomialCoding() for xVar in categoricalPredictors]))
 
     # Produce the model matrix
     X = ModelMatrix(mf).m[:, 2:end]
+
+    # Standardise everything
+    for i in axes(X, 2)
+        X[:, i] = standardize(UnitRangeTransform, X[:, i])
+    end
 
     return X
 end

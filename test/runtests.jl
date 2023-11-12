@@ -1,35 +1,74 @@
-using CSV, DataFrames, GLM, Mice, Test
+using CategoricalArrays, CSV, DataFrames, GLM, Mice, Tables, Test, TypedTables
 
-@testset "Mice" begin
-    data = CSV.read("data/cirrhosis.csv", DataFrame)
-    colsWithMissings = ["Drug", "Ascites", "Hepatomegaly", "Spiders", "Cholesterol", "Copper", "Alk_Phos", "SGOT", "Tryglicerides", "Platelets", "Prothrombin", "Stage"]
-    data[!, colsWithMissings] = allowmissing(data[!, colsWithMissings])
-    for i in colsWithMissings
-        replace!(data[!, i], "NA" => missing)
-    end
-    for i in ["Cholesterol", "Copper", "Alk_Phos", "SGOT", "Tryglicerides", "Platelets", "Prothrombin"]
-        data[!, i] = passmissing(x -> parse(Float64, x)).(data[!, i])
-    end
+@testset "Mice (DF)" begin
+    data = CSV.read("data/cirrhosis.csv", DataFrame, missingstring = "NA")
 
-    theMethods = makeMethods(data)
-    theMethods[["ID", "N_Days"]] .= ""
+    data.Stage = categorical(data.Stage)
 
     predictorMatrix = makePredictorMatrix(data)
     predictorMatrix[:, ["ID", "N_Days"]] .= false
 
-    imputedData = mice(data, m = 20, iter = 15, methods = theMethods, predictorMatrix = predictorMatrix, threads = false, gcSchedule = 0.3, progressReports = false)
+    imputedData = mice(data, predictorMatrix = predictorMatrix, threads = false, gcSchedule = 0.0, progressReports = false)
 
     @test length(imputedData.loggedEvents) == 0
 
-    imputedDataLong = complete(imputedData, "long")
+    imputedDataList = listComplete(imputedData)
 
-    @test sum(ismissing.(Matrix(imputedDataLong))) == 0
+    @test sum(sum.(ismissing.(Matrix.(imputedDataList)))) == 0
 
     analyses = with(imputedData, data -> lm(@formula(N_Days ~ Drug + Age + Stage + Bilirubin), data))
 
-    @test length(analyses.analyses) == 20
+    @test length(analyses.analyses) == 5
 
     results = pool(analyses)
 
     @test length(results.coefs) == 7
+end
+
+@testset "Mice (DF, threaded)" begin
+    data = CSV.read("data/cirrhosis.csv", DataFrame, missingstring = "NA")
+
+    data.Stage = categorical(data.Stage)
+
+    predictorMatrix = makePredictorMatrix(data)
+    predictorMatrix[:, ["ID", "N_Days"]] .= false
+
+    imputedData = mice(data, predictorMatrix = predictorMatrix, gcSchedule = 0.0, progressReports = false)
+
+    @test length(imputedData.loggedEvents) == 0
+
+    imputedDataList = listComplete(imputedData)
+
+    @test sum(sum.(ismissing.(Matrix.(imputedDataList)))) == 0
+
+    analyses = with(imputedData, data -> lm(@formula(N_Days ~ Drug + Age + Stage + Bilirubin), data))
+
+    @test length(analyses.analyses) == 5
+
+    results = pool(analyses)
+
+    @test length(results.coefs) == 7
+end
+
+@testset "Mice (TT)" begin
+    data = CSV.read("data/cirrhosis.csv", Table, missingstring = "NA")
+
+    predictorMatrix = makePredictorMatrix(data)
+    predictorMatrix[:, ["ID", "N_Days"]] .= false
+
+    imputedData = mice(data, predictorMatrix = predictorMatrix, threads = false, gcSchedule = 0.0, progressReports = false)
+
+    @test length(imputedData.loggedEvents) == 0
+
+    imputedDataList = listComplete(imputedData)
+
+    @test sum([sum([sum(ismissing.(ct[i])) for i in length(ct)]) for ct in columntable.(imputedDataList)]) == 0
+
+    analyses = with(imputedData, data -> lm(@formula(N_Days ~ Drug + Age + Stage + Bilirubin), data))
+
+    @test length(analyses.analyses) == 5
+
+    results = pool(analyses)
+
+    @test length(results.coefs) == 5
 end

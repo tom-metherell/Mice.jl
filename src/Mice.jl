@@ -12,7 +12,7 @@ module Mice
     using StatsBase: CoefTable, PValue, sample, standardize, UnitRangeTransform, zscore
     import StatsModels: contrasts_matrix, termnames
     using StatsModels: AbstractContrasts, ModelFrame, ModelMatrix, setcontrasts!, term
-    using Tables: istable, rowtable
+    using Tables: columnnames, columns, columntable, getcolumn, istable
 
     """
         Mids

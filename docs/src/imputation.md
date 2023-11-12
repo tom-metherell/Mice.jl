@@ -95,6 +95,8 @@ mice(myData, visitSequence = myVisitSequence2)
 
 Assuming that the imputations converge normally, changing the visit sequence should not dramatically affect the output. However, it can be useful to change the visit sequence if you want to impute variables in a particular order for a specific reason. The sequence used by default in `Mice.jl` can make convergence faster in cases where the data follow a (near-)"monotone" missing data pattern [van_buuren_flexible_2018](@cite).
 
+You can leave variables out of the `visitSequence` to cause `mice()` to not impute them.
+
 ### Predictor matrix
 The predictor matrix defines which variables in the imputation model are used to predict which others. By default, every variable predicts every other variable, but there are a wide range of cases in which this is not desirable. For example, if your dataset includes an ID column, this is clearly useless for imputation and should be ignored.
 
@@ -154,7 +156,7 @@ mice(myData, predictorMatrix = myPredictorMatrix)
 ```
 
 ### Methods
-The imputation methods are the functions that are used to impute each variable. By default, `mice` uses predictive mean matching (`"pmm"`) for all variables (and currently PMM is the only method that `Mice.jl` supports). However, you can use the methods vector to specify any variables that should not be imputed.
+The imputation methods are the functions that are used to impute each variable. By default, `mice` uses predictive mean matching (`"pmm"`) for all variables (and currently PMM is the only method that `Mice.jl` supports).
 
 To create a default methods vector, use the function `makeMethods`.
 
@@ -183,7 +185,8 @@ myMethods = makeMethods(myData)
 # col2 | "pmm"
 # col3 | "pmm"
 
-# To stop the ID column from being imputed
+# To stop the ID column from being imputed (but you can also achieve this by leaving "id"
+# out of the visit sequence)
 myMethods["id"] = "";
 myMethods
 # 4-element Named Vector{String}
