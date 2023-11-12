@@ -49,13 +49,7 @@ mice(myData, imputeWhere = myImputeWhere)
 ```
 
 ### Visit sequence
-The visit sequence is the order in which the variables are imputed. By default, `mice` sorts the variables in order of missingness (lowest to highest) via the function `makeMonotoneSequence`.
-
-```@docs
-makeMonotoneSequence
-```
-
-You can instead define your own visit sequence by creating a vector of variable names in your desired order and passing that to `mice`. For example:
+The visit sequence is the order in which the variables are imputed. By default, `mice` sorts the variables in order of missingness (lowest to highest) via the internal function `makeMonotoneSequence`. You can instead define your own visit sequence by creating a vector of variable names in your desired order and passing that to `mice`. For example:
 
 ```julia
 using DataFrames, Mice, Random
@@ -66,7 +60,7 @@ myData = DataFrame(
     :col3 => Vector{Union{Missing, String}}([missing, "2", missing, "4", missing])
 );
 
-makeMonotoneSequence(myData)
+Mice.makeMonotoneSequence(myData)
 # 3-element Vector{String}:
 # "col2"
 # "col1"

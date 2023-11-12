@@ -14,13 +14,6 @@ function findMissings(data::T) where{T}
     return imputeWhere
 end
 
-"""
-    makeMonotoneSequence(imputeWhere::NamedVector{Vector{Bool}})
-
-Returns a vector of the column names in a data table in ascending order of missingness.
-This facilitates convergence in cases where missingness follows a "monotone" pattern.
-It is the default visit sequence for the `mice()` function.
-"""
 function makeMonotoneSequence(imputeWhere::NamedVector{Vector{Bool}})
     missingness = sum.(imputeWhere)
 
