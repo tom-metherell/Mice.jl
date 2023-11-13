@@ -9,6 +9,7 @@ function findMissings(data::T) where{T}
 
     imputeWhere = NamedArray([Vector{Bool}(ismissing.(getcolumn(data, i))) for i in columnnames(data)])
 
+
     setnames!(imputeWhere, collect(string.(columnnames(data))), 1)
 
     return imputeWhere
