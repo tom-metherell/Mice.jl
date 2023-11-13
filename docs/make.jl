@@ -22,6 +22,5 @@ makedocs(
 
 deploydocs(
     repo = "github.com/tom-metherell/Mice.jl.git",
-    devurl = "dev",
-    versions = ["stable" => "v^", "v#.#", "v0.0" => "v0.0.0", devurl => devurl]
+    versions = ["stable" => "v^", "v#.#", "v0.0" => "v0.0.0", "dev" => "dev"]
 )
