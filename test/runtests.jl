@@ -53,6 +53,8 @@ end
 @testset "Mice (TT)" begin
     data = CSV.read("data/cirrhosis.csv", Table, missingstring = "NA")
 
+    data = Table((; zip([i for i in Tables.columnnames(data) if i != :Stage], [Tables.getcolumn(data, i) for i in Tables.columnnames(data) if i != :Stage])...), Stage = categorical(data.Stage))
+
     predictorMatrix = makePredictorMatrix(data)
     predictorMatrix[:, ["ID", "N_Days"]] .= false
 
@@ -70,5 +72,5 @@ end
 
     results = pool(analyses)
 
-    @test length(results.coefs) == 5
+    @test length(results.coefs) == 7
 end
