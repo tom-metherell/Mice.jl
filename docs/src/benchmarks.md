@@ -5,7 +5,7 @@ I have (very much not rigorously) benchmarked `Mice.jl` using the [test dataset]
 System info: Single-threaded execution, Intel® Core™ i7-12700H 2.30GHz CPU, 32GB 4800MHz DDR5 RAM, running Windows 11 version 10.0.22621.
 
 R: version 4.3.1 running `mice` version 3.16.0.
-Julia: version 1.9.2 running `Mice.jl` version 0.0.0.
+Julia: version 1.9.2 running `Mice.jl` version 0.1.0.
 
 ### Imputation (`mice`)
 
@@ -14,12 +14,12 @@ In `Mice.jl`, `gcSchedule` was set to `0.3`.
 
 | Number of imputations | R (`mice`) (s) | `Mice.jl` (s) |
 | --- | --- | --- |
-| 1 | 1.88 | 27.01 |
-| 5 | 8.84 | 28.72 |
-| 10 | 18.14 | 30.81 |
-| 20 | 38.42 | 36.34 |
-| 50 | 96.78 | 51.95 |
-| 100 | 199.33 | 79.52 |
+| 1 | 1.88 | 30.39 |
+| 5 | 8.84 | 33.40 |
+| 10 | 18.14 | 36.37 |
+| 20 | 38.42 | 43.52 |
+| 50 | 96.78 | 61.88 |
+| 100 | 199.33 | 93.74 |
 
 ## Why is `Mice.jl` so slow for small jobs?
 
