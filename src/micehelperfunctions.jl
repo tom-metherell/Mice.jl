@@ -5,9 +5,9 @@ Returns a named vector of boolean vectors describing the locations of missing da
 column of the provided data table.
 """
 function findMissings(data::T) where{T}
-    istable(T) || throw(ArgumentError("Data not provided as a Tables.jl table."))
+    istable(data) || throw(ArgumentError("Data not provided as a Tables.jl table."))
 
-    imputeWhere = NamedArray([Vector{Bool}(ismissing.(columns(data)[i])) for i in 1:length(columns(data))])
+    imputeWhere = NamedArray([Vector{Bool}(ismissing.(getcolumn(data, i))) for i in columnnames(data)])
 
     setnames!(imputeWhere, collect(string.(columnnames(data))), 1)
 
@@ -35,7 +35,7 @@ should be imputed in the `mice()` function. The default (and only supported) met
 predictive mean matching (pmm).
 """
 function makeMethods(data::T) where {T}
-    istable(T) || throw(ArgumentError("Data not provided as a Tables.jl table."))
+    istable(data) || throw(ArgumentError("Data not provided as a Tables.jl table."))
 
     # Use pmm for all variables by default
     methods = NamedArray(Vector{String}(fill("pmm", length(columns(data)))))
@@ -55,7 +55,7 @@ The default is to use all variables as predictors for all other variables (i.e. 
 1s except for the diagonal, which is 0).
 """
 function makePredictorMatrix(data::T) where {T}
-    istable(T) || throw(ArgumentError("Data not provided as a Tables.jl table."))
+    istable(data) || throw(ArgumentError("Data not provided as a Tables.jl table."))
 
     # Initialise the predictor matrix with 1s
     predictorMatrix = NamedArray(Matrix{Bool}(fill(1, length(columns(data)), length(columns(data)))))
@@ -79,7 +79,7 @@ function initialiseImputations(
     visitSequence::Vector{String},
     methods::NamedVector{String}
     ) where {T}
-    istable(T) || throw(ArgumentError("Data not provided as a Tables.jl table."))
+    istable(data) || throw(ArgumentError("Data not provided as a Tables.jl table."))
 
     # Initialise vector of imputations matrices
     imputations = Vector{Matrix}(undef, length(visitSequence))
@@ -169,7 +169,7 @@ function sampler!(
     threads::Bool;
     kwargs...
     ) where {T}
-    istable(T) || throw(ArgumentError("Data not provided as a Tables.jl table."))
+    istable(data) || throw(ArgumentError("Data not provided as a Tables.jl table."))
     
     # Grab name of variable to be imputed
     yVar = visitSequence[i]
@@ -328,7 +328,7 @@ function fillXMissings!(
     imputations::Vector{Matrix},
     j::Int
     ) where {T}
-    istable(T) || throw(ArgumentError("Data not provided as a Tables.jl table."))
+    istable(X) || throw(ArgumentError("Data not provided as a Tables.jl table."))
 
     # For each predictor
     for k in predictors
@@ -355,7 +355,7 @@ function pacify!(
     yVar::AbstractString,
     j::Int
     ) where{U}
-    istable(U) || throw(ArgumentError("Data not provided as a Tables.jl table."))
+    istable(X) || throw(ArgumentError("Data not provided as a Tables.jl table."))
 
     # Initialise vector of categorical predictors
     categoricalPredictors = Vector{Symbol}([])

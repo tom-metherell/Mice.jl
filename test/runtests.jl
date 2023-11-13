@@ -33,7 +33,7 @@ end
     predictorMatrix = makePredictorMatrix(data)
     predictorMatrix[:, ["ID", "N_Days"]] .= false
 
-    imputedData = mice(data, predictorMatrix = predictorMatrix, gcSchedule = 0.0, progressReports = false)
+    imputedData = mice(data, predictorMatrix = predictorMatrix, threads = true, gcSchedule = 0.0, progressReports = false)
 
     @test length(imputedData.loggedEvents) == 0
 
@@ -62,7 +62,7 @@ end
 
     imputedDataList = listComplete(imputedData)
 
-    @test sum([sum([sum(ismissing.(ct[i])) for i in length(ct)]) for ct in columntable.(imputedDataList)]) == 0
+    @test sum([sum([sum(ismissing.(ct[i])) for i in eachindex(ct)]) for ct in columntable.(imputedDataList)]) == 0
 
     analyses = with(imputedData, data -> lm(@formula(N_Days ~ Drug + Age + Stage + Bilirubin), data))
 
