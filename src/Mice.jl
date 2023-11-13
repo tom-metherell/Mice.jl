@@ -130,7 +130,7 @@ module Mice
         threads::Bool = false,
         kwargs...
         ) where {T}
-        istable(T) || throw(ArgumentError("Data not provided as a Tables.jl table."))
+        istable(data) || throw(ArgumentError("Data not provided as a Tables.jl table."))
 
         # If locations to impute not specified: find locations of missing data
         if imputeWhere === nothing

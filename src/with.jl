@@ -17,18 +17,23 @@ function complete(
     imputation::Int
     )
 
+    # Detect type of data object
+    T = typeof(mids.data)
+
     # Get the observed data
-    data = deepcopy(mids.data)
+    data = deepcopy(columntable(mids.data))
 
     # For each variable
     for i in eachindex(mids.visitSequence)
         # If it was imputed
         if isassigned(mids.imputations, i)
             # Replace missings with imputed values
-            var = mids.visitSequence[i]
-            data[ismissing.(data[:, var]), var] = mids.imputations[i][:, imputation]
+            var = Symbol(mids.visitSequence[i])
+            data[var][mids.imputeWhere[string(var)]] = mids.imputations[i][:, imputation]
         end
     end
+
+    data = T(data)
 
     return data
 end
