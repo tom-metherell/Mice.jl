@@ -39,7 +39,7 @@ function pool(mira::Mira)
     df_Observed = (n - k + 1)/(n - k + 3) * (n - k) .* (1 .- λ)
     df_Adjusted = (df_Old .* df_Observed) ./ (df_Old .+ df_Observed)
     tvalues = pooledCoefs ./ pooledStderrors
-    pvalues = PValue.(1 .- cdf.(TDist.(df_Adjusted), abs.(tvalues)))
+    pvalues = PValue.(ccdf.(FDist.(1, df_Adjusted), abs2.(tvalues)))
 
     # Producing tidy table of coefficients (to mirror outputs from StatsModels.jl)
     pooledCoefficients = CoefTable(
