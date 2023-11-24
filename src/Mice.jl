@@ -58,9 +58,15 @@ module Mice
         end
     end
 
-    include("micehelperfunctions.jl")
+    include("makeFunctions.jl")
     include("with.jl")
     include("pool.jl")
+    include("sampler.jl")
+    include("normImpute.jl")
+    include("pacify.jl")
+    include("pmmImpute.jl")
+    include("quantify.jl")
+    include("sampleImpute.jl")
 
     """
         mice(
@@ -263,7 +269,7 @@ module Mice
         if progressReports
             @printf "======= MICE progress =======\n"
         end
- 
+
         # For each new iteration, for each variable
         for iterCounter in prevIter+1:prevIter+iter, i in eachindex(visitSequence)
             # Run the Gibbs sampler
