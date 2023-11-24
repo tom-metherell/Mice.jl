@@ -150,7 +150,16 @@ mice(myData, predictorMatrix = myPredictorMatrix)
 ```
 
 ### Methods
-The imputation methods are the functions that are used to impute each variable. By default, `mice` uses predictive mean matching (`"pmm"`) for all variables (and currently PMM is the only method that `Mice.jl` supports).
+The imputation methods are the functions that are used to impute each variable. By default, `mice` uses predictive mean matching (`"pmm"`) for all variables. Currently `Mice.jl` supports the following methods:
+
+| Method | Description | Variable type |
+| ------ | ----------- | ------------- |
+| `pmm` | Predictive mean matching | Any |
+| `sample` | Random sample from observed values | Any |
+| `mean` | Mean of observed values | Numeric (float) |
+| `norm` | Bayesian linear regression | Numeric (float) |
+
+The `mean` and `sample` methods should not generally be used.
 
 To create a default methods vector, use the function `makeMethods`.
 
@@ -190,6 +199,17 @@ myMethods
 # col1 | "pmm"
 # col2 | "pmm"
 # col3 | "pmm"
+
+# To use Bayesian linear regression to impute col1
+myMethods["col1"] = "norm";
+myMethods
+# 4-element Named Vector{String}
+# A    |
+# -----|-------
+# id   |     ""
+# col1 | "norm"
+# col2 |  "pmm"
+# col3 |  "pmm"
 
 Random.seed!(1234); # Set random seed for reproducibility
 
