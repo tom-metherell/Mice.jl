@@ -6,6 +6,7 @@ System info: Single-threaded execution, Intel® Core™ i7-12700H 2.30GHz CPU, 3
 
 R: version 4.3.1 running `mice` version 3.16.0.
 Julia: version 1.9.2 running `Mice.jl` version 0.1.0.
+Both used predictive mean matching for all variables that were to be imputed.
 
 ### Imputation (`mice`)
 

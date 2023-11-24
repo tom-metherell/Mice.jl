@@ -1,7 +1,7 @@
 module Mice
     # Dependencies
     using CategoricalArrays: CategoricalArray, levels
-    using Distributions: cdf, Chisq, Normal, TDist
+    using Distributions: ccdf, Chisq, FDist, Normal, TDist
     using LinearAlgebra: cholesky, Diagonal, diagm, eigen, inv, qr, rank, svd
     using NamedArrays: NamedArray, NamedMatrix, NamedVector, setnames!
     using Printf: @printf
@@ -93,8 +93,7 @@ module Mice
     Any column not to be imputed at all can be left out of the visit sequence.
 
     The imputation method for each variable is specified by the `NamedArray` `methods`. 
-    The default is to use predictive mean matching (`pmm`) for all variables. 
-    Currently only `pmm` is supported. 
+    The default is to use predictive mean matching (`pmm`) for all variables.
     Any variable not to be imputed can be marked as such using an empty string ("").
 
     The predictor matrix is specified by the `NamedArray` `predictorMatrix`. 

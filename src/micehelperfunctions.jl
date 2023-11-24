@@ -32,8 +32,8 @@ end
     makeMethods(data)
 
 Returns a named vector of strings defining the method by which each variable in `data`
-should be imputed in the `mice()` function. The default (and only supported) method is
-predictive mean matching (pmm).
+should be imputed in the `mice()` function. The default method is predictive mean matching
+(pmm).
 """
 function makeMethods(data::T) where {T}
     istable(data) || throw(ArgumentError("Data not provided as a Tables.jl table."))
@@ -196,9 +196,9 @@ function sampler!(
     # If there is at least one predictor
     if length(predictors) > 0
 
-        # For variables using pmm (in v0.0.0 this is the only supported method)
+        # For variables using a valid method
         # Also check that there are actually data to be imputed in the column
-        if methods[yVar] == "pmm" && any(whereY)
+        if methods[yVar] ∈ ["pmm", "norm"] && any(whereY)
 
             # For multithreaded execution
             if threads
@@ -237,8 +237,12 @@ function sampler!(
                             push!(tempLog, "Iteration $iterCounter, variable $yVar, imputation $j: $diff (dummy) predictors were dropped because of high multicollinearity.")
                         end
 
-                        # Impute the missing data by predictive mean matching
-                        imputedData = pmmImpute!(y, X, whereY, 5, 1e-5, yVar, iterCounter, j, tempLog)
+                        # Impute the missing data by the specified method
+                        if methods[yVar] == "pmm"
+                            imputedData = pmmImpute!(y, X, whereY, 5, 1e-5, yVar, iterCounter, j, tempLog)
+                        elseif methods[yVar] == "norm"
+                            imputedData = normImpute!(y, X, whereY, 1e-5, yVar, iterCounter, j, tempLog)
+                        end
                     else
                         # Log an event explaining why the imputation was skipped
                         push!(tempLog, "Iteration $iterCounter, variable $yVar, imputation $j: imputation skipped - all predictors dropped because of high multicollinearity.")
@@ -284,7 +288,11 @@ function sampler!(
                             diff = origNCol - size(X, 2)
                             push!(loggedEvents, "Iteration $iterCounter, variable $yVar, imputation $j: $diff (dummy) predictors were dropped because of high multicollinearity.")
                         end
-                        imputedData = pmmImpute!(y, X, whereY, 5, 1e-5, yVar, iterCounter, j, loggedEvents)
+                        if methods[yVar] == "pmm"
+                            imputedData = pmmImpute!(y, X, whereY, 5, 1e-5, yVar, iterCounter, j, loggedEvents)
+                        elseif methods[yVar] == "norm"
+                            imputedData = normImpute!(y, X, whereY, 1e-5, yVar, iterCounter, j, loggedEvents)
+                        end
                     else
                         push!(loggedEvents, "Iteration $iterCounter, variable $yVar, imputation $j: imputation skipped - all predictors dropped because of high multicollinearity.")
                         imputedData = imputations[i][:, j]
@@ -306,8 +314,8 @@ function sampler!(
             # No method specified
             if methods[yVar] == ""
                 push!(loggedEvents, "Iteration $iterCounter, variable $yVar: imputation skipped - no method specified.")
-            # Method other than pmm specified
-            elseif methods[yVar] != "pmm"
+            # Invalid method specified
+            elseif !(methods[yVar] ∈ ["pmm", "norm"])
                 push!(loggedEvents, "Iteration $iterCounter, variable $yVar: imputation skipped - method not supported.")
             # Neither of these => there is no missing data
             else
@@ -559,7 +567,7 @@ function pmmImpute!(
     end
 
     # Draw from Bayesian linear regression
-    β̂, β̇ = blrDraw!(yₒ, Xₒ, ridge, yVar, iterCounter, j, loggedEvents)
+    β̂, β̇, σ̇ = blrDraw!(yₒ, Xₒ, ridge, yVar, iterCounter, j, loggedEvents)
 
     # Calculate predicted y-values (for type-1 matching)
     ŷₒ = Xₒ * β̂
@@ -589,7 +597,7 @@ function pmmImpute!(
 
     yₒ = quantify(y[.!whereY], Xₒ)
 
-    β̂, β̇ = blrDraw!(yₒ, Xₒ, ridge, yVar, iterCounter, j, loggedEvents)
+    β̂, β̇, σ̇ = blrDraw!(yₒ, Xₒ, ridge, yVar, iterCounter, j, loggedEvents)
 
     ŷₒ = Xₒ * β̂
     ẏₘ = Xₘ * β̇
@@ -597,6 +605,27 @@ function pmmImpute!(
     indices = matchIndex(ŷₒ, ẏₘ, donors)
 
     return y[.!whereY][indices]
+end
+
+function normImpute!(
+    y::AbstractArray,
+    X::Matrix{Float64},
+    whereY::Vector{Bool},
+    ridge::Float64,
+    yVar::String,
+    iterCounter::Int,
+    j::Int,
+    loggedEvents::Vector{String}
+    )
+
+    Xₒ = Matrix{Float64}(hcat(repeat([1], sum(.!whereY)), X[.!whereY, :]))
+    Xₘ = Matrix{Float64}(hcat(repeat([1], sum(whereY)), X[whereY, :]))
+    
+    yₒ = Vector{Float64}(y[.!whereY])
+
+    β̂, β̇, σ̇ = blrDraw!(yₒ, Xₒ, ridge, yVar, iterCounter, j, loggedEvents)
+
+    return Xₘ * β̇ + randn(sum(whereY)) .* σ̇
 end
 
 function quantify(
@@ -654,7 +683,7 @@ function blrDraw!(
     σ̇ = sqrt(sum((yₒ - Xₒ * β̂).^2)) / rand(Chisq(max(length(yₒ) - size(Xₒ, 2), 1)))
     β̇ = β̂ + σ̇ * cholesky((V + transpose(V)) / 2).factors * randn(size(Xₒ, 2))
 
-    return β̂, β̇
+    return β̂, β̇, σ̇
 end
 
 function matchIndex(

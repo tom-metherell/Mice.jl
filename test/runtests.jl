@@ -1,6 +1,6 @@
 using CategoricalArrays, CSV, DataFrames, GLM, Mice, Tables, Test, TypedTables
 
-@testset "Mice (DF)" begin
+@testset "Mice (PMM, DF)" begin
     data = CSV.read("data/cirrhosis.csv", DataFrame, missingstring = "NA")
 
     data.Stage = categorical(data.Stage)
@@ -25,7 +25,7 @@ using CategoricalArrays, CSV, DataFrames, GLM, Mice, Tables, Test, TypedTables
     @test length(results.coefs) == 7
 end
 
-@testset "Mice (DF, threaded)" begin
+@testset "Mice (PMM, DF, threaded)" begin
     data = CSV.read("data/cirrhosis.csv", DataFrame, missingstring = "NA")
 
     data.Stage = categorical(data.Stage)
@@ -50,7 +50,7 @@ end
     @test length(results.coefs) == 7
 end
 
-@testset "Mice (TT)" begin
+@testset "Mice (PMM, TT)" begin
     data = CSV.read("data/cirrhosis.csv", Table, missingstring = "NA")
 
     data = Table((; zip([i for i in Tables.columnnames(data) if i != :Stage], [Tables.getcolumn(data, i) for i in Tables.columnnames(data) if i != :Stage])...), Stage = categorical(data.Stage))
@@ -65,6 +65,36 @@ end
     imputedDataList = listComplete(imputedData)
 
     @test sum([sum([sum(ismissing.(ct[i])) for i in eachindex(ct)]) for ct in columntable.(imputedDataList)]) == 0
+
+    analyses = with(imputedData, data -> lm(@formula(N_Days ~ Drug + Age + Stage + Bilirubin), data))
+
+    @test length(analyses.analyses) == 5
+
+    results = pool(analyses)
+
+    @test length(results.coefs) == 7
+end
+
+@testset "Mice (norm, DF)" begin
+    data = CSV.read("data/cirrhosis.csv", DataFrame, missingstring = "NA")
+
+    data.Stage = categorical(data.Stage)
+
+    data[!, ["Age", "Cholesterol", "Copper", "Tryglicerides", "Platelets"]] = convert.(Union{Float64, Missing}, data[!, ["Age", "Cholesterol", "Copper", "Tryglicerides", "Platelets"]])
+
+    theMethods = makeMethods(data)
+    theMethods[["Age", "Bilirubin", "Cholesterol", "Albumin", "Copper", "Alk_Phos", "SGOT", "Tryglicerides", "Platelets", "Prothrombin"]] .= "norm"
+
+    predictorMatrix = makePredictorMatrix(data)
+    predictorMatrix[:, ["ID", "N_Days"]] .= false
+
+    imputedData = mice(data, methods = theMethods, predictorMatrix = predictorMatrix, threads = false, gcSchedule = 0.0, progressReports = false)
+
+    @test length(imputedData.loggedEvents) == 0
+
+    imputedDataList = listComplete(imputedData)
+
+    @test sum(sum.(ismissing.(Matrix.(imputedDataList)))) == 0
 
     analyses = with(imputedData, data -> lm(@formula(N_Days ~ Drug + Age + Stage + Bilirubin), data))
 
