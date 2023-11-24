@@ -155,7 +155,11 @@ The imputation methods are the functions that are used to impute each variable. 
 | Method | Description | Variable type |
 | ------ | ----------- | ------------- |
 | `pmm` | Predictive mean matching | Any |
+| `sample` | Random sample from observed values | Any |
+| `mean` | Mean of observed values | Numeric (float) |
 | `norm` | Bayesian linear regression | Numeric (float) |
+
+The `mean` and `sample` methods should not generally be used.
 
 To create a default methods vector, use the function `makeMethods`.
 

@@ -104,3 +104,56 @@ end
 
     @test length(results.coefs) == 7
 end
+
+@testset "Mice (sample, DF)" begin
+    data = CSV.read("data/cirrhosis.csv", DataFrame, missingstring = "NA")
+
+    data.Stage = categorical(data.Stage)
+
+    theMethods = makeMethods(data)
+    theMethods .= "sample"
+
+    imputedData = mice(data, iter = 1, methods = theMethods, threads = false, gcSchedule = 0.0, progressReports = false)
+
+    @test length(imputedData.loggedEvents) == 0
+
+    imputedDataList = listComplete(imputedData)
+
+    @test sum(sum.(ismissing.(Matrix.(imputedDataList)))) == 0
+
+    analyses = with(imputedData, data -> lm(@formula(N_Days ~ Drug + Age + Stage + Bilirubin), data))
+
+    @test length(analyses.analyses) == 5
+
+    results = pool(analyses)
+
+    @test length(results.coefs) == 7
+end
+
+@testset "Mice (mean, DF)" begin
+    data = CSV.read("data/cirrhosis.csv", DataFrame, missingstring = "NA")
+
+    data.Stage = categorical(data.Stage)
+
+    data[!, ["Age", "Cholesterol", "Copper", "Tryglicerides", "Platelets"]] = convert.(Union{Float64, Missing}, data[!, ["Age", "Cholesterol", "Copper", "Tryglicerides", "Platelets"]])
+
+    theMethods = makeMethods(data)
+    theMethods .= "sample"
+    theMethods[["Age", "Bilirubin", "Cholesterol", "Albumin", "Copper", "Alk_Phos", "SGOT", "Tryglicerides", "Platelets", "Prothrombin"]] .= "mean"
+
+    imputedData = mice(data, iter = 1, methods = theMethods, threads = false, gcSchedule = 0.0, progressReports = false)
+
+    @test length(imputedData.loggedEvents) == 0
+
+    imputedDataList = listComplete(imputedData)
+
+    @test sum(sum.(ismissing.(Matrix.(imputedDataList)))) == 0
+
+    analyses = with(imputedData, data -> lm(@formula(N_Days ~ Drug + Age + Stage + Bilirubin), data))
+
+    @test length(analyses.analyses) == 5
+
+    results = pool(analyses)
+
+    @test length(results.coefs) == 7
+end

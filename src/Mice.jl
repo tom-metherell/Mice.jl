@@ -1,6 +1,6 @@
 module Mice
     # Dependencies
-    using CategoricalArrays: CategoricalArray, levels
+    using CategoricalArrays: CategoricalArray, CategoricalValue, levels
     using Distributions: ccdf, Chisq, FDist, Normal, TDist
     using LinearAlgebra: cholesky, Diagonal, diagm, eigen, inv, qr, rank, svd
     using NamedArrays: NamedArray, NamedMatrix, NamedVector, setnames!

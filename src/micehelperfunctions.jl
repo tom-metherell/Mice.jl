@@ -106,27 +106,10 @@ function initialiseImputations(
             # Initialise imputation matrix
             imputations[i] = Matrix{nonmissingtype(eltype(y))}(undef, whereCount, m)
 
-            # If there are at least some non-missing data
-            if whereCount < length(y)
-                # For each imputation
-                for j in 1:m
-                    # Sample observed data at random to serve as initial values
-                    imputations[i][:, j] = sample(y[.!whereY], whereCount)
-                end
-            else
-                if y isa CategoricalArray
-                    # For each imputation
-                    for j in 1:m
-                        # Sample from the levels of the categorical variable
-                        imputations[i][:, j] = CategoricalArray{nonmissingtype(eltype(y))}(sample(levels(y), length(y)))
-                    end
-                else
-                    # For each imputation
-                    for j in 1:m
-                        # Sample from a standard normal distribution
-                        imputations[i][:, j] .= randn(length(y))
-                    end
-                end
+            # For each imputation
+            for j in 1:m
+                # Initialise using a random sample from the observed data
+                imputations[i][:, j] = sampleImpute!(y, whereY, whereCount)
             end
         end
     end
@@ -180,7 +163,9 @@ function sampler!(
 
     # Grab locations of data to be imputed, and set these values to missing (in case of over-imputation)
     whereY = imputeWhere[yVar]
-    if sum(whereY) > 0
+    whereCount = sum(whereY)
+    
+    if whereCount > 0
         if !(Missing <: eltype(y))
             y = similar(y, Union{Missing, eltype(y)}) .= y
         end
@@ -195,10 +180,35 @@ function sampler!(
 
     # If there is at least one predictor
     if length(predictors) > 0
-
-        # For variables using a valid method
+        # For variables using an unconditional method
         # Also check that there are actually data to be imputed in the column
-        if methods[yVar] ∈ ["pmm", "norm"] && any(whereY)
+        if methods[yVar] ∈ ["mean", "sample"] && any(whereY)
+            # For each imputation
+            for j in 1:m
+                # Impute the data by the specified method
+                if methods[yVar] == "mean"
+                    # Impute the missing data with the mean of the observed data
+                    imputedData = repeat([mean(y[.!whereY])], whereCount)
+                elseif methods[yVar] == "sample"
+                    # Impute the missing data by sampling from the observed data
+                    imputedData = sampleImpute!(y, whereY, whereCount)
+                end
+
+                updateTraces!(meanTraces, varTraces, imputedData, i, iterCounter, j)
+
+                imputations[i][:, j] = imputedData
+
+                if progressReports
+                    progress = ((iterCounter - 1)/iter + ((i-1)/length(visitSequence))/iter + (j/m)/length(visitSequence)/iter) * 100
+                    progressRound = floor(Int8, progress / 10)
+                    miceEmojis = string(repeat("🐁", progressRound), repeat("🐭", 10 - progressRound))
+                    @printf "\33[2KIteration:  %u / %u\n\33[2KVariable:   %u / %u (%s)\n\33[2KImputation: %u / %u\n\33[2K%s   %.1f %%\n\33[2KLogged events: %u\n=============================\u1b[A\u1b[A\u1b[A\u1b[A\u1b[A\r" iterCounter iter i length(visitSequence) yVar j m miceEmojis progress length(loggedEvents)
+                end
+            end
+
+        # For variables using a conditional method
+        # Also check that there are actually data to be imputed in the column
+        elseif methods[yVar] ∈ ["norm", "pmm"] && any(whereY)
 
             # For multithreaded execution
             if threads
@@ -224,7 +234,7 @@ function sampler!(
                     origNCol = size(X, 2)
 
                     # Remove linear dependencies
-                    removeLinDeps!(X, y, whereY)
+                    removeLinDeps!(X, y, whereY, whereCount)
 
                     # If there are still some predictors
                     if size(X, 2) > 0
@@ -239,9 +249,9 @@ function sampler!(
 
                         # Impute the missing data by the specified method
                         if methods[yVar] == "pmm"
-                            imputedData = pmmImpute!(y, X, whereY, 5, 1e-5, yVar, iterCounter, j, tempLog)
+                            imputedData = pmmImpute!(y, X, whereY, whereCount, 5, 1e-5, yVar, iterCounter, j, tempLog)
                         elseif methods[yVar] == "norm"
-                            imputedData = normImpute!(y, X, whereY, 1e-5, yVar, iterCounter, j, tempLog)
+                            imputedData = normImpute!(y, X, whereY, whereCount, 1e-5, yVar, iterCounter, j, tempLog)
                         end
                     else
                         # Log an event explaining why the imputation was skipped
@@ -281,7 +291,7 @@ function sampler!(
                     fillXMissings!(X, imputeWhere, predictors, visitSequence, imputations, j)
                     X = pacify!(X, predictors, loggedEvents, iterCounter, yVar, j)
                     origNCol = size(X, 2)
-                    removeLinDeps!(X, y, whereY)
+                    removeLinDeps!(X, y, whereY, whereCount)
 
                     if size(X, 2) > 0
                         if size(X, 2) < origNCol
@@ -289,9 +299,9 @@ function sampler!(
                             push!(loggedEvents, "Iteration $iterCounter, variable $yVar, imputation $j: $diff (dummy) predictors were dropped because of high multicollinearity.")
                         end
                         if methods[yVar] == "pmm"
-                            imputedData = pmmImpute!(y, X, whereY, 5, 1e-5, yVar, iterCounter, j, loggedEvents)
+                            imputedData = pmmImpute!(y, X, whereY, whereCount, 5, 1e-5, yVar, iterCounter, j, loggedEvents)
                         elseif methods[yVar] == "norm"
-                            imputedData = normImpute!(y, X, whereY, 1e-5, yVar, iterCounter, j, loggedEvents)
+                            imputedData = normImpute!(y, X, whereY, whereCount, 1e-5, yVar, iterCounter, j, loggedEvents)
                         end
                     else
                         push!(loggedEvents, "Iteration $iterCounter, variable $yVar, imputation $j: imputation skipped - all predictors dropped because of high multicollinearity.")
@@ -315,7 +325,7 @@ function sampler!(
             if methods[yVar] == ""
                 push!(loggedEvents, "Iteration $iterCounter, variable $yVar: imputation skipped - no method specified.")
             # Invalid method specified
-            elseif !(methods[yVar] ∈ ["pmm", "norm"])
+            elseif !(methods[yVar] ∈ ["mean", "norm", "pmm", "sample"])
                 push!(loggedEvents, "Iteration $iterCounter, variable $yVar: imputation skipped - method not supported.")
             # Neither of these => there is no missing data
             else
@@ -447,11 +457,12 @@ end
 function removeLinDeps!(
     X::Matrix{Float64},
     y::AbstractArray,
-    whereY::Vector{Bool}
+    whereY::Vector{Bool},
+    whereCount::Int
     )
 
     # If all y-values are missing, stop now
-    if sum(whereY) == length(whereY)
+    if whereCount == length(whereY)
         return
     end
 
@@ -527,7 +538,7 @@ function updateTraces!(
     )
 
     # If the imputed data are categorical
-    if imputedData isa CategoricalArray || nonmissingtype(eltype(imputedData)) <: AbstractString
+    if imputedData isa CategoricalArray || nonmissingtype(eltype(imputedData)) <: Union{AbstractString, CategoricalValue}
         # Convert the imputed data to integers
         mapping = Dict(levels(imputedData)[i] => i-1 for i in eachindex(levels(imputedData)))
         imputedData = [mapping[v] for v in imputedData]
@@ -543,6 +554,7 @@ function pmmImpute!(
     y::AbstractArray,
     X::Matrix{Float64},
     whereY::Vector{Bool},
+    whereCount::Int,
     donors::Int,
     ridge::Float64,
     yVar::String,
@@ -552,8 +564,8 @@ function pmmImpute!(
     )
 
     # Get the X-values for the rows with observed and missing y-values, respectively
-    Xₒ = Matrix{Float64}(hcat(repeat([1], sum(.!whereY)), X[.!whereY, :]))
-    Xₘ = Matrix{Float64}(hcat(repeat([1], sum(whereY)), X[whereY, :]))
+    Xₒ = Matrix{Float64}(hcat(repeat([1], length(whereY) - whereCount), X[.!whereY, :]))
+    Xₘ = Matrix{Float64}(hcat(repeat([1], whereCount), X[whereY, :]))
 
     # If y is categorical
     if nonmissingtype(eltype(y)) <: AbstractString
@@ -584,6 +596,7 @@ function pmmImpute!(
     y::CategoricalArray,
     X::Matrix{Float64},
     whereY::Vector{Bool},
+    whereCount::Int,
     donors::Int,
     ridge::Float64,
     yVar::String,
@@ -592,8 +605,8 @@ function pmmImpute!(
     loggedEvents::Vector{String}
     )
 
-    Xₒ = Matrix{Float64}(hcat(repeat([1], sum(.!whereY)), X[.!whereY, :]))
-    Xₘ = Matrix{Float64}(hcat(repeat([1], sum(whereY)), X[whereY, :]))
+    Xₒ = Matrix{Float64}(hcat(repeat([1], length(y) - whereCount), X[.!whereY, :]))
+    Xₘ = Matrix{Float64}(hcat(repeat([1], whereCount), X[whereY, :]))
 
     yₒ = quantify(y[.!whereY], Xₒ)
 
@@ -611,6 +624,7 @@ function normImpute!(
     y::AbstractArray,
     X::Matrix{Float64},
     whereY::Vector{Bool},
+    whereCount::Int,
     ridge::Float64,
     yVar::String,
     iterCounter::Int,
@@ -618,14 +632,34 @@ function normImpute!(
     loggedEvents::Vector{String}
     )
 
-    Xₒ = Matrix{Float64}(hcat(repeat([1], sum(.!whereY)), X[.!whereY, :]))
-    Xₘ = Matrix{Float64}(hcat(repeat([1], sum(whereY)), X[whereY, :]))
+    Xₒ = Matrix{Float64}(hcat(repeat([1], length(y) - whereCount), X[.!whereY, :]))
+    Xₘ = Matrix{Float64}(hcat(repeat([1], whereCount), X[whereY, :]))
     
     yₒ = Vector{Float64}(y[.!whereY])
 
     β̂, β̇, σ̇ = blrDraw!(yₒ, Xₒ, ridge, yVar, iterCounter, j, loggedEvents)
 
-    return Xₘ * β̇ + randn(sum(whereY)) .* σ̇
+    return Xₘ * β̇ + randn(whereCount) .* σ̇
+end
+
+function sampleImpute!(
+    y::AbstractArray,
+    whereY::Vector{Bool},
+    whereCount::Int
+    )
+
+    # If there are at least some non-missing data
+    if whereCount < length(y)
+        imputedData = sample(y[.!whereY], whereCount)
+    elseif y isa CategoricalArray
+        # Sample from the levels of the categorical variable
+        imputedData = CategoricalArray{nonmissingtype(eltype(y))}(sample(levels(y), length(y)))
+    else
+        # Sample from a standard normal distribution
+        imputedData = randn(length(y))
+    end
+
+    return imputedData
 end
 
 function quantify(
