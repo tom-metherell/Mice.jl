@@ -218,7 +218,7 @@ mice(myData, methods = myMethods)
 ```
 
 ## Diagnostics
-After performing multiple imputation, you should inspect the trace plots of the imputed variables to verify convergence. `Mice.jl` includes the a plotting function to do this.
+After performing multiple imputation, you should inspect the trace plots of the imputed variables to verify convergence. `Mice.jl` includes a plotting function to do this.
 
 ```@docs
 plot
