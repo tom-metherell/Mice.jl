@@ -39,7 +39,7 @@ where:
 
 `visitSequence` is a vector of column names specifying the order in which the columns should be imputed. If `nothing`, the order is determined automatically. You can make a default visit sequence (which you can then edit) using the function `makeMonotoneSequence(data)`
 
-`methods` is a vector of imputation methods. If `nothing`, the default methods are used. Currently, `Mice.jl` supports predictive mean matching (`pmm`) only. To skip a column, define the method for that column as an empty string (`""`). You can make a default methods vector (which you can then edit) using the function `makeMethods(data)`
+`methods` is a vector of imputation methods. If `nothing`, the default methods are used. Currently, `Mice.jl` supports only a few methods. To skip a column, define the method for that column as an empty string (`""`). You can make a default methods vector (which you can then edit) using the function `makeMethods(data)`
 
 `predictorMatrix` is a matrix of predictors for each column (with the predictors in the columns of the matrix). If `nothing`, all other columns are used for each column. To prevent one column from predicting another, ensure that value of the corresponding cell is set to `0`. You can make a default predictor matrix (which you can then edit) using the function `makePredictorMatrix(data)`
 
