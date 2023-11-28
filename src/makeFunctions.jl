@@ -15,15 +15,13 @@ function findMissings(data::T) where{T}
     return imputeWhere
 end
 
-function makeMonotoneSequence(imputeWhere::AxisArray{Vector{Bool}})
-    missingness = sum.(imputeWhere)
+function makeMonotoneSequence(imputeWhere::AxisVector{Vector{Bool}})
+    missingness = AxisArray(sum.(imputeWhere), axes(imputeWhere)[1])
 
     numberOfCompletes = sum(sum.(imputeWhere) .== 0)
 
-    missingness = sort(missingness)
-
     # Sort the data frame names vector by missingness
-    visitSequence = names(missingness)[1][numberOfCompletes+1:end]
+    visitSequence = axes(missingness)[1][sortperm(missingness)][numberOfCompletes+1:end]
 
     return visitSequence
 end
@@ -40,7 +38,7 @@ function makeMethods(data::T) where {T}
 
     # Use pmm for all variables by default
     methods = AxisArray(
-        Vector{String}(fill("pmm", length(columns(data)))),
+        fill("pmm", length(columns(data))),
         collect(string.(columnnames(data)))    
     )
 
@@ -60,13 +58,13 @@ function makePredictorMatrix(data::T) where {T}
 
     # Initialise the predictor matrix with 1s
     predictorMatrix = AxisArray(
-        Matrix{Bool}(fill(1, length(Tables.columns(data)), length(Tables.columns(data)))),
-        collect(string.(Tables.columnnames(data))),
-        collect(string.(Tables.columnnames(data)))
+        fill(1, length(columns(data)), length(columns(data))),
+        collect(string.(columnnames(data))),
+        collect(string.(columnnames(data)))
     )
     
     # Set the diagonal to 0
-    for i in 1:length(Tables.columns(data))
+    for i in 1:length(columns(data))
         predictorMatrix[i, i] = 0
     end
 
@@ -75,7 +73,7 @@ end
 
 function initialiseImputations(
     data::T,
-    imputeWhere::AxisVector{Bool},
+    imputeWhere::AxisVector{Vector{Bool}},
     m::Int,
     visitSequence::Vector{String},
     methods::AxisVector{String}

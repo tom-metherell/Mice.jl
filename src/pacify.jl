@@ -1,7 +1,7 @@
 # The fillXMissings! function includes a ! as it updates X in place
 function fillXMissings!(
     X::T,
-    imputeWhere::NamedVector{Vector{Bool}},
+    imputeWhere::AxisVector{Vector{Bool}},
     predictors::Vector{String},
     visitSequence::Vector{String},
     imputations::Vector{Matrix},
@@ -71,7 +71,7 @@ function pacify!(
     X = ModelMatrix(mf).m[:, 2:end]
 
     # Standardise everything
-    for i in axes(X, 2)
+    for i in Base.axes(X, 2)
         X[:, i] = standardize(UnitRangeTransform, X[:, i])
     end
 
@@ -87,7 +87,7 @@ function contrasts_matrix(C::PolynomialCoding, _, n)
     X = reduce(hcat, [((1:n) .- mean(1:n)) .^ i for i in 0:n-1])
     qrX = qr(X)
     Z = qrX.Q * Diagonal(qrX.R)
-    for i in axes(Z, 2)
+    for i in Base.axes(Z, 2)
         Z[:, i] = Z[:, i] ./ sqrt(sum(Z[:, i].^2))
     end
     return Z[:, 2:end]

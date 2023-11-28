@@ -1,6 +1,6 @@
 module Mice
     # Dependencies
-    using AxisArrays: AxisMatrix, AxisVector
+    using AxisArrays: axes, AxisArray, AxisMatrix, AxisVector
     using CategoricalArrays: CategoricalArray, CategoricalValue, levels
     using Distributions: ccdf, Chisq, FDist, Normal, TDist
     using LinearAlgebra: cholesky, Diagonal, diagm, eigen, inv, qr, rank, svd
@@ -45,7 +45,7 @@ module Mice
         imputeWhere::AxisVector{Vector{Bool}}
         m::Int
         methods::AxisVector{String}
-        predictorMatrix::AxisMatrix{Bool}
+        predictorMatrix::AxisMatrix{Int}
         visitSequence::Vector{String}
         iter::Int
         meanTraces::Vector{Matrix{Float64}}
@@ -75,7 +75,7 @@ module Mice
             imputeWhere::Union{AxisVector{Vector{Bool}}, Nothing} = nothing,
             visitSequence::Union{Vector{String}, Nothing} = nothing,
             methods::Union{AxisVector{String}, Nothing} = nothing,
-            predictorMatrix::Union{AxisMatrix{Bool}, Nothing} = nothing,
+            predictorMatrix::Union{AxisMatrix{Int}, Nothing} = nothing,
             iter::Int = 10,
             progressReports::Bool = true,
             gcSchedule::Float64 = 1.0,
@@ -128,7 +128,7 @@ module Mice
         imputeWhere::Union{AxisVector{Vector{Bool}}, Nothing} = nothing,
         visitSequence::Union{Vector{String}, Nothing} = nothing,
         methods::Union{AxisVector{String}, Nothing} = nothing,
-        predictorMatrix::Union{AxisMatrix{Bool}, Nothing} = nothing,
+        predictorMatrix::Union{AxisMatrix{Int}, Nothing} = nothing,
         iter::Int = 10,
         progressReports::Bool = true,
         gcSchedule::Float64 = 1.0,

@@ -8,7 +8,7 @@ function sampler!(
     m::Int,
     visitSequence::Vector{String},
     methods::AxisVector{String},
-    predictorMatrix::AxisMatrix{Bool},
+    predictorMatrix::AxisMatrix{Int},
     iter::Int,
     iterCounter::Int,
     i::Int,
@@ -40,7 +40,7 @@ function sampler!(
     predictorVector = predictorMatrix[yVar, :]
 
     # Grab the names of the predictors
-    predictors = names(predictorVector)[1][predictorVector]
+    predictors = axes(predictorVector)[1][predictorVector .== 1]
 
     # If there is at least one predictor
     if length(predictors) > 0
