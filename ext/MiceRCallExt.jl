@@ -1,12 +1,10 @@
 module MiceRCallExt
-    using AxisArrays: Axis, AxisArray
+    using AxisArrays: axes, AxisArray
     using CategoricalArrays: CategoricalValue
     using Mice
     using RCall: protect, unprotect, RClass, setclass!
     import RCall: sexp, sexpclass
     using Tables: columnnames
-
-    const axes = Base.axes
 
     function sexp(::Type{RClass{:list}}, mids::Mids)
         r = protect(sexp(Dict(
@@ -30,7 +28,7 @@ module MiceRCallExt
                 collect(string.(columnnames(mids.data)))
             ),
             "m" => mids.m,
-            "where" => AxisArray(reduce(hcat, mids.imputeWhere), axes(reduce(hcat, mids.imputeWhere), 1), names(mids.imputeWhere)[1]),
+            "where" => AxisArray(reduce(hcat, mids.imputeWhere), Base.axes(reduce(hcat, mids.imputeWhere), 1), axes(mids.imputeWhere)[1][:]),
             "blocks" => nothing,
             "call" => nothing,
             "nmis" => nothing,

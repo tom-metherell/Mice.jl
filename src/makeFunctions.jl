@@ -1,7 +1,7 @@
 """
     findMissings(data)
 
-Returns a named vector of boolean vectors describing the locations of missing data in each
+Returns an AxisVector of boolean vectors describing the locations of missing data in each
 column of the provided data table.
 """
 function findMissings(data::T) where{T}
@@ -29,7 +29,7 @@ end
 """
     makeMethods(data)
 
-Returns a named vector of strings defining the method by which each variable in `data`
+Returns an AxisVector of strings defining the method by which each variable in `data`
 should be imputed in the `mice()` function. The default method is predictive mean matching
 (pmm).
 """
@@ -48,7 +48,7 @@ end
 """
     makePredictorMatrix(data)
 
-Returns a named matrix of booleans defining the predictors for each variable in `data`.
+Returns an AxisMatrix of integers defining the predictors for each variable in `data`.
 The variables to be predicted are on the rows, and the predictors are on the columns.
 The default is to use all variables as predictors for all other variables (i.e. all
 1s except for the diagonal, which is 0).

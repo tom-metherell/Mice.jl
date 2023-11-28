@@ -24,22 +24,12 @@ The `with` function requires the use of a closure, which then permits the functi
 ```julia
 using CSV, DataFrames, GLM, Mice, Random, Statistics
 
-myData = CSV.read("test/data/cirrhosis.csv", DataFrame);
+myData = CSV.read("test/data/cirrhosis.csv", DataFrame, missingstring = "NA");
 
-# Defining missing values
-colsWithMissings = ["Drug", "Ascites", "Hepatomegaly", "Spiders", "Cholesterol", "Copper", "Alk_Phos", "SGOT", "Tryglicerides", "Platelets", "Prothrombin", "Stage"];
-myData[!, colsWithMissings] = allowmissing(myData[!, colsWithMissings]);
-for i in colsWithMissings
-    replace!(myData[!, i], "NA" => missing)
-end
-for i in ["Cholesterol", "Copper", "Alk_Phos", "SGOT", "Tryglicerides", "Platelets", "Prothrombin"]
-    myData[!, i] = passmissing(x -> parse(Float64, x)).(myData[!, i])
-end
-
-myMethods = makeMethods(myData);
-myMethods[["ID", "N_Days"]] .= "";
+myData.Stage = categorical(myData.Stage); # Making the Stage variable categorical
 
 myPredictorMatrix = makePredictorMatrix(myData);
+
 myPredictorMatrix[:, ["ID", "N_Days"]] .= false;
 
 Random.seed!(1234); # Set random seed for reproducibility
