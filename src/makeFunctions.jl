@@ -7,15 +7,15 @@ column of the provided data table.
 function findMissings(data::T) where{T}
     istable(data) || throw(ArgumentError("Data not provided as a Tables.jl table."))
 
-    imputeWhere = NamedArray([Vector{Bool}(ismissing.(getcolumn(data, i))) for i in columnnames(data)])
-
-
-    setnames!(imputeWhere, collect(string.(columnnames(data))), 1)
+    imputeWhere = AxisArray(
+        [Vector{Bool}(ismissing.(getcolumn(data, i))) for i in columnnames(data)],
+        collect(string.(columnnames(data)))
+    )
 
     return imputeWhere
 end
 
-function makeMonotoneSequence(imputeWhere::NamedVector{Vector{Bool}})
+function makeMonotoneSequence(imputeWhere::AxisArray{Vector{Bool}})
     missingness = sum.(imputeWhere)
 
     numberOfCompletes = sum(sum.(imputeWhere) .== 0)
@@ -39,10 +39,10 @@ function makeMethods(data::T) where {T}
     istable(data) || throw(ArgumentError("Data not provided as a Tables.jl table."))
 
     # Use pmm for all variables by default
-    methods = NamedArray(Vector{String}(fill("pmm", length(columns(data)))))
-
-    # Grab the names of the variables
-    setnames!(methods, collect(string.(columnnames(data))), 1)
+    methods = AxisArray(
+        Vector{String}(fill("pmm", length(columns(data)))),
+        collect(string.(columnnames(data)))    
+    )
 
     return methods
 end
@@ -59,26 +59,26 @@ function makePredictorMatrix(data::T) where {T}
     istable(data) || throw(ArgumentError("Data not provided as a Tables.jl table."))
 
     # Initialise the predictor matrix with 1s
-    predictorMatrix = NamedArray(Matrix{Bool}(fill(1, length(columns(data)), length(columns(data)))))
+    predictorMatrix = AxisArray(
+        Matrix{Bool}(fill(1, length(Tables.columns(data)), length(Tables.columns(data)))),
+        collect(string.(Tables.columnnames(data))),
+        collect(string.(Tables.columnnames(data)))
+    )
     
     # Set the diagonal to 0
-    for i in 1:length(columns(data))
+    for i in 1:length(Tables.columns(data))
         predictorMatrix[i, i] = 0
     end
-
-    # Grab the names of the variables
-    setnames!(predictorMatrix, collect(string.(columnnames(data))), 1)
-    setnames!(predictorMatrix, collect(string.(columnnames(data))), 2)
 
     return predictorMatrix
 end
 
 function initialiseImputations(
     data::T,
-    imputeWhere::NamedVector{Vector{Bool}},
+    imputeWhere::AxisVector{Bool},
     m::Int,
     visitSequence::Vector{String},
-    methods::NamedVector{String}
+    methods::AxisVector{String}
     ) where {T}
     istable(data) || throw(ArgumentError("Data not provided as a Tables.jl table."))
 

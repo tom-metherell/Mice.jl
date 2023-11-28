@@ -1,9 +1,9 @@
 module Mice
     # Dependencies
+    using AxisArrays: AxisMatrix, AxisVector
     using CategoricalArrays: CategoricalArray, CategoricalValue, levels
     using Distributions: ccdf, Chisq, FDist, Normal, TDist
     using LinearAlgebra: cholesky, Diagonal, diagm, eigen, inv, qr, rank, svd
-    using NamedArrays: NamedArray, NamedMatrix, NamedVector, setnames!
     using Printf: @printf
     using Random: rand, randn, randperm
     import RecipesBase: plot
@@ -42,10 +42,10 @@ module Mice
     struct Mids
         data
         imputations::Vector{Matrix}
-        imputeWhere::NamedVector{Vector{Bool}}
+        imputeWhere::AxisVector{Vector{Bool}}
         m::Int
-        methods::NamedArray
-        predictorMatrix::NamedArray
+        methods::AxisVector{String}
+        predictorMatrix::AxisMatrix{Bool}
         visitSequence::Vector{String}
         iter::Int
         meanTraces::Vector{Matrix{Float64}}
@@ -72,10 +72,10 @@ module Mice
         mice(
             data;
             m::Int = 5,
-            imputeWhere::Union{NamedVector{Vector{Bool}}, Nothing} = nothing,
+            imputeWhere::Union{AxisVector{Vector{Bool}}, Nothing} = nothing,
             visitSequence::Union{Vector{String}, Nothing} = nothing,
-            methods::Union{NamedVector{String}, Nothing} = nothing,
-            predictorMatrix::Union{NamedMatrix{Bool}, Nothing} = nothing,
+            methods::Union{AxisVector{String}, Nothing} = nothing,
+            predictorMatrix::Union{AxisMatrix{Bool}, Nothing} = nothing,
             iter::Int = 10,
             progressReports::Bool = true,
             gcSchedule::Float64 = 1.0,
@@ -90,7 +90,7 @@ module Mice
 
     The number of imputations created is specified by `m`.
 
-    `imputeWhere` is a `NamedVector` of boolean vectors specifying where data are to be
+    `imputeWhere` is an `AxisVector` of boolean vectors specifying where data are to be
     imputed. The default is to impute all missing data.
 
     The variables will be imputed in the order specified by `visitSequence`. 
@@ -98,11 +98,11 @@ module Mice
     the order can be customised using a vector of variable names in the desired order.
     Any column not to be imputed at all can be left out of the visit sequence.
 
-    The imputation method for each variable is specified by the `NamedArray` `methods`. 
+    The imputation method for each variable is specified by the `AxisVector` `methods`. 
     The default is to use predictive mean matching (`pmm`) for all variables.
     Any variable not to be imputed can be marked as such using an empty string ("").
 
-    The predictor matrix is specified by the `NamedArray` `predictorMatrix`. 
+    The predictor matrix is specified by the `AxisMatrix` `predictorMatrix`. 
     The default is to use all other variables as predictors for each variable. 
     Any variable not predicting another variable can be marked as such in the matrix
     using a 0.
@@ -125,10 +125,10 @@ module Mice
     function mice(
         data::T;
         m::Int = 5,
-        imputeWhere::Union{NamedVector{Vector{Bool}}, Nothing} = nothing,
+        imputeWhere::Union{AxisVector{Vector{Bool}}, Nothing} = nothing,
         visitSequence::Union{Vector{String}, Nothing} = nothing,
-        methods::Union{NamedVector{String}, Nothing} = nothing,
-        predictorMatrix::Union{NamedMatrix{Bool}, Nothing} = nothing,
+        methods::Union{AxisVector{String}, Nothing} = nothing,
+        predictorMatrix::Union{AxisMatrix{Bool}, Nothing} = nothing,
         iter::Int = 10,
         progressReports::Bool = true,
         gcSchedule::Float64 = 1.0,
