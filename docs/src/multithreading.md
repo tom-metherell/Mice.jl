@@ -9,20 +9,9 @@ If you instead want to run the entire `mice` function in parallel, you can do so
 ```julia
 using CSV, DataFrames, Mice, Random
 
-myData = CSV.read("test/data/cirrhosis.csv", DataFrame);
+myData = CSV.read("test/data/cirrhosis.csv", DataFrame, missingstring = "NA");
 
-# Defining missing values
-colsWithMissings = ["Drug", "Ascites", "Hepatomegaly", "Spiders", "Cholesterol", "Copper", "Alk_Phos", "SGOT", "Tryglicerides", "Platelets", "Prothrombin", "Stage"];
-myData[!, colsWithMissings] = allowmissing(myData[!, colsWithMissings]);
-for i in colsWithMissings
-    replace!(myData[!, i], "NA" => missing)
-end
-for i in ["Cholesterol", "Copper", "Alk_Phos", "SGOT", "Tryglicerides", "Platelets", "Prothrombin"]
-    myData[!, i] = passmissing(x -> parse(Float64, x)).(myData[!, i])
-end
-
-myMethods = makeMethods(myData);
-myMethods[["ID", "N_Days"]] .= "";
+myData.Stage = categorical(myData.Stage); # Making the Stage variable categorical
 
 myPredictorMatrix = makePredictorMatrix(myData);
 myPredictorMatrix[:, ["ID", "N_Days"]] .= false;
@@ -36,5 +25,5 @@ Threads.@threads for i in 1:10 # Number of parallel runs
     imputedData[i] = mice(myData, m = 5, predictorMatrix = myPredictorMatrix, methods = myMethods, threads = false, progressReports = false)
 end
 
-imputedData = bindImputations(imputedData) # Binds the separate Mids objects into a single output
+imputedData = bindImputations(imputedData); # Binds the separate Mids objects into a single output
 ```

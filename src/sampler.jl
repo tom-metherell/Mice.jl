@@ -4,11 +4,11 @@ function sampler!(
     meanTraces::Vector{Matrix{Float64}},
     varTraces::Vector{Matrix{Float64}},
     data::T,
-    imputeWhere::NamedVector{Vector{Bool}},
+    imputeWhere::AxisVector{Vector{Bool}},
     m::Int,
     visitSequence::Vector{String},
-    methods::NamedVector{String},
-    predictorMatrix::NamedArray{Bool},
+    methods::AxisVector{String},
+    predictorMatrix::AxisMatrix{Int},
     iter::Int,
     iterCounter::Int,
     i::Int,
@@ -40,7 +40,7 @@ function sampler!(
     predictorVector = predictorMatrix[yVar, :]
 
     # Grab the names of the predictors
-    predictors = names(predictorVector)[1][predictorVector]
+    predictors = axes(predictorVector)[1][predictorVector .== 1]
 
     # If there is at least one predictor
     if length(predictors) > 0

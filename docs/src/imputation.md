@@ -28,21 +28,21 @@ myData = DataFrame(
 );
 
 myImputeWhere = findMissings(myData)
-# 3-element Named Vector{Vector{Bool}}
-# A    |
-# -----|--------------------
-# col1 | Bool[0, 1, 0, 1, 0]
-# col2 | Bool[0, 0, 1, 0, 0]
-# col3 | Bool[1, 0, 1, 0, 1]
+# 1-dimensional AxisArray{Vector{Bool},1,...} with axes:
+#     :row, ["col1", "col2", "col3"]
+# And data, a 3-element Vector{Vector{Bool}}:
+#  [0, 1, 0, 1, 0]
+#  [0, 0, 1, 0, 0]
+#  [1, 0, 1, 0, 1]
 
 myImputeWhere["col1"][:] .= true;
 myImputeWhere
-# 3-element Named Vector{Vector{Bool}}
-# A    |
-# -----|--------------------
-# col1 | Bool[1, 1, 1, 1, 1]
-# col2 | Bool[0, 0, 1, 0, 0]
-# col3 | Bool[1, 0, 1, 0, 1]
+# 1-dimensional AxisArray{Vector{Bool},1,...} with axes:
+#     :row, ["col1", "col2", "col3"]
+# And data, a 3-element Vector{Vector{Bool}}:
+#  [1, 1, 1, 1, 1]
+#  [0, 0, 1, 0, 0]
+#  [1, 0, 1, 0, 1]
 
 # Not run
 mice(myData, imputeWhere = myImputeWhere)
@@ -60,11 +60,11 @@ myData = DataFrame(
     :col3 => Vector{Union{Missing, String}}([missing, "2", missing, "4", missing])
 );
 
-Mice.makeMonotoneSequence(myData)
+Mice.makeMonotoneSequence(findMissings(myData))
 # 3-element Vector{String}:
-# "col2"
-# "col1"
-# "col3"
+#  "col2"
+#  "col1"
+#  "col3"
 
 myVisitSequence1 = names(myData)
 # 3-element Vector{String}:
@@ -113,35 +113,38 @@ myData = DataFrame(
 );
 
 myPredictorMatrix = makePredictorMatrix(myData)
-# 4x4 Named Matrix{Bool}
-# A \ B |    id   col1   col2   col3
-# ------|---------------------------
-# id    | false   true   true   true
-# col1  |  true  false   true   true
-# col2  |  true   true  false   true
-# col3  |  true   true   true  false
+# 2-dimensional AxisArray{Int64,2,...} with axes:
+#     :row, ["id", "col1", "col2", "col3"]
+#     :col, ["id", "col1", "col2", "col3"]
+# And data, a 4x4 Matrix{Int64}:
+#  0  1  1  1
+#  1  0  1  1
+#  1  1  0  1
+#  1  1  1  0
 
 # To stop the ID column from predicting any other variable
-myPredictorMatrix[:, "id"] .= false;
+myPredictorMatrix[:, "id"] .= 0;
 myPredictorMatrix
-# 4x4 Named Matrix{Bool}
-# A \ B |    id   col1   col2   col3
-# ------|---------------------------
-# id    | false   true   true   true
-# col1  | false  false   true   true
-# col2  | false   true  false   true
-# col3  | false   true   true  false
+# 2-dimensional AxisArray{Int64,2,...} with axes:
+#     :row, ["id", "col1", "col2", "col3"]
+#     :col, ["id", "col1", "col2", "col3"]
+# And data, a 4x4 Matrix{Int64}:
+#  0  1  1  1
+#  0  0  1  1
+#  0  1  0  1
+#  0  1  1  0
 
 # To stop col1 from predicting col3
 myPredictorMatrix["col3", "col1"] = false;
 myPredictorMatrix
-# 4x4 Named Matrix{Bool}
-# A \ B |    id   col1   col2   col3
-# ------|---------------------------
-# id    | false   true   true   true
-# col1  | false  false   true   true
-# col2  | false   true  false   true
-# col3  | false  false   true  false
+# 2-dimensional AxisArray{Int64,2,...} with axes:
+#     :row, ["id", "col1", "col2", "col3"]
+#     :col, ["id", "col1", "col2", "col3"]
+# And data, a 4x4 Matrix{Int64}:
+#  0  1  1  1
+#  0  0  1  1
+#  0  1  0  1
+#  0  0  1  0
 
 Random.seed!(1234); # Set random seed for reproducibility
 
@@ -180,36 +183,36 @@ myData = DataFrame(
 );
 
 myMethods = makeMethods(myData)
-# 4-element Named Vector{String}
-# A    |
-# -----|------
-# id   | "pmm"
-# col1 | "pmm"
-# col2 | "pmm"
-# col3 | "pmm"
+# 1-dimensional AxisArray{String,1,...} with axes:
+#     :row, ["id", "col1", "col2", "col3"]
+# And data, a 4-element Vector{String}:
+#  "pmm"
+#  "pmm"
+#  "pmm"
+#  "pmm"
 
 # To stop the ID column from being imputed (but you can also achieve this by leaving "id"
 # out of the visit sequence)
 myMethods["id"] = "";
 myMethods
-# 4-element Named Vector{String}
-# A    |
-# -----|------
-# id   |    ""
-# col1 | "pmm"
-# col2 | "pmm"
-# col3 | "pmm"
+# 1-dimensional AxisArray{String,1,...} with axes:
+#     :row, ["id", "col1", "col2", "col3"]
+# And data, a 4-element Vector{String}:
+#  ""
+#  "pmm"
+#  "pmm"
+#  "pmm"
 
 # To use Bayesian linear regression to impute col1
 myMethods["col1"] = "norm";
 myMethods
-# 4-element Named Vector{String}
-# A    |
-# -----|-------
-# id   |     ""
-# col1 | "norm"
-# col2 |  "pmm"
-# col3 |  "pmm"
+# 1-dimensional AxisArray{String,1,...} with axes:
+#     :row, ["id", "col1", "col2", "col3"]
+# And data, a 4-element Vector{String}:
+#  ""
+#  "norm"
+#  "pmm"
+#  "pmm"
 
 Random.seed!(1234); # Set random seed for reproducibility
 

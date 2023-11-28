@@ -11,6 +11,7 @@ makedocs(
              "imputation.md",
              "analysis.md",
              "pooling.md",
+             "rcall.md",
              "multithreading.md",
              "benchmarks.md",
              "issues.md",
