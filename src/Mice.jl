@@ -78,7 +78,7 @@ module Mice
             predictorMatrix::Union{NamedMatrix{Bool}, Nothing} = nothing,
             iter::Int = 10,
             progressReports::Bool = true,
-            gcSchedule::Float64 = 1.0,
+            gcSchedule::Float64 = 0.3,
             threads::Bool = false,
             kwargs...
             )
@@ -114,9 +114,8 @@ module Mice
     `gcSchedule` dictates when the garbage collector will be (additionally) invoked. The 
     number provided is the fraction of your RAM remaining at which the GC will be called.
     For small datasets, you may get away with a value of `0.0` (never called), but for larger
-    datasets, it may be worthwhile to call it more frequently. The default is to call it 
-    after each iteration of each variable (`1.0`), but this may negatively affect
-    performance if it is not necessary for your dataset.
+    datasets, it may be worthwhile to call it more frequently. The default is 0.3, but for
+    really large jobs you may want to increase this value.
 
     `threads` dictates whether multi-threading will be used. This will improve performance
     for larger jobs if and only if Julia has been launched with multiple threads (which you
@@ -131,7 +130,7 @@ module Mice
         predictorMatrix::Union{NamedMatrix{Bool}, Nothing} = nothing,
         iter::Int = 10,
         progressReports::Bool = true,
-        gcSchedule::Float64 = 1.0,
+        gcSchedule::Float64 = 0.3,
         threads::Bool = false,
         kwargs...
         ) where {T}
@@ -220,7 +219,7 @@ module Mice
             mids::Mids;
             iter::Int = 10,
             progressReports::Bool = true,
-            gcSchedule::Float64 = 1.0,
+            gcSchedule::Float64 = 0.3,
             threads::Bool = false,
             kwargs...
             )
@@ -236,7 +235,7 @@ module Mice
         mids::Mids;
         iter::Int = 10,
         progressReports::Bool = true,
-        gcSchedule::Float64 = 1.0,
+        gcSchedule::Float64 = 0.3,
         threads::Bool = false,
         kwargs...
         )

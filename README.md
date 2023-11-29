@@ -29,7 +29,7 @@ Use the `mice()` function to perform multiple imputation on a data table. The ou
 
 #### Usage
 ```
-mice(data, m = 5, visitSequence = nothing, methods = nothing, predictorMatrix = nothing, iter = 10, progressReports = true, gcSchedule = 1.0, threads = true, ...)
+mice(data, m = 5, visitSequence = nothing, methods = nothing, predictorMatrix = nothing, iter = 10, progressReports = true, gcSchedule = 0.3, threads = true, ...)
 ```
 where:
 
@@ -47,7 +47,7 @@ where:
 
 `progressReports` is a boolean indicating whether to print progress reports.
 
-`gcSchedule` determines how often the garbage collector is invoked (additionally to when it would be anyway). This can improve performance for large datasets. The value is the fraction of your machine's RAM that remains free at which the garbage collector will be invoked. The default is `1.0` (i.e. after every iteration of every variable), but this may be excessive for smaller jobs.
+`gcSchedule` determines how often the garbage collector is invoked (additionally to when it would be anyway). This can improve performance for large datasets. The value is the fraction of your machine's RAM that remains free at which the garbage collector will be invoked. The default is `0.3`, but you may wish to increase this for very large jobs.
 
 `threads` determines whether the imputations are executed in parallel using multithreading. The default is `true`, but this may make performance worse for small jobs (see [Benchmarks](#benchmarks)). Note that unlike in R, [random number generation is thread-safe by default in Julia](https://julialang.org/blog/2021/11/julia-1.7-highlights/#new_rng_reproducible_rng_in_tasks).
 

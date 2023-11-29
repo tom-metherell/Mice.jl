@@ -8,7 +8,7 @@ using CategoricalArrays, CSV, DataFrames, GLM, Mice, Tables, Test, TypedTables
     predictorMatrix = makePredictorMatrix(data)
     predictorMatrix[:, ["ID", "N_Days"]] .= false
 
-    imputedData = mice(data, predictorMatrix = predictorMatrix, threads = false, gcSchedule = 0.0, progressReports = false)
+    imputedData = mice(data, predictorMatrix = predictorMatrix, threads = false, progressReports = false)
 
     @test length(imputedData.loggedEvents) == 0
 
@@ -33,7 +33,7 @@ end
     predictorMatrix = makePredictorMatrix(data)
     predictorMatrix[:, ["ID", "N_Days"]] .= false
 
-    imputedData = mice(data, predictorMatrix = predictorMatrix, threads = true, gcSchedule = 0.0, progressReports = false)
+    imputedData = mice(data, predictorMatrix = predictorMatrix, threads = true, progressReports = false)
 
     @test length(imputedData.loggedEvents) == 0
 
@@ -58,7 +58,7 @@ end
     predictorMatrix = makePredictorMatrix(data)
     predictorMatrix[:, ["ID", "N_Days"]] .= false
 
-    imputedData = mice(data, predictorMatrix = predictorMatrix, threads = false, gcSchedule = 0.0, progressReports = false)
+    imputedData = mice(data, predictorMatrix = predictorMatrix, threads = false, progressReports = false)
 
     @test length(imputedData.loggedEvents) == 0
 
@@ -88,7 +88,7 @@ end
     predictorMatrix = makePredictorMatrix(data)
     predictorMatrix[:, ["ID", "N_Days"]] .= false
 
-    imputedData = mice(data, methods = theMethods, predictorMatrix = predictorMatrix, threads = false, gcSchedule = 0.0, progressReports = false)
+    imputedData = mice(data, methods = theMethods, predictorMatrix = predictorMatrix, threads = false, progressReports = false)
 
     @test length(imputedData.loggedEvents) == 0
 
@@ -113,7 +113,7 @@ end
     theMethods = makeMethods(data)
     theMethods .= "sample"
 
-    imputedData = mice(data, iter = 1, methods = theMethods, threads = false, gcSchedule = 0.0, progressReports = false)
+    imputedData = mice(data, iter = 1, methods = theMethods, threads = false, progressReports = false)
 
     @test length(imputedData.loggedEvents) == 0
 
@@ -141,7 +141,7 @@ end
     theMethods .= "sample"
     theMethods[["Age", "Bilirubin", "Cholesterol", "Albumin", "Copper", "Alk_Phos", "SGOT", "Tryglicerides", "Platelets", "Prothrombin"]] .= "mean"
 
-    imputedData = mice(data, iter = 1, methods = theMethods, threads = false, gcSchedule = 0.0, progressReports = false)
+    imputedData = mice(data, iter = 1, methods = theMethods, threads = false, progressReports = false)
 
     @test length(imputedData.loggedEvents) == 0
 
