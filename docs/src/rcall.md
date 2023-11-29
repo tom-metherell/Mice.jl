@@ -4,8 +4,8 @@ If you don't want to use Julia for your data analysis, but you'd like to try out
 
 !!! note
     Using `Mice.jl` from R requires Julia v1.9 or higher to be installed on your computer. If you don't have it, you can install it from [here](https://julialang.org/downloads/). You also need to install the Julia package `RCall.jl` in addition to `Mice.jl` by entering in Julia:
-    ```julia
-    ] add Mice, RCall
+    ```
+    ] add https://github.com/tom-metherell/Mice.jl.git#v0.2.0, RCall
     ```
 
 Using the combined power of these two packages, you can use `Mice.jl` without leaving R. Here's how:
