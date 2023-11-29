@@ -1,29 +1,27 @@
 """
     findMissings(data)
 
-Returns a named vector of boolean vectors describing the locations of missing data in each
+Returns an AxisVector of boolean vectors describing the locations of missing data in each
 column of the provided data table.
 """
 function findMissings(data::T) where{T}
     istable(data) || throw(ArgumentError("Data not provided as a Tables.jl table."))
 
-    imputeWhere = NamedArray([Vector{Bool}(ismissing.(getcolumn(data, i))) for i in columnnames(data)])
-
-
-    setnames!(imputeWhere, collect(string.(columnnames(data))), 1)
+    imputeWhere = AxisArray(
+        [Vector{Bool}(ismissing.(getcolumn(data, i))) for i in columnnames(data)],
+        collect(string.(columnnames(data)))
+    )
 
     return imputeWhere
 end
 
-function makeMonotoneSequence(imputeWhere::NamedVector{Vector{Bool}})
-    missingness = sum.(imputeWhere)
+function makeMonotoneSequence(imputeWhere::AxisVector{Vector{Bool}})
+    missingness = AxisArray(sum.(imputeWhere), axes(imputeWhere)[1])
 
     numberOfCompletes = sum(sum.(imputeWhere) .== 0)
 
-    missingness = sort(missingness)
-
     # Sort the data frame names vector by missingness
-    visitSequence = names(missingness)[1][numberOfCompletes+1:end]
+    visitSequence = axes(missingness)[1][sortperm(missingness)][numberOfCompletes+1:end]
 
     return visitSequence
 end
@@ -31,7 +29,7 @@ end
 """
     makeMethods(data)
 
-Returns a named vector of strings defining the method by which each variable in `data`
+Returns an AxisVector of strings defining the method by which each variable in `data`
 should be imputed in the `mice()` function. The default method is predictive mean matching
 (pmm).
 """
@@ -39,10 +37,10 @@ function makeMethods(data::T) where {T}
     istable(data) || throw(ArgumentError("Data not provided as a Tables.jl table."))
 
     # Use pmm for all variables by default
-    methods = NamedArray(Vector{String}(fill("pmm", length(columns(data)))))
-
-    # Grab the names of the variables
-    setnames!(methods, collect(string.(columnnames(data))), 1)
+    methods = AxisArray(
+        fill("pmm", length(columns(data))),
+        collect(string.(columnnames(data)))    
+    )
 
     return methods
 end
@@ -50,7 +48,7 @@ end
 """
     makePredictorMatrix(data)
 
-Returns a named matrix of booleans defining the predictors for each variable in `data`.
+Returns an AxisMatrix of integers defining the predictors for each variable in `data`.
 The variables to be predicted are on the rows, and the predictors are on the columns.
 The default is to use all variables as predictors for all other variables (i.e. all
 1s except for the diagonal, which is 0).
@@ -59,26 +57,26 @@ function makePredictorMatrix(data::T) where {T}
     istable(data) || throw(ArgumentError("Data not provided as a Tables.jl table."))
 
     # Initialise the predictor matrix with 1s
-    predictorMatrix = NamedArray(Matrix{Bool}(fill(1, length(columns(data)), length(columns(data)))))
+    predictorMatrix = AxisArray(
+        fill(1, length(columns(data)), length(columns(data))),
+        collect(string.(columnnames(data))),
+        collect(string.(columnnames(data)))
+    )
     
     # Set the diagonal to 0
     for i in 1:length(columns(data))
         predictorMatrix[i, i] = 0
     end
 
-    # Grab the names of the variables
-    setnames!(predictorMatrix, collect(string.(columnnames(data))), 1)
-    setnames!(predictorMatrix, collect(string.(columnnames(data))), 2)
-
     return predictorMatrix
 end
 
 function initialiseImputations(
     data::T,
-    imputeWhere::NamedVector{Vector{Bool}},
+    imputeWhere::AxisVector{Vector{Bool}},
     m::Int,
     visitSequence::Vector{String},
-    methods::NamedVector{String}
+    methods::AxisVector{String}
     ) where {T}
     istable(data) || throw(ArgumentError("Data not provided as a Tables.jl table."))
 
