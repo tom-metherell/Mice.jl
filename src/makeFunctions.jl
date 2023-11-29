@@ -16,12 +16,8 @@ function findMissings(data::T) where{T}
 end
 
 function makeMonotoneSequence(imputeWhere::AxisVector{Vector{Bool}})
-    missingness = AxisArray(sum.(imputeWhere), axes(imputeWhere)[1])
-
-    numberOfCompletes = sum(sum.(imputeWhere) .== 0)
-
     # Sort the data frame names vector by missingness
-    visitSequence = axes(missingness)[1][sortperm(missingness)][numberOfCompletes+1:end]
+    visitSequence = axes(imputeWhere)[1][sortperm(sum.(imputeWhere))][sum(sum.(imputeWhere) .== 0)+1:end]
 
     return visitSequence
 end
@@ -36,10 +32,13 @@ should be imputed in the `mice()` function. The default method is predictive mea
 function makeMethods(data::T) where {T}
     istable(data) || throw(ArgumentError("Data not provided as a Tables.jl table."))
 
+    names = collect(string.(columnnames(data)))
+    no = length(names)
+
     # Use pmm for all variables by default
     methods = AxisArray(
-        fill("pmm", length(columns(data))),
-        collect(string.(columnnames(data)))    
+        fill("pmm", no),
+        names
     )
 
     return methods
@@ -56,15 +55,18 @@ The default is to use all variables as predictors for all other variables (i.e. 
 function makePredictorMatrix(data::T) where {T}
     istable(data) || throw(ArgumentError("Data not provided as a Tables.jl table."))
 
+    names = collect(string.(columnnames(data)))
+    no = length(names)
+
     # Initialise the predictor matrix with 1s
     predictorMatrix = AxisArray(
-        fill(1, length(columns(data)), length(columns(data))),
-        collect(string.(columnnames(data))),
-        collect(string.(columnnames(data)))
+        fill(1, no, no),
+        names,
+        names
     )
     
     # Set the diagonal to 0
-    for i in 1:length(columns(data))
+    for i in 1:no
         predictorMatrix[i, i] = 0
     end
 
@@ -83,10 +85,7 @@ function initialiseImputations(
     # Initialise vector of imputations matrices
     imputations = Vector{Matrix}(undef, length(visitSequence))
 
-    # For each variable
     for i in eachindex(visitSequence)
-
-        # Grab the variable name
         yVar = visitSequence[i]
 
         # If the variable is to be imputed
