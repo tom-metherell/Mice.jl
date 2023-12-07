@@ -16,7 +16,7 @@ You can customise which data points are imputed by manipulating the `imputeWhere
 findMissings
 ```
 
-You can over-impute existing data by setting the locations of non-missing data to `true` in the relevant vector in `imputeWhere`. For example, to impute all data points in the variable `col1` (even those that are not missing), you could do the following:
+You can over-impute existing data by setting the locations of non-missing data to `true` in the relevant vector in `imputeWhere`. For example, to over-impute the value of `col1` for the first row, you could do the following:
 
 ```julia
 using DataFrames, Mice, Random
@@ -35,12 +35,12 @@ myImputeWhere = findMissings(myData)
 #  [0, 0, 1, 0, 0]
 #  [1, 0, 1, 0, 1]
 
-myImputeWhere["col1"][:] .= true;
+myImputeWhere["col1"][1] = true;
 myImputeWhere
 # 1-dimensional AxisArray{Vector{Bool},1,...} with axes:
 #     :row, ["col1", "col2", "col3"]
 # And data, a 3-element Vector{Vector{Bool}}:
-#  [1, 1, 1, 1, 1]
+#  [1, 1, 0, 1, 0]
 #  [0, 0, 1, 0, 0]
 #  [1, 0, 1, 0, 1]
 

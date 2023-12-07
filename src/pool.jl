@@ -67,5 +67,3 @@ function pool(mira::Mira)
         pvalues
     )
 end
-
-export Mipo, pool

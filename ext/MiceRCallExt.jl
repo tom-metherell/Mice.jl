@@ -64,4 +64,6 @@ module MiceRCallExt
     end
 
     sexpclass(mids::Mids) = RClass{:list}
+
+    export sexp, sexpclass
 end

@@ -1,6 +1,6 @@
 # The pmmImpute! function includes a ! as it updates loggedEvents in place
 function pmmImpute!(
-    y::AbstractArray,
+    yₒ::AbstractArray,
     X::Matrix{Float64},
     whereY::Vector{Bool},
     whereCount::Int,
@@ -17,18 +17,17 @@ function pmmImpute!(
     Xₘ = Matrix{Float64}(hcat(repeat([1], whereCount), X[whereY, :]))
 
     # If y is categorical
-    if nonmissingtype(eltype(y)) <: AbstractString
+    if nonmissingtype(eltype(yₒ)) <: AbstractString
         # Convert to dummy variables (as floats) via CCA
-        mapping = Dict(levels(y[.!whereY])[i] => i-1 for i in eachindex(levels(y[.!whereY])))
-        yₒ = Vector{Float64}([mapping[v] for v in y[.!whereY]])
-        yₒ = quantify(y[.!whereY], Xₒ)
+        mapping = Dict(levels(yₒ)[i] => i-1 for i in eachindex(levels(yₒ)))
+        yNum = Vector{Float64}([mapping[v] for v in yₒ])
+        yNum = quantify(yNum, Xₒ)
     else
-        # Grab observed y-values (as floats)
-        yₒ = Vector{Float64}(y[.!whereY])
+        yNum = Vector{Float64}(yₒ)
     end
 
     # Draw from Bayesian linear regression
-    β̂, β̇, σ̇ = blrDraw!(yₒ, Xₒ, ridge, yVar, iterCounter, j, loggedEvents)
+    β̂, β̇, σ̇ = blrDraw!(yNum, Xₒ, ridge, yVar, iterCounter, j, loggedEvents)
 
     # Calculate predicted y-values (for type-1 matching)
     ŷₒ = Xₒ * β̂
@@ -37,12 +36,12 @@ function pmmImpute!(
     # Match predicted y-values with donors
     indices = matchIndex(ŷₒ, ẏₘ, donors)
 
-    return y[.!whereY][indices]    
+    return yₒ[indices]    
 end
 
 # Comments are as above
 function pmmImpute!(
-    y::CategoricalArray,
+    yₒ::CategoricalArray,
     X::Matrix{Float64},
     whereY::Vector{Bool},
     whereCount::Int,
@@ -54,19 +53,19 @@ function pmmImpute!(
     loggedEvents::Vector{String}
     )
 
-    Xₒ = Matrix{Float64}(hcat(repeat([1], length(y) - whereCount), X[.!whereY, :]))
+    Xₒ = Matrix{Float64}(hcat(repeat([1], sum(.!whereY)), X[.!whereY, :]))
     Xₘ = Matrix{Float64}(hcat(repeat([1], whereCount), X[whereY, :]))
 
-    yₒ = quantify(y[.!whereY], Xₒ)
+    yNum = quantify(yₒ, Xₒ)
 
-    β̂, β̇, σ̇ = blrDraw!(yₒ, Xₒ, ridge, yVar, iterCounter, j, loggedEvents)
+    β̂, β̇, σ̇ = blrDraw!(yNum, Xₒ, ridge, yVar, iterCounter, j, loggedEvents)
 
     ŷₒ = Xₒ * β̂
     ẏₘ = Xₘ * β̇
 
     indices = matchIndex(ŷₒ, ẏₘ, donors)
 
-    return y[.!whereY][indices]
+    return yₒ[indices]
 end
 
 function matchIndex(

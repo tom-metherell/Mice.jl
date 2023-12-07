@@ -53,7 +53,7 @@ function pacify!(
             else
                 # Otherwise, drop this variable
                 X = columntable(NamedTuple{Tuple(setdiff(columnnames(X), [xVar]))}([X[c] for c in setdiff(columnnames(X), [xVar])]))
-                predictors = predictors[predictors .!= string(xVar)]
+                predictors = predictors[predictors .≠ string(xVar)]
 
                 # Log that this predictor has been dropped
                 push!(loggedEvents, "Iteration $iterCounter, variable $yVar, imputation $j: predictor $xVar dropped because of zero variance.")
@@ -185,4 +185,45 @@ function removeLinDeps!(
 
     # Remove the predictors that are not being kept
     X = X[:, keep]
+end
+
+function pacifyWorkingData(workingData::AxisVector{Vector})
+    categoricalColumns = Vector{String}([])
+
+    for i in eachindex(workingData)
+        if workingData[i][1] isa CategoricalArray || nonmissingtype(eltype(workingData[i][1])) <: Union{AbstractString, CategoricalValue}
+            push!(categoricalColumns, axes(workingData)[1][i])
+        end
+    end
+
+    workingDataLevels = AxisArray(
+        [levels(workingData[yVar][1]) for yVar in categoricalColumns],
+        categoricalColumns
+    )
+
+    workingDataPacified = AxisArray(
+        [[pacifyWorkingData(workingData[yVar][j], workingDataLevels[yVar]) for j in eachindex(workingData[yVar])] for yVar in categoricalColumns],
+        categoricalColumns
+    )
+
+    return workingDataPacified, workingDataLevels
+end
+
+function pacifyWorkingData(workingData::AbstractVector, levels::Vector)
+    contrastsMatrix = contrasts_matrix(PolynomialCoding(), 1, length(levels))
+
+    workingDataPacified = Matrix{Float64}(undef, length(workingData), size(contrastsMatrix, 2))
+
+    for i in Base.axes(workingDataPacified, 2)
+        for j in eachindex(levels)
+            workingDataPacified[workingData .== levels[j], i] .= contrastsMatrix[j, i]
+        end
+    end
+
+    # Standardise everything
+    for i in Base.axes(workingDataPacified, 2)
+        workingDataPacified[:, i] = standardize(UnitRangeTransform, workingDataPacified[:, i])
+    end
+
+    return workingDataPacified
 end

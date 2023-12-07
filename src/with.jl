@@ -121,5 +121,3 @@ function with(
 
     return Mira(analyses)
 end
-
-export complete, listComplete, Mira, with

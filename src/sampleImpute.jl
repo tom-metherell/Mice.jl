@@ -1,18 +1,17 @@
 function sampleImpute!(
-    y::AbstractArray,
-    whereY::Vector{Bool},
+    yₒ::AbstractArray,
     whereCount::Int
     )
 
     # If there are at least some non-missing data
-    if whereCount < length(y)
-        imputedData = sample(y[.!whereY], whereCount)
+    if length(yₒ) > 0
+        imputedData = sample(yₒ, whereCount)
     elseif y isa CategoricalArray
         # Sample from the levels of the categorical variable
-        imputedData = CategoricalArray{nonmissingtype(eltype(y))}(sample(levels(y), length(y)))
+        imputedData = CategoricalArray{nonmissingtype(eltype(yₒ))}(sample(levels(yₒ), whereCount))
     else
         # Sample from a standard normal distribution
-        imputedData = randn(length(y))
+        imputedData = randn(whereCount)
     end
 
     return imputedData
