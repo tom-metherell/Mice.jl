@@ -5,6 +5,21 @@ I have (very much not rigorously) benchmarked `Mice.jl` using the [test dataset]
 15 iterations were completed to impute 12 variables (of which 4 binary categorical, 1 other categorical and 7 numeric) using a set of 18 predictors (those 12 variables plus 6 complete variables: 1 binary categorical, 2 other categorical and 3 numeric). Both used predictive mean matching for all variables that were to be imputed. In `Mice.jl`, `gcSchedule` was set to `0.3`.
 
 ## Benchmark results
+### Windows
+System info: Single-threaded execution, Intel® Core™ i7-12700H 2.30GHz CPU, 32GB 4800MHz DDR5 RAM, running Windows 11 version 10.0.22621.
+
+R: version 4.3.2 running `mice` version 3.16.0.
+Julia: version 1.9.4 running `Mice.jl` version 0.3.0.
+
+| Number of imputations | R (`mice`) (s) | `Mice.jl` (s) |
+| --- | --- | --- |
+| 1 | 1.84 | 15.83 |
+| 5 | 8.40 | 17.30 |
+| 10 | 16.63 | 18.53 |
+| 20 | 33.52 | 21.12 |
+| 50 | 86.59 | 29.43 |
+| 100 | 176.59 | 41.06 |
+
 ### Linux
 System info: Single-threaded execution, Intel® Core™ i7-12700H 2.30GHz CPU, 32GB 4800MHz DDR5 RAM, running Ubuntu (WSL) version 22.04.2.
 
