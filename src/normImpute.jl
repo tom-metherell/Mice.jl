@@ -1,5 +1,5 @@
 function normImpute!(
-    y::AbstractArray,
+    yₒ::AbstractArray,
     X::Matrix{Float64},
     whereY::Vector{Bool},
     whereCount::Int,
@@ -10,10 +10,8 @@ function normImpute!(
     loggedEvents::Vector{String}
     )
 
-    Xₒ = Matrix{Float64}(hcat(repeat([1], length(y) - whereCount), X[.!whereY, :]))
+    Xₒ = Matrix{Float64}(hcat(repeat([1], length(whereY) - whereCount), X[.!whereY, :]))
     Xₘ = Matrix{Float64}(hcat(repeat([1], whereCount), X[whereY, :]))
-    
-    yₒ = Vector{Float64}(y[.!whereY])
 
     β̂, β̇, σ̇ = blrDraw!(yₒ, Xₒ, ridge, yVar, iterCounter, j, loggedEvents)
 

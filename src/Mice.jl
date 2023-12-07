@@ -78,8 +78,7 @@ module Mice
             predictorMatrix::Union{AxisMatrix{Int}, Nothing} = nothing,
             iter::Int = 10,
             progressReports::Bool = true,
-            gcSchedule::Float64 = 0.3,
-            threads::Bool = false,
+            gcSchedule::Float64 = 0.3;
             kwargs...
             )
 
@@ -116,53 +115,31 @@ module Mice
     For small datasets, you may get away with a value of `0.0` (never called), but for larger
     datasets, it may be worthwhile to call it more frequently. The default is `0.3`, but for
     really large jobs you may want to increase this value.
-
-    `threads` dictates whether multi-threading will be used. This will improve performance
-    for larger jobs if and only if Julia has been launched with multiple threads (which you
-    can verify by calling `Threads.nthreads()`). The default is `false`.
     """
     function mice(
         data::T;
         m::Int = 5,
-        imputeWhere::Union{AxisVector{Vector{Bool}}, Nothing} = nothing,
-        visitSequence::Union{Vector{String}, Nothing} = nothing,
-        methods::Union{AxisVector{String}, Nothing} = nothing,
-        predictorMatrix::Union{AxisMatrix{Int}, Nothing} = nothing,
+        imputeWhere::AxisVector{Vector{Bool}} = findMissings(data),
+        visitSequence::Vector{String} = makeMonotoneSequence(imputeWhere),
+        methods::AxisVector{String} = makeMethods(data),
+        predictorMatrix::AxisMatrix{Int} = makePredictorMatrix(data),
         iter::Int = 10,
         progressReports::Bool = true,
         gcSchedule::Float64 = 0.3,
-        threads::Bool = false,
         kwargs...
         ) where {T}
         istable(data) || throw(ArgumentError("Data not provided as a Tables.jl table."))
-
-        # If locations to impute not specified: find locations of missing data
-        if imputeWhere === nothing
-            imputeWhere = findMissings(data)
-        end
 
         # If nothing to be imputed: throw error
         if sum(sum.(imputeWhere)) == 0
             throw(ArgumentError("Provided dataset contains no missing data to be imputed."))
         end
 
-        # If no visit sequence specified: sort by proportion of data to impute
-        if visitSequence === nothing
-            visitSequence = makeMonotoneSequence(imputeWhere)
-        end
+        # Initialise working data, with imputed locations replaced with random draws from the observed data
+        workingData = initialiseWorkingData(data, imputeWhere, m, visitSequence, methods, predictorMatrix)
 
-        # If no methods specified: use pmm for all variables
-        if methods === nothing
-            methods = makeMethods(data)
-        end
-
-        # If no predictor matrix specified: everything predicts everything
-        if predictorMatrix === nothing
-            predictorMatrix = makePredictorMatrix(data)
-        end
-
-        # Initialise imputations with random draws from the observed data
-        imputations = initialiseImputations(data, imputeWhere, m, visitSequence, methods)
+        # Replacing categorical values with dummies where necessary
+        workingDataPacified, workingDataLevels = pacifyWorkingData(workingData)
 
         # Initialise mean and variance traces (for plotting)
         meanTraces = initialiseTraces(visitSequence, iter, m)
@@ -179,7 +156,7 @@ module Mice
         # For each iteration, for each variable
         for iterCounter in 1:iter, i in eachindex(visitSequence)
             # Run the Gibbs sampler
-            sampler!(imputations, meanTraces, varTraces, data, imputeWhere, m, visitSequence, methods, predictorMatrix, iter, iterCounter, i, progressReports, loggedEvents, threads)
+            sampler!(workingData, workingDataPacified, workingDataLevels, meanTraces, varTraces, imputeWhere, m, visitSequence, methods, predictorMatrix, iter, iterCounter, i, progressReports, loggedEvents)
             
             # If free RAM falls below specified threshold, invoke the garbage collector
             if Sys.free_memory()/Sys.total_memory() < gcSchedule
@@ -189,12 +166,10 @@ module Mice
 
         # Clear the progress indicator
         if progressReports
-            if threads
-                @printf "\u1b[A\33[2K\n\33[2K\n\33[2K\n\33[2K\n\33[2K\n\33[2K\u1b[A\u1b[A\u1b[A\u1b[A\u1b[A\r"
-            else
-                @printf "\u1b[A\33[2K\n\33[2K\n\33[2K\n\33[2K\n\33[2K\n\33[2K\n\33[2K\u1b[A\u1b[A\u1b[A\u1b[A\u1b[A\u1b[A\r"
-            end
+            @printf "\u1b[A\33[2K\n\33[2K\n\33[2K\n\33[2K\n\33[2K\n\33[2K\n\33[2K\u1b[A\u1b[A\u1b[A\u1b[A\u1b[A\u1b[A\r"
         end
+
+        imputations = [reduce(hcat, [workingData[yVar][j][imputeWhere[yVar]] for j in 1:m]) for yVar in visitSequence]
 
         # Define Mids output
         midsObj = Mids(
@@ -219,8 +194,7 @@ module Mice
             mids::Mids;
             iter::Int = 10,
             progressReports::Bool = true,
-            gcSchedule::Float64 = 0.3,
-            threads::Bool = false,
+            gcSchedule::Float64 = 0.3;
             kwargs...
             )
 
@@ -228,15 +202,14 @@ module Mice
 
     The number of *additional* iterations is specified by `iter`.
 
-    `progressReports`, `gcSchedule` and `threads` can also be specified: all other
-    arguments will be ignored.
+    `progressReports` and `gcSchedule` can also be specified: all other arguments will be
+    ignored.
     """
     function mice(
         mids::Mids;
         iter::Int = 10,
         progressReports::Bool = true,
         gcSchedule::Float64 = 0.3,
-        threads::Bool = false,
         kwargs...
         )
 
@@ -252,6 +225,10 @@ module Mice
         prevMeanTraces = mids.meanTraces
         prevVarTraces = mids.varTraces
         loggedEvents = mids.loggedEvents
+
+        # Initialise working data & version with dummy variables
+        workingData = initialiseWorkingData(data, imputations, imputeWhere, m, visitSequence, methods, predictorMatrix)
+        workingDataPacified = pacifyWorkingData(workingData)
 
         # Initialise new mean and variance traces
         meanTraces = initialiseTraces(visitSequence, iter+prevIter, m)
@@ -272,7 +249,7 @@ module Mice
         # For each new iteration, for each variable
         for iterCounter in prevIter+1:prevIter+iter, i in eachindex(visitSequence)
             # Run the Gibbs sampler
-            sampler!(imputations, meanTraces, varTraces, data, imputeWhere, m, visitSequence, methods, predictorMatrix, prevIter+iter, iterCounter, i, progressReports, loggedEvents, threads)
+            sampler!(workingData, workingDataPacified, meanTraces, varTraces, imputeWhere, m, visitSequence, methods, predictorMatrix, prevIter+iter, iterCounter, i, progressReports, loggedEvents)
             
             # If free RAM falls below specified threshold, invoke the garbage collector
             if Sys.free_memory()/Sys.total_memory() < gcSchedule
@@ -284,6 +261,8 @@ module Mice
         if progressReports
             @printf "\u1b[A\33[2K\n\33[2K\n\33[2K\n\33[2K\n\33[2K\n\33[2K\n\33[2K\u1b[A\u1b[A\u1b[A\u1b[A\u1b[A\u1b[A\r"
         end
+
+        imputations = [reduce(hcat, [workingData[yVar][j][imputeWhere[yVar]] for j in 1:m]) for yVar in visitSequence]
 
         # Define the new Mids output
         midsObj = Mids(
@@ -374,27 +353,27 @@ module Mice
         end
 
         imputeWhere = mids1.imputeWhere
-        if imputeWhere !== mids2.imputeWhere
+        if imputeWhere ≠ mids2.imputeWhere
             throw(ArgumentError("Cannot bind these Mids objects: the locations of imputed data are different."))
         end
 
         methods = mids1.methods
-        if methods != mids2.methods
+        if methods ≠ mids2.methods
             throw(ArgumentError("Cannot bind these Mids objects: the imputation methods are different."))
         end
 
         predictorMatrix = mids1.predictorMatrix
-        if predictorMatrix != mids2.predictorMatrix
+        if predictorMatrix ≠ mids2.predictorMatrix
             throw(ArgumentError("Cannot bind these Mids objects: the predictor matrices are different."))
         end
 
         visitSequence = mids1.visitSequence
-        if visitSequence != mids2.visitSequence
+        if visitSequence ≠ mids2.visitSequence
             throw(ArgumentError("Cannot bind these Mids objects: the visit sequences are different."))
         end
 
         iter = mids1.iter
-        if iter != mids2.iter
+        if iter ≠ mids2.iter
             throw(ArgumentError("Cannot bind these Mids objects: the numbers of iterations are different."))
         end
 
@@ -479,5 +458,5 @@ module Mice
         return(midsObj)
     end
 
-    export bindImputations, makeMethods, makePredictorMatrix, Mids, mice, plot
+    export bindImputations, complete, findMissings, listComplete, makeMethods, makePredictorMatrix, mice, Mids, Mipo, Mira, pool, plot, with
 end

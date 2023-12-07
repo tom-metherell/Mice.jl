@@ -2,25 +2,38 @@
 
 I have (very much not rigorously) benchmarked `Mice.jl` using the [test dataset](https://archive.ics.uci.edu/dataset/878) [dickson_prognosis_1989](@cite), and also performed an equivalent benchmark of the R package `mice`.
 
+15 iterations were completed to impute 12 variables (of which 4 binary categorical, 1 other categorical and 7 numeric) using a set of 18 predictors (those 12 variables plus 6 complete variables: 1 binary categorical, 2 other categorical and 3 numeric). Both used predictive mean matching for all variables that were to be imputed. In `Mice.jl`, `gcSchedule` was set to `0.3`.
+
+## Benchmark results
+### Windows
 System info: Single-threaded execution, Intel® Core™ i7-12700H 2.30GHz CPU, 32GB 4800MHz DDR5 RAM, running Windows 11 version 10.0.22621.
 
-R: version 4.3.1 running `mice` version 3.16.0.
-Julia: version 1.9.2 running `Mice.jl` version 0.1.0.
-Both used predictive mean matching for all variables that were to be imputed.
-
-### Imputation (`mice`)
-
-15 iterations were completed to impute 12 variables (of which 4 binary categorical, 1 other categorical and 7 numeric) using a set of 18 predictors (those 12 variables plus 6 complete variables: 1 binary categorical, 2 other categorical and 3 numeric).
-In `Mice.jl`, `gcSchedule` was set to `0.3`.
+R: version 4.3.2 running `mice` version 3.16.0.
+Julia: version 1.9.4 running `Mice.jl` version 0.3.0.
 
 | Number of imputations | R (`mice`) (s) | `Mice.jl` (s) |
 | --- | --- | --- |
-| 1 | 1.88 | 30.39 |
-| 5 | 8.84 | 33.40 |
-| 10 | 18.14 | 36.37 |
-| 20 | 38.42 | 43.52 |
-| 50 | 96.78 | 61.88 |
-| 100 | 199.33 | 93.74 |
+| 1 | 1.84 | 15.83 |
+| 5 | 8.40 | 17.30 |
+| 10 | 16.63 | 18.53 |
+| 20 | 33.52 | 21.12 |
+| 50 | 86.59 | 29.43 |
+| 100 | 176.59 | 41.06 |
+
+### Linux
+System info: Single-threaded execution, Intel® Core™ i7-12700H 2.30GHz CPU, 32GB 4800MHz DDR5 RAM, running Ubuntu (WSL) version 22.04.2.
+
+R: version 4.3.2 running `mice` version 3.14.0.
+Julia: version 1.9.4 running `Mice.jl` version 0.3.0.
+
+| Number of imputations | R (`mice`) (s) | `Mice.jl` (s) |
+| --- | --- | --- |
+| 1 | 1.22 | 15.21 |
+| 5 | 5.96 | 17.24 |
+| 10 | 11.74 | 18.46 |
+| 20 | 26.32 | 21.11 |
+| 50 | 67.26 | 27.24 |
+| 100 | 136.58 | 38.99 |
 
 ## Why is `Mice.jl` so slow for small jobs?
 

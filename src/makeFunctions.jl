@@ -73,49 +73,91 @@ function makePredictorMatrix(data::T) where {T}
     return predictorMatrix
 end
 
-function initialiseImputations(
+function initialiseWorkingData(
     data::T,
     imputeWhere::AxisVector{Vector{Bool}},
     m::Int,
     visitSequence::Vector{String},
-    methods::AxisVector{String}
+    methods::AxisVector{String},
+    predictorMatrix::AxisMatrix{Int}
     ) where {T}
     istable(data) || throw(ArgumentError("Data not provided as a Tables.jl table."))
 
-    # Initialise vector of imputations matrices
-    imputations = Vector{Matrix}(undef, length(visitSequence))
+    # Select only variables that will predict another or will be imputed themselves
+    predictors = axes(predictorMatrix)[2][findall(col -> any(x -> x != 0, col), eachcol(predictorMatrix))]
+    imputed = visitSequence[findall(x -> methods[x] ≠ "", visitSequence)]
+    wdVars = collect(string.(columnnames(data)))[in.(collect(string.(columnnames(data))), Ref(vcat(imputed, predictors)))]
 
-    for i in eachindex(visitSequence)
-        yVar = visitSequence[i]
+    # Initialise working data vectors
+    workingData = AxisArray(
+        [[Vector{eltype(getcolumn(data, Symbol(var)))}(getcolumn(data, Symbol(var))) for i in 1:m] for var in wdVars],
+        wdVars
+    )
 
+    for var ∈ wdVars
         # If the variable is to be imputed
-        if methods[yVar] != ""
-
-            # Grab the variable data
-            y = getcolumn(data, Symbol(yVar))
-            
+        if var ∈ imputed
             # Get locations of data to be imputed in column
-            whereY = imputeWhere[yVar]
+            whereY = imputeWhere[var]
 
             # Count data to be imputed in column
             whereCount = sum(whereY)
 
-            # Initialise imputation matrix
-            imputations[i] = Matrix{nonmissingtype(eltype(y))}(undef, whereCount, m)
-
             # For each imputation
             for j in 1:m
                 # Initialise using a random sample from the observed data
-                imputations[i][:, j] = sampleImpute!(y, whereY, whereCount)
+                workingData[var][j][whereY] = sampleImpute!(workingData[var][j][.!whereY], whereCount)
             end
+
+            # Convert to non-missing type
+            workingData[var] = convert(Vector{Vector{nonmissingtype(eltype(workingData[var][1]))}}, workingData[var])
         end
     end
 
-    return imputations
+    return workingData
+end
+
+function initialiseWorkingData(
+    data::T,
+    imputations::Vector{Matrix},
+    imputeWhere::AxisVector{Vector{Bool}},
+    m::Int,
+    visitSequence::Vector{String},
+    methods::AxisVector{String},
+    predictorMatrix::AxisMatrix{Int}
+    ) where {T}
+    istable(data) || throw(ArgumentError("Data not provided as a Tables.jl table."))
+
+    # Comments as above
+    predictors = axes(predictorMatrix)[2][findall(col -> any(x -> x != 0, col), eachcol(predictorMatrix))]
+    imputed = visitSequence[findall(x -> methods[x] ≠ "", visitSequence)]
+    wdVars = collect(string.(columnnames(data)))[in.(collect(string.(columnnames(data))), Ref(vcat(imputed, predictors)))]
+
+    # Initialise working data vectors
+    workingData = AxisArray(
+        [[Vector{eltype(getcolumn(data, Symbol(var)))}(getcolumn(data, Symbol(var))) for i in 1:m] for var in wdVars],
+        wdVars
+    )
+
+    for var ∈ wdVars
+        # If the variable is to be imputed
+        if var ∈ imputed
+            # For each imputation
+            for j in 1:m
+                # Initialise using the provided imputations
+                workingData[var][j][imputeWhere[var]] = imputations[findfirst(visitSequence .== var)][:, j]
+            end
+
+            # Convert to non-missing type
+            workingData[var] = convert(Vector{Vector{nonmissingtype(eltype(workingData[var][1]))}}, workingData[var])
+        end
+    end
+
+    return workingData
 end
 
 # Allow US spelling of initialise
-const initializeImputations = initialiseImputations
+const initializeWorkingData = initialiseWorkingData
 
 function initialiseTraces(
     visitSequence::Vector{String},
@@ -130,5 +172,3 @@ end
 
 # Allow US spelling of initialise
 const initializeTraces = initialiseTraces
-
-export findMissings, makeMethods, makePredictorMatrix
