@@ -19,7 +19,9 @@ makedocs(
              "acknowledgements.md",
              "references.md"],
     plugins = [bib],
-    analytics = "G-0SJ9WPE2ZH"
+    format = Documenter.HTML(
+        analytics = "G-0SJ9WPE2ZH"
+    )
 )
 
 deploydocs(
