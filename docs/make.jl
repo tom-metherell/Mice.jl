@@ -18,7 +18,8 @@ makedocs(
              "whatsnext.md",
              "acknowledgements.md",
              "references.md"],
-    plugins = [bib]
+    plugins = [bib],
+    analytics = "G-0SJ9WPE2ZH"
 )
 
 deploydocs(
