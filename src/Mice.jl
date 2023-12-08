@@ -72,13 +72,13 @@ module Mice
         mice(
             data;
             m::Int = 5,
-            imputeWhere::Union{AxisVector{Vector{Bool}}, Nothing} = nothing,
-            visitSequence::Union{Vector{String}, Nothing} = nothing,
-            methods::Union{AxisVector{String}, Nothing} = nothing,
-            predictorMatrix::Union{AxisMatrix{Int}, Nothing} = nothing,
+            imputeWhere::AxisVector{Vector{Bool}} = findMissings(data),
+            visitSequence::Vector{String} = makeMonotoneSequence(imputeWhere),
+            methods::AxisVector{String} = makeMethods(data),
+            predictorMatrix::AxisMatrix{Int} = makePredictorMatrix(data),
             iter::Int = 10,
             progressReports::Bool = true,
-            gcSchedule::Float64 = 0.3;
+            gcSchedule::Float64 = 0.3,
             kwargs...
             )
 
