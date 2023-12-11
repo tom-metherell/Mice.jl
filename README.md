@@ -10,16 +10,16 @@
 
 ## Installation
 
-`Mice.jl` is not registered yet. To install the current pre-release version:
+To install the latest stable version:
 
-```
-] add https://github.com/tom-metherell/Mice.jl.git#v0.2.0
+```julia
+] add Mice
 ```
 
 or
 
-```
-using Pkg; Pkg.add(url = "https://github.com/tom-metherell/Mice.jl.git", rev = "v0.2.0")
+```julia
+using Pkg; Pkg.add("Mice")
 ```
 
 ## Quick-start guide
@@ -28,8 +28,8 @@ using Pkg; Pkg.add(url = "https://github.com/tom-metherell/Mice.jl.git", rev = "
 Use the `mice()` function to perform multiple imputation on a data table. The output is a multiply imputed dataset (`Mids`) object.
 
 #### Usage
-```
-mice(data, m = 5, visitSequence = nothing, methods = nothing, predictorMatrix = nothing, iter = 10, progressReports = true, gcSchedule = 0.3, threads = true, ...)
+```julia
+mice(data, ...)
 ```
 where:
 
@@ -37,11 +37,13 @@ where:
 
 `m` is the number of imputations.
 
-`visitSequence` is a vector of column names specifying the order in which the columns should be imputed. If `nothing`, the order is determined automatically. You can skip the imputation of a column by removing it from the `visitSequence`.
+`imputeWhere` is an `AxisVector` of vectors specifying which values of each variable are to be imputed. If not specified, all missing values are imputed. You can create a default `imputeWhere` vector (which you can then edit) using the function `findMissings(data)`.
 
-`methods` is a vector of imputation methods. If `nothing`, the default methods are used. Currently, `Mice.jl` supports only a few methods (`"pmm"`, `"norm"`, `"mean"` and `"sample"`). You can make a default methods vector (which you can then edit) using the function `makeMethods(data)`.
+`visitSequence` is a vector of column names specifying the order in which the columns should be imputed. If not specified, the order is determined automatically. You can skip the imputation of a column by removing it from the `visitSequence`.
 
-`predictorMatrix` is a matrix of predictors for each column (with the predictors in the columns of the matrix). If `nothing`, all other columns are used for each column. To prevent one column from predicting another, ensure that value of the corresponding cell is set to `0`. You can make a default predictor matrix (which you can then edit) using the function `makePredictorMatrix(data)`.
+`methods` is an `AxisVector` of imputation methods. If not specified, the default methods are used. Currently, `Mice.jl` supports only a few methods (`"pmm"`, `"norm"`, `"mean"` and `"sample"`). You can make a default methods vector (which you can then edit) using the function `makeMethods(data)`.
+
+`predictorMatrix` is an `AxisMatrix` of predictors for each column (with the predictors in the columns of the matrix). If not specified, all other columns are used for each column. To prevent one column from predicting another, ensure that value of the corresponding cell is set to `0`. You can make a default predictor matrix (which you can then edit) using the function `makePredictorMatrix(data)`.
 
 `iter` is the number of iterations to perform.
 
@@ -49,10 +51,8 @@ where:
 
 `gcSchedule` determines how often the garbage collector is invoked (additionally to when it would be anyway). This can improve performance for large datasets. The value is the fraction of your machine's RAM that remains free at which the garbage collector will be invoked. The default is `0.3`, but you may wish to increase this for very large jobs.
 
-`threads` determines whether the imputations are executed in parallel using multithreading. The default is `true`, but this may make performance worse for small jobs (see [Benchmarks](#benchmarks)). Note that unlike in R, [random number generation is thread-safe by default in Julia](https://julialang.org/blog/2021/11/julia-1.7-highlights/#new_rng_reproducible_rng_in_tasks).
-
 #### Example
-```
+```julia
 using CSV, DataFrames, Mice, Random
 
 Random.seed!(1234)
@@ -68,7 +68,7 @@ After imputation, you can use `plot(mids, variableNumber)` or `plot(mids, variab
 Use the `with()` function to perform data analysis functions on a `Mids` object. The output is a multiply imputed repeated analyses (`Mira`) object.
 
 #### Usage
-```
+```julia
 with(mids, function)
 ```
 where `mids` is a `Mids` object.
@@ -76,7 +76,7 @@ where `mids` is a `Mids` object.
 `function` is a data analysis function. It should take the form `data -> function(arguments, data, moreArguments...)`, where the placeholder `data` (which can take other names if necessary) signifies the position of the data argument in the function.
 
 #### Example
-```
+```julia
 using CSV, DataFrames, GLM, Mice, Random
 
 Random.seed!(1234)
@@ -92,13 +92,13 @@ analyses = with(imputedData, data -> glm(@formula(y ~ x1 + x2), data, Poisson(),
 Use the `pool()` function to pool the parameter estimates from a `Mira` object. The output is a multiply imputed pooled outcomes (`Mipo`) object.
 
 #### Usage
-```
+```julia
 pool(mira)
 ```
 where `mira` is a `Mira` object.
 
 #### Example
-```
+```julia
 using CSV, DataFrames, GLM, Mice, Random
 
 Random.seed!(1234)
@@ -120,28 +120,44 @@ For more information about multiple imputation by chained equations, and how to 
 
 I have (very much not rigorously) benchmarked `Mice.jl` using the [test dataset](https://archive.ics.uci.edu/dataset/878) [[3]](#3), and also performed an equivalent benchmark of the R package `mice`.
 
-System info: Single-threaded execution, Intel® Core™ i7-12700H 2.30GHz CPU, 32GB 4800MHz DDR5 RAM, running Windows 11 version 10.0.22621.
-
-R: version 4.3.1 running `mice` version 3.16.0.
-Julia: version 1.9.2 running `Mice.jl` version 0.1.0.
-
-### Imputation (`mice`)
-
 15 iterations were completed to impute 12 variables (of which 4 binary categorical, 1 other categorical and 7 numeric) using a set of 18 predictors (those 12 variables plus 6 complete variables: 1 binary categorical, 2 other categorical and 3 numeric).
 In `Mice.jl`, `gcSchedule` was set to `0.3`.
 
+### Windows
+System info: Single-threaded execution, Intel® Core™ i7-12700H 2.30GHz CPU, 32GB 4800MHz DDR5 RAM, running Windows 11 version 10.0.22621.
+
+R: version 4.3.2 running `mice` version 3.16.0.
+
+Julia: version 1.9.4 running `Mice.jl` version 0.3.0.
+
 | Number of imputations | R (`mice`) (s) | `Mice.jl` (s) |
 | --- | --- | --- |
-| 1 | 1.88 | 30.39 |
-| 5 | 8.84 | 33.40 |
-| 10 | 18.14 | 36.37 |
-| 20 | 38.42 | 43.52 |
-| 50 | 96.78 | 61.88 |
-| 100 | 199.33 | 93.74 |
+| 1 | 1.84 | 15.83 |
+| 5 | 8.40 | 17.30 |
+| 10 | 16.63 | 18.53 |
+| 20 | 33.52 | 21.12 |
+| 50 | 86.59 | 29.43 |
+| 100 | 176.59 | 41.06 |
+
+### Linux
+System info: Single-threaded execution, Intel® Core™ i7-12700H 2.30GHz CPU, 32GB 4800MHz DDR5 RAM, running Ubuntu (WSL) version 22.04.2.
+
+R: version 4.3.2 running `mice` version 3.14.0. 
+
+Julia: version 1.9.4 running `Mice.jl` version 0.3.0.
+
+| Number of imputations | R (`mice`) (s) | `Mice.jl` (s) |
+| --- | --- | --- |
+| 1 | 1.22 | 15.21 |
+| 5 | 5.96 | 17.24 |
+| 10 | 11.74 | 18.46 |
+| 20 | 26.32 | 21.11 |
+| 50 | 67.26 | 27.24 |
+| 100 | 136.58 | 38.99 |
 
 ### Why is `Mice.jl` so slow for small jobs?
 
-Julia is a compiled language. This means that the first time a function is run, it is compiled into machine code, which takes time. Therefore, the first iteration of `mice()` will be (much) slower in Julia than in R, for example. However, subsequent iterations will be much faster, as all of the required functions are already compiled.
+Julia is a just-in-time compiled language. This means that the first time a function is run, it is compiled into machine code, which takes time. Therefore, the first iteration of `mice()` will be (much) slower in Julia than in R, for example. However, subsequent iterations will be much faster, as all of the required functions are already compiled.
 
 ### Why is the first iteration so much slower than the rest?
 
@@ -149,7 +165,7 @@ See [above](#why-is-micejl-so-slow-for-small-jobs).
 
 ## Issues
 
-This is a very early work in progress: there will be bugs. If you find any (or the performance is not what you expect), please report them in the [Issues](https://github.com/tom-metherell/Mice.jl/issues) tab above.
+This is still a work in progress: there will be bugs. If you find any (or the performance is not what you expect), please report them in the [Issues](https://github.com/tom-metherell/Mice.jl/issues) tab above.
 
 ## References
 <a id="1">[1]</a>
