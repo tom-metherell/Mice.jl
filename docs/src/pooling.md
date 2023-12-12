@@ -23,7 +23,7 @@ myPredictorMatrix[:, ["ID", "N_Days"]] .= false;
 
 Random.seed!(1234); # Set random seed for reproducibility
 
-imputedData = mice(myData, predictorMatrix = myPredictorMatrix, methods = myMethods);
+imputedData = mice(myData, predictorMatrix = myPredictorMatrix);
 
 analysesLMs = with(imputedData, data -> lm(@formula(N_Days ~ Drug + Age + Stage + Bilirubin), data));
 # returns Mira of linear model outputs from each imputed dataset
