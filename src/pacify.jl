@@ -50,7 +50,7 @@ function removeLinDeps!(
     Xₒ = Matrix{Float64}(X[.!whereY, :])
     
     # If y is categorical
-    if y isa CategoricalArray || nonmissingtype(eltype(y)) <: AbstractString
+    if y isa CategoricalArray || nonmissingtype(eltype(y)) <: Union{AbstractString, CategoricalValue}
         # Grab observed y-values
         yₒ = y[.!whereY]
 

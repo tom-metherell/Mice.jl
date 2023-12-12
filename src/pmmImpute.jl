@@ -17,7 +17,7 @@ function pmmImpute!(
     Xₘ = Matrix{Float64}(hcat(repeat([1], whereCount), X[whereY, :]))
 
     # If y is categorical
-    if nonmissingtype(eltype(yₒ)) <: AbstractString
+    if nonmissingtype(eltype(yₒ)) <: Union{AbstractString, CategoricalValue}
         # Convert to dummy variables (as floats) via CCA
         mapping = Dict(levels(yₒ)[i] => i-1 for i in eachindex(levels(yₒ)))
         yNum = Vector{Float64}([mapping[v] for v in yₒ])

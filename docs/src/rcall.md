@@ -38,7 +38,7 @@ Using the combined power of these two packages, you can use `Mice.jl` without le
 
 > julia_command("Random.seed!(1234);") # Set random seed for reproducibility
 
-> julia_command("imputedData = mice(data, predictorMatrix = myPredictorMatrix, threads = false);")
+> julia_command("imputedData = mice(data, predictorMatrix = myPredictorMatrix);")
 
 > julia_command("analyses = with(imputedData, data -> lm(@formula(N_Days ~ Drug + Age + Stage + Bilirubin), data));")
 
@@ -66,7 +66,7 @@ julia> predictorMatrix[:, ["ID", "N_Days"]] .= false;
 
 julia> Random.seed!(1234); # Set random seed for reproducibility
 
-julia> imputedData = mice(data, predictorMatrix = predictorMatrix, threads = false);
+julia> imputedData = mice(data, predictorMatrix = predictorMatrix);
 
 julia> @rput imputedData
 
