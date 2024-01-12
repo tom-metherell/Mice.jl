@@ -1,9 +1,10 @@
 module Mice
     # Dependencies
     using AxisArrays: axes, AxisArray, AxisMatrix, AxisVector
-    using CategoricalArrays: CategoricalArray, CategoricalValue, levels
+    using CategoricalArrays: CategoricalArray, CategoricalPool, CategoricalValue, levels
     using Distributions: ccdf, Chisq, FDist, Normal, TDist
     using LinearAlgebra: cholesky, Diagonal, diagm, eigen, inv, qr, rank, svd
+    using PrecompileTools: @compile_workload
     using Printf: @printf
     using Random: rand, randn, randperm
     import RecipesBase: plot
@@ -459,4 +460,6 @@ module Mice
     end
 
     export bindImputations, complete, findMissings, listComplete, makeMethods, makePredictorMatrix, mice, Mids, Mipo, Mira, pool, plot, with
+
+    include("precompile.jl")
 end
