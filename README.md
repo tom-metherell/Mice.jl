@@ -128,32 +128,32 @@ System info: Single-threaded execution, Intel® Core™ i7-12700H 2.30GHz CPU, 3
 
 R: version 4.3.2 running `mice` version 3.16.0.
 
-Julia: version 1.9.4 running `Mice.jl` version 0.3.0.
+Julia: version 1.10.0 running `Mice.jl` version 0.3.2.
 
 | Number of imputations | R (`mice`) (s) | `Mice.jl` (s) |
 | --- | --- | --- |
-| 1 | 1.84 | 15.83 |
-| 5 | 8.40 | 17.30 |
-| 10 | 16.63 | 18.53 |
-| 20 | 33.52 | 21.12 |
-| 50 | 86.59 | 29.43 |
-| 100 | 176.59 | 41.06 |
+| 1 | 1.79 | 4.86 |
+| 5 | 8.45 | 5.54 |
+| 10 | 16.59 | 6.55 |
+| 20 | 33.19 | 8.09 |
+| 50 | 85.79 | 12.17 |
+| 100 | 171.93 | 19.62 |
 
 ### Linux
-System info: Single-threaded execution, Intel® Core™ i7-12700H 2.30GHz CPU, 32GB 4800MHz DDR5 RAM, running Ubuntu (WSL) version 22.04.2.
+System info: Single-threaded execution, Intel® Core™ i7-12700H 2.30GHz CPU, 32GB 4800MHz DDR5 RAM, running Ubuntu (WSL) version 22.04.3.
 
-R: version 4.3.2 running `mice` version 3.14.0. 
+R: version 4.3.2 running `mice` version 3.16.0. 
 
-Julia: version 1.9.4 running `Mice.jl` version 0.3.0.
+Julia: version 1.10.0 running `Mice.jl` version 0.3.2.
 
 | Number of imputations | R (`mice`) (s) | `Mice.jl` (s) |
 | --- | --- | --- |
-| 1 | 1.22 | 15.21 |
-| 5 | 5.96 | 17.24 |
-| 10 | 11.74 | 18.46 |
-| 20 | 26.32 | 21.11 |
-| 50 | 67.26 | 27.24 |
-| 100 | 136.58 | 38.99 |
+| 1 | 1.24 | 4.93 |
+| 5 | 5.92 | 5.63 |
+| 10 | 11.74 | 6.56 |
+| 20 | 23.87 | 8.44 |
+| 50 | 63.83 | 12.54 |
+| 100 | 125.65 | 21.30 |
 
 ### Why is `Mice.jl` so slow for small jobs?
 
