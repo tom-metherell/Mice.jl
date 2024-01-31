@@ -180,9 +180,7 @@ Dickson E, Grambsch P, Fleming T, Fisher L, Langworthy A. 1989. Prognosis in pri
 <br>
 <table align="right" style="width: 20%; border: none;" cellspacing="0" cellpadding="0" border="0"> 
     <tr>
-        <td valign="center">
-            Funded by Wellcome
-            <img src="docs/src/wellcome-logo-white.png" style="vertical-align:middle" alt="Wellcome logo" width="50" height="50"> 
-        </td>
+        <td valign="center"> Funded by Wellcome </td>
+        <td valign="center"> <img src="docs/src/wellcome-logo-white.png" style="vertical-align:middle" alt="Wellcome logo" width="50" height="50"> </td>
     </tr>
 </table>
