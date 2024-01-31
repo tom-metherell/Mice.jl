@@ -178,4 +178,7 @@ van Buuren S (ed.). 2018. Flexible imputation of missing data. 2nd ed. New York:
 Dickson E, Grambsch P, Fleming T, Fisher L, Langworthy A. 1989. Prognosis in primary biliary cirrhosis: Model for decision making. *Hepatology* **10**(1):1-7.
 
 <br>
-<div align="right"> <span style="vertical-align:middle"> Funded by Wellcome &nbsp;&nbsp;&nbsp; </span> <img src="docs/wellcome-logo-white.png" style="vertical-align:middle" alt="Wellcome logo" width="50" height="50"> </div>
+<div align="right"> 
+    <span style=""> Funded by Wellcome &nbsp;&nbsp;&nbsp; </span> 
+    <img src="docs/wellcome-logo-white.png" style="vertical-align:middle" alt="Wellcome logo" width="50" height="50"> 
+</div>
