@@ -130,3 +130,7 @@ myData.col2
 As you can see, the `col2` column is now a `CategoricalArray`. This is a special type of array that allows you to specify that a column is categorical. This is important, because `mice` will treat categorical variables differently to continuous variables.
 
 If you have a column that contains strings (with or without missings, but with no other types), `Mice.jl` will handle it as a categorical variable automatically.
+
+```@raw html
+<br> <div align="right"> Funded by Wellcome &nbsp;&nbsp;&nbsp; <img src="../../wellcome-logo-white.png" style="vertical-align:middle" alt="Wellcome logo" width="50" height="50"> </div>
+```

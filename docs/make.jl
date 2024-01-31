@@ -21,7 +21,7 @@ makedocs(
     plugins = [bib],
     format = Documenter.HTML(
         analytics = "G-0SJ9WPE2ZH"
-    )
+    )    
 )
 
 deploydocs(

@@ -42,3 +42,7 @@ analysesMeans = with(imputedData, data -> mean(data.Cholesterol));
 analysesLMs = with(imputedData, data -> lm(@formula(N_Days ~ Drug + Age + Stage + Bilirubin), data));
 # returns Mira of linear model outputs from each imputed dataset
 ```
+
+```@raw html
+<br> <div align="right"> Funded by Wellcome &nbsp;&nbsp;&nbsp; <img src="../../wellcome-logo-white.png" style="vertical-align:middle" alt="Wellcome logo" width="50" height="50"> </div>
+```
