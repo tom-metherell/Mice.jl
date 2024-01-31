@@ -7,5 +7,5 @@ Currently, only predictive mean matching (PMM) and Bayesian linear regression ar
 If you want to learn more about multiple imputation, this is not the guide for you. Instead, I recommend consulting ["Flexible Imputation of Missing Data"](https://stefvanbuuren.name/fimd/) by Stef van Buuren (ed.) [van_buuren_flexible_2018](@cite).
 
 ```@raw html
-<br> <div align="right"> Funded by Wellcome &nbsp;&nbsp;&nbsp; <img src="../wellcome-logo-white.png" style="vertical-align:middle" alt="Wellcome logo" width="50" height="50"> </div>
+<br> <div align="right"> Funded by Wellcome &nbsp;&nbsp;&nbsp; <img src="wellcome-logo-white.png" style="vertical-align:middle" alt="Wellcome logo" width="50" height="50"> </div>
 ```
