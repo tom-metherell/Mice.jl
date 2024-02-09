@@ -229,7 +229,9 @@ module Mice
 
         # Initialise working data & version with dummy variables
         workingData = initialiseWorkingData(data, imputations, imputeWhere, m, visitSequence, methods, predictorMatrix)
-        workingDataPacified = pacifyWorkingData(workingData)
+
+        # Replacing categorical values with dummies where necessary
+        workingDataPacified, workingDataLevels = pacifyWorkingData(workingData)
 
         # Initialise new mean and variance traces
         meanTraces = initialiseTraces(visitSequence, iter+prevIter, m)
@@ -250,7 +252,7 @@ module Mice
         # For each new iteration, for each variable
         for iterCounter in prevIter+1:prevIter+iter, i in eachindex(visitSequence)
             # Run the Gibbs sampler
-            sampler!(workingData, workingDataPacified, meanTraces, varTraces, imputeWhere, m, visitSequence, methods, predictorMatrix, prevIter+iter, iterCounter, i, progressReports, loggedEvents)
+            sampler!(workingData, workingDataPacified, workingDataLevels, meanTraces, varTraces, imputeWhere, m, visitSequence, methods, predictorMatrix, prevIter+iter, iterCounter, i, progressReports, loggedEvents)
             
             # If free RAM falls below specified threshold, invoke the garbage collector
             if Sys.free_memory()/Sys.total_memory() < gcSchedule

@@ -90,7 +90,7 @@ function initialiseWorkingData(
 
     # Initialise working data vectors
     workingData = AxisArray(
-        [[Vector{eltype(getcolumn(data, Symbol(var)))}(getcolumn(data, Symbol(var))) for i in 1:m] for var in wdVars],
+        [[getcolumn(data, Symbol(var)) isa CategoricalArray ? CategoricalArray(getcolumn(data, Symbol(var))) : Vector{eltype(getcolumn(data, Symbol(var)))}(getcolumn(data, Symbol(var))) for i in 1:m] for var in wdVars],
         wdVars
     )
 
@@ -110,7 +110,13 @@ function initialiseWorkingData(
             end
 
             # Convert to non-missing type
-            workingData[var] = convert(Vector{Vector{nonmissingtype(eltype(workingData[var][1]))}}, workingData[var])
+            if workingData[var][1] isa CategoricalArray
+                for j in eachindex(workingData[var])
+                    workingData[var][j] = convert(CategoricalArray{nonmissingtype(eltype(workingData[var][1]))}, workingData[var][j])
+                end
+            else
+                workingData[var] = convert(Vector{Vector{nonmissingtype(eltype(workingData[var][1]))}}, workingData[var])
+            end
         end
     end
 
@@ -135,7 +141,7 @@ function initialiseWorkingData(
 
     # Initialise working data vectors
     workingData = AxisArray(
-        [[Vector{eltype(getcolumn(data, Symbol(var)))}(getcolumn(data, Symbol(var))) for i in 1:m] for var in wdVars],
+        [[getcolumn(data, Symbol(var)) isa CategoricalArray ? CategoricalArray(getcolumn(data, Symbol(var))) : Vector{eltype(getcolumn(data, Symbol(var)))}(getcolumn(data, Symbol(var))) for i in 1:m] for var in wdVars],
         wdVars
     )
 
@@ -149,7 +155,13 @@ function initialiseWorkingData(
             end
 
             # Convert to non-missing type
-            workingData[var] = convert(Vector{Vector{nonmissingtype(eltype(workingData[var][1]))}}, workingData[var])
+            if workingData[var][1] isa CategoricalArray
+                for j in eachindex(workingData[var])
+                    workingData[var][j] = convert(CategoricalArray{nonmissingtype(eltype(workingData[var][1]))}, workingData[var][j])
+                end
+            else
+                workingData[var] = convert(Vector{Vector{nonmissingtype(eltype(workingData[var][1]))}}, workingData[var])
+            end
         end
     end
 

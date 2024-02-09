@@ -23,6 +23,22 @@ using CategoricalArrays, CSV, DataFrames, GLM, Mice, Tables, Test, TypedTables
     results = pool(analyses)
 
     @test length(results.coefs) == 7
+
+    imputedData = mice(imputedData, predictorMatrix = predictorMatrix, progressReports = false)
+
+    @test length(imputedData.loggedEvents) == 0
+
+    imputedDataList = listComplete(imputedData)
+
+    @test sum(sum.(ismissing.(Matrix.(imputedDataList)))) == 0
+
+    analyses = with(imputedData, data -> lm(@formula(N_Days ~ Drug + Age + Stage + Bilirubin), data))
+
+    @test length(analyses.analyses) == 5
+
+    results = pool(analyses)
+
+    @test length(results.coefs) == 7
 end
 
 @testset "Mice (PMM, TT)" begin
