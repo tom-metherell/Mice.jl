@@ -2,7 +2,7 @@
 function sampler!(
     workingData::AxisVector{Vector},
     workingDataPacified::AxisVector,
-    workingDataLevels::AxisVector{Vector},
+    workingDataLevels::AxisVector,
     meanTraces::Vector{Matrix{Float64}},
     varTraces::Vector{Matrix{Float64}},
     imputeWhere::AxisVector{Vector{Bool}},

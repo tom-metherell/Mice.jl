@@ -111,9 +111,7 @@ function initialiseWorkingData(
 
             # Convert to non-missing type
             if workingData[var][1] isa CategoricalArray
-                for j in eachindex(workingData[var])
-                    workingData[var][j] = convert(CategoricalArray{nonmissingtype(eltype(workingData[var][1]))}, workingData[var][j])
-                end
+                workingData[var] = [CategoricalArray{nonmissingtype(eltype(workingData[var][1]))}(workingData[var][j]) for j in 1:m]
             else
                 workingData[var] = convert(Vector{Vector{nonmissingtype(eltype(workingData[var][1]))}}, workingData[var])
             end
