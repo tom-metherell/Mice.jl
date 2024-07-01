@@ -8,7 +8,12 @@ makedocs(
     pages = ["index.md",
              "gettingstarted.md",
              "wrangling.md",
-             "imputation.md",
+             "Imputation" => [
+                "mice.md",
+                "customising-imputation.md",
+                "diagnostics.md",
+                "binding-imputations.md"
+             ],
              "analysis.md",
              "pooling.md",
              "rcall.md",
