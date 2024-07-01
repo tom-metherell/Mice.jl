@@ -226,3 +226,7 @@ Random.seed!(1234); # Set random seed for reproducibility
 # Not run
 mice(myData, methods = myMethods)
 ```
+
+```@raw html
+<br> <div align="right"> Funded by Wellcome &nbsp;&nbsp;&nbsp; <img src="../wellcome-logo-white.png" style="vertical-align:middle" alt="Wellcome logo" width="50" height="50"> </div>
+```
