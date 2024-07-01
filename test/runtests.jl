@@ -1,4 +1,4 @@
-using CategoricalArrays, CSV, DataFrames, GLM, Mice, Tables, Test, TypedTables
+using BetaML, CategoricalArrays, CSV, DataFrames, GLM, Mice, Tables, Test, TypedTables
 
 @testset "Mice (PMM, DF)" begin
     data = CSV.read("data/cirrhosis.csv", DataFrame, missingstring = "NA")
@@ -133,6 +133,34 @@ end
     theMethods[["Age", "Bilirubin", "Cholesterol", "Albumin", "Copper", "Alk_Phos", "SGOT", "Tryglicerides", "Platelets", "Prothrombin"]] .= "mean"
 
     imputedData = mice(data, iter = 1, methods = theMethods, progressReports = false)
+
+    @test length(imputedData.loggedEvents) == 0
+
+    imputedDataList = listComplete(imputedData)
+
+    @test sum(sum.(ismissing.(Matrix.(imputedDataList)))) == 0
+
+    analyses = with(imputedData, data -> lm(@formula(N_Days ~ Drug + Age + Stage + Bilirubin), data))
+
+    @test length(analyses.analyses) == 5
+
+    results = pool(analyses)
+
+    @test length(results.coefs) == 7
+end
+
+@testset "Mice (RF, DF)" begin
+    data = CSV.read("data/cirrhosis.csv", DataFrame, missingstring = "NA")
+
+    data.Stage = categorical(data.Stage)
+
+    theMethods = makeMethods(data)
+    theMethods .= "rf"
+
+    predictorMatrix = makePredictorMatrix(data)
+    predictorMatrix[:, ["ID", "N_Days"]] .= false
+
+    imputedData = mice(data, iter = 1, methods = theMethods, predictorMatrix = predictorMatrix, progressReports = false)
 
     @test length(imputedData.loggedEvents) == 0
 
