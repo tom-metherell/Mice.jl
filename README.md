@@ -41,7 +41,7 @@ where:
 
 `visitSequence` is a vector of column names specifying the order in which the columns should be imputed. If not specified, the order is determined automatically. You can skip the imputation of a column by removing it from the `visitSequence`.
 
-`methods` is an `AxisVector` of imputation methods. If not specified, the default methods are used. Currently, `Mice.jl` supports only a few methods (`"pmm"`, `"norm"`, `"mean"` and `"sample"`). You can make a default methods vector (which you can then edit) using the function `makeMethods(data)`.
+`methods` is an `AxisVector` of imputation methods. If not specified, the default methods are used. Currently, `Mice.jl` supports only a few methods (`"pmm"`, `"rf"`, `"norm"`, `"mean"` and `"sample"`). You can make a default methods vector (which you can then edit) using the function `makeMethods(data)`.
 
 `predictorMatrix` is an `AxisMatrix` of predictors for each column (with the predictors in the columns of the matrix). If not specified, all other columns are used for each column. To prevent one column from predicting another, ensure that value of the corresponding cell is set to `0`. You can make a default predictor matrix (which you can then edit) using the function `makePredictorMatrix(data)`.
 
