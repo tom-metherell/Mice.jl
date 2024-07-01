@@ -1,15 +1,8 @@
-# Imputation (`mice`)
-The main function of the package is `mice`, which takes a `Tables.jl`-compatible table as its input. It returns a multiply imputed dataset (`Mids`) object with the imputed values.
+# Customising the imputation setup
 
-```@docs
-Mids
-mice
-```
-
-## Customising the imputation setup
 You can customise various aspects of the imputation setup by passing keyword arguments to `mice`. These are described above. You can also use some of the functions below to define objects that you can customise to alter how `mice` handles the imputation.
 
-### Locations to impute
+## Locations to impute
 You can customise which data points are imputed by manipulating the `imputeWhere` argument. By default, this will specify that all missing data are to be imputed (using the function `findMissings()`).
 
 ```@docs
@@ -48,7 +41,7 @@ myImputeWhere
 mice(myData, imputeWhere = myImputeWhere)
 ```
 
-### Visit sequence
+## Visit sequence
 The visit sequence is the order in which the variables are imputed. By default, `mice` sorts the variables in order of missingness (lowest to highest) via the internal function `makeMonotoneSequence`. You can instead define your own visit sequence by creating a vector of variable names in your desired order and passing that to `mice`. For example:
 
 ```julia
@@ -91,7 +84,7 @@ Assuming that the imputations converge normally, changing the visit sequence sho
 
 You can leave variables out of the `visitSequence` to cause `mice()` to not impute them.
 
-### Predictor matrix
+## Predictor matrix
 The predictor matrix defines which variables in the imputation model are used to predict which others. By default, every variable predicts every other variable, but there are a wide range of cases in which this is not desirable. For example, if your dataset includes an ID column, this is clearly useless for imputation and should be ignored.
 
 To create a default predictor matrix that you can edit, you can use the function `makePredictorMatrix`.
@@ -152,15 +145,29 @@ Random.seed!(1234); # Set random seed for reproducibility
 mice(myData, predictorMatrix = myPredictorMatrix)
 ```
 
-### Methods
+## Methods
 The imputation methods are the functions that are used to impute each variable. By default, `mice` uses predictive mean matching (`"pmm"`) for all variables. Currently `Mice.jl` supports the following methods:
 
 | Method | Description | Variable type |
 | ------ | ----------- | ------------- |
 | `pmm` | Predictive mean matching | Any |
+| `rf` | Random forest | Any (but see [below](#rf-warning)) |
 | `sample` | Random sample from observed values | Any |
 | `mean` | Mean of observed values | Numeric (float) |
 | `norm` | Bayesian linear regression | Numeric (float) |
+
+```@raw html
+<a name="rf-warning">
+</a> 
+```
+
+!!! warning
+
+    If you use `rf` on a variable with integer values, the imputed values will be rounded to the nearest integer in the output. If you want to prevent this behaviour, you have two options:
+
+    * Convert the variable to a float before imputation, so it is treated as continuous or
+
+    * Convert the variable to a categorical/string array so it is treated as discrete.
 
 The `mean` and `sample` methods should not generally be used.
 
@@ -218,31 +225,4 @@ Random.seed!(1234); # Set random seed for reproducibility
 
 # Not run
 mice(myData, methods = myMethods)
-```
-
-## Diagnostics
-After performing multiple imputation, you should inspect the trace plots of the imputed variables to verify convergence. `Mice.jl` includes a plotting function to do this.
-
-```@docs
-plot
-```
-
-You do need to load the package `Plots.jl` to see the plots:
-
-```julia
-using Plots
-
-# Not run
-plot(myMids, 7)
-```
-
-## Binding imputations together
-If you have a number of `Mids` objects that were produced in the same way (e.g. through [multithreading](@ref Multithreading)), you can bind them together into a single `Mids` object using the function `bindImputations`. Note that the log of events might not make sense in the resulting object: it is better to inspect the logs of the individual objects before binding them together.
-
-```@docs
-bindImputations
-```
-
-```@raw html
-<br> <div align="right"> Funded by Wellcome &nbsp;&nbsp;&nbsp; <img src="../wellcome-logo-white.png" style="vertical-align:middle" alt="Wellcome logo" width="50" height="50"> </div>
 ```

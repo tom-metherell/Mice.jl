@@ -67,6 +67,7 @@ module Mice
     include("pacify.jl")
     include("pmmImpute.jl")
     include("quantify.jl")
+    include("rfImpute.jl")
     include("sampleImpute.jl")
 
     """
