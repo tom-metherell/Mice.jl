@@ -3,7 +3,7 @@ module Mice
     using AxisArrays: axes, AxisArray, AxisMatrix, AxisVector
     using CategoricalArrays: CategoricalArray, CategoricalPool, CategoricalValue, levels
     using Distributions: ccdf, Chisq, FDist, Normal, TDist
-    using LinearAlgebra: cholesky, Diagonal, diagm, eigen, inv, qr, rank, svd
+    using LinearAlgebra: cholesky, Diagonal, diagm, eigen, Hermitian, inv, qr, rank, svd
     using PrecompileTools: @compile_workload
     using Printf: @printf
     using Random: rand, randn, randperm
