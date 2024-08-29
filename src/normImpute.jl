@@ -40,7 +40,7 @@ function blrDraw!(
     end
 
     σ̇ = sqrt(sum((yₒ - Xₒ * β̂).^2)) / rand(Chisq(max(length(yₒ) - size(Xₒ, 2), 1)))
-    β̇ = β̂ + σ̇ * cholesky((V + transpose(V)) / 2).factors * randn(size(Xₒ, 2))
+    β̇ = β̂ + σ̇ * cholesky(Hermitian(V)).L * randn(size(Xₒ, 2))
 
     return β̂, β̇, σ̇
 end
