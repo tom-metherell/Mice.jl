@@ -158,7 +158,8 @@ module Mice
         # For each iteration, for each variable
         for iterCounter in 1:iter, i in eachindex(visitSequence)
             # Run the Gibbs sampler
-            sampler!(workingData, workingDataPacified, workingDataLevels, meanTraces, varTraces, imputeWhere, m, visitSequence, methods, predictorMatrix, iter, iterCounter, i, progressReports, loggedEvents)
+            sampler!(workingData, workingDataPacified, workingDataLevels, meanTraces, varTraces, imputeWhere, m, visitSequence, methods, predictorMatrix, iter, iterCounter, i, progressReports, 
+loggedEvents; kwargs...)
             
             # If free RAM falls below specified threshold, invoke the garbage collector
             if Sys.free_memory()/Sys.total_memory() < gcSchedule
@@ -253,7 +254,8 @@ module Mice
         # For each new iteration, for each variable
         for iterCounter in prevIter+1:prevIter+iter, i in eachindex(visitSequence)
             # Run the Gibbs sampler
-            sampler!(workingData, workingDataPacified, workingDataLevels, meanTraces, varTraces, imputeWhere, m, visitSequence, methods, predictorMatrix, prevIter+iter, iterCounter, i, progressReports, loggedEvents)
+            sampler!(workingData, workingDataPacified, workingDataLevels, meanTraces, varTraces, imputeWhere, m, visitSequence, methods, predictorMatrix, prevIter+iter, iterCounter, i, progressReports, 
+loggedEvents; kwargs...)
             
             # If free RAM falls below specified threshold, invoke the garbage collector
             if Sys.free_memory()/Sys.total_memory() < gcSchedule

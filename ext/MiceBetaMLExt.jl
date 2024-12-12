@@ -10,6 +10,8 @@ module MiceBetaMLExt
         y::AbstractArray,
         X::Matrix{Float64},
         whereY::Vector{Bool};
+        n_trees::Int = 10,
+        verbosity = NONE,
         kwargs...
         )
 
@@ -19,7 +21,7 @@ module MiceBetaMLExt
 
         yX[whereY, 1] .= missing
 
-        ŷX = fit!(RandomForestImputer(n_trees = 10, verbosity = NONE; kwargs...), yX)
+        ŷX = fit!(RandomForestImputer(; n_trees = n_trees, verbosity = verbosity, kwargs...), yX)
 
         return y == yDecat ? (eltype(y) <: Integer ? round.(ŷX[whereY, 1], digits = 0) : ŷX[whereY, 1]) : parse.(eltype(levels(y)), ŷX[whereY, 1])
     end

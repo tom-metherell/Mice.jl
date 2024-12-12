@@ -4,12 +4,13 @@ function pmmImpute!(
     X::Matrix{Float64},
     whereY::Vector{Bool},
     whereCount::Int,
-    donors::Int,
-    ridge::Float64,
     yVar::String,
     iterCounter::Int,
     j::Int,
-    loggedEvents::Vector{String}
+    loggedEvents::Vector{String};
+    donors::Int = 5,
+    ridge::Float64 = 1e-5,
+    unusedKwargs...
     )
 
     # Get the X-values for the rows with observed and missing y-values, respectively
@@ -45,12 +46,13 @@ function pmmImpute!(
     X::Matrix{Float64},
     whereY::Vector{Bool},
     whereCount::Int,
-    donors::Int,
-    ridge::Float64,
     yVar::String,
     iterCounter::Int,
     j::Int,
-    loggedEvents::Vector{String}
+    loggedEvents::Vector{String};
+    donors::Int = 5,
+    ridge::Float64 = 1e-5,
+    unusedKwargs...
     )
 
     Xₒ = Matrix{Float64}(hcat(repeat([1], sum(.!whereY)), X[.!whereY, :]))

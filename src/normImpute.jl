@@ -3,11 +3,12 @@ function normImpute!(
     X::Matrix{Float64},
     whereY::Vector{Bool},
     whereCount::Int,
-    ridge::Float64,
     yVar::String,
     iterCounter::Int,
     j::Int,
-    loggedEvents::Vector{String}
+    loggedEvents::Vector{String};
+    ridge::Float64 = 1e-5,
+    unusedKwargs...
     )
 
     Xₒ = Matrix{Float64}(hcat(repeat([1], length(whereY) - whereCount), X[.!whereY, :]))

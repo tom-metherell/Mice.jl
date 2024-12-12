@@ -86,11 +86,11 @@ function sampler!(
 
                     # Impute the missing data by the specified method
                     if methods[yVar] == "pmm"
-                        workingData[yVar][j][whereY] = pmmImpute!(workingData[yVar][j][.!whereY], X, whereY, whereCount, 5, 1e-5, yVar, iterCounter, j, loggedEvents)
+                        workingData[yVar][j][whereY] = pmmImpute!(workingData[yVar][j][.!whereY], X, whereY, whereCount, yVar, iterCounter, j, loggedEvents; kwargs...)
                     elseif methods[yVar] == "norm"
-                        workingData[yVar][j][whereY] = normImpute!(workingData[yVar][j][.!whereY], X, whereY, whereCount, 1e-5, yVar, iterCounter, j, loggedEvents)
+                        workingData[yVar][j][whereY] = normImpute!(workingData[yVar][j][.!whereY], X, whereY, whereCount, yVar, iterCounter, j, loggedEvents; kwargs...)
                     elseif methods[yVar] == "rf"
-                        workingData[yVar][j][whereY] = rfImpute!(workingData[yVar][j], X, whereY)
+                        workingData[yVar][j][whereY] = rfImpute!(workingData[yVar][j], X, whereY; kwargs...)
                     end
                 else
                     # Log an event explaining why the imputation was skipped
