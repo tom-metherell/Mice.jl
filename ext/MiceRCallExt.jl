@@ -3,7 +3,7 @@ module MiceRCallExt
     using CategoricalArrays: CategoricalValue
     using Mice
     using RCall: protect, unprotect, RClass, setclass!
-    import RCall: sexp, sexpclass
+    import RCall: @R_str, sexp, sexpclass
     using Tables: columnnames
 
     function sexp(::Type{RClass{:list}}, mids::Mids)
@@ -30,7 +30,7 @@ module MiceRCallExt
             "m" => mids.m,
             "where" => AxisArray(reduce(hcat, mids.imputeWhere), Base.axes(reduce(hcat, mids.imputeWhere), 1), axes(mids.imputeWhere)[1][:]),
             "blocks" => nothing,
-            "call" => nothing,
+            "call" => R"match.call()",
             "nmis" => nothing,
             "method" => AxisArray(mids.methods, collect(string.(columnnames(mids.data)))),
             "predictorMatrix" => AxisArray(Matrix{Int}(mids.predictorMatrix), collect(string.(columnnames(mids.data))), collect(string.(columnnames(mids.data)))),
@@ -43,14 +43,14 @@ module MiceRCallExt
             "iteration" => mids.iter,
             "lastSeedValue" => nothing,
             "chainMean" => AxisArray(
-                cat(dims = 3, [reduce(hcat, [[try mids.meanTraces[findfirst(mids.visitSequence .== i)][j, k]; catch missing; end for i in collect(string.(columnnames(mids.data)))] for j in 1:mids.iter]) for k in 1:mids.m]...),
-                collect(string.(columnnames(mids.data))),
+                cat(dims = 3, [reduce(hcat, [[mids.meanTraces[findfirst(mids.visitSequence .== i)][j, k] for i in mids.visitSequence] for j in 1:mids.iter]) for k in 1:mids.m]...),
+                mids.visitSequence,
                 string.(1:mids.iter),
                 ["Chain $k" for k in 1:mids.m]
             ),
             "chainVar" => AxisArray(
-                cat(dims = 3, [reduce(hcat, [[try mids.varTraces[findfirst(mids.visitSequence .== i)][j, k]; catch missing; end for i in collect(string.(columnnames(mids.data)))] for j in 1:mids.iter]) for k in 1:mids.m]...),
-                collect(string.(columnnames(mids.data))),
+                cat(dims = 3, [reduce(hcat, [[mids.varTraces[findfirst(mids.visitSequence .== i)][j, k] for i in mids.visitSequence] for j in 1:mids.iter]) for k in 1:mids.m]...),
+                mids.visitSequence,
                 string.(1:mids.iter),
                 ["Chain $k" for k in 1:mids.m]
             ),
