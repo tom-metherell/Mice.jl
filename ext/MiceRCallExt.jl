@@ -2,9 +2,34 @@ module MiceRCallExt
     using AxisArrays: axes, AxisArray
     using CategoricalArrays: CategoricalValue
     using Mice
-    using RCall: protect, unprotect, RClass, setclass!
-    import RCall: @R_str, sexp, sexpclass
+    using RCall: protect, RClass, setclass!, unprotect, VecSxp
+    import RCall: rcopy, sexp, sexpclass
     using Tables: columnnames
+
+    function rcopy(::Type{Mids}, s::Ptr{VecSxp})
+    protect(s)
+        try
+            nt = rcopy(NamedTuple, s)
+            Mids(
+                nt.data,
+                [Matrix(nt.imp[Symbol(i)]) for i in nt.visitSequence],
+                AxisArray(
+                    [Vector{Bool}(nt.where[:, i]) for i in eachindex(1:size(nt.data, 2))], 
+                    names(nt.data)
+                ),
+                Int(nt.m),
+                AxisArray(nt.method, names(nt.data)),
+                AxisArray(Matrix{Int}(nt.predictorMatrix), names(nt.data), names(nt.data)),
+                nt.visitSequence,
+                Int(nt.iteration),
+                [nt.chainMean[findfirst(names(nt.data) .== i), :, :] for i in nt.visitSequence],
+                [nt.chainVar[findfirst(names(nt.data) .== i), :, :] for i in nt.visitSequence],
+                ["This Mids object originated in R. Logged events have not been transferred."]
+            )
+        finally
+            unprotect(1)
+        end
+    end
 
     function sexp(::Type{RClass{:list}}, mids::Mids)
         r = protect(sexp(Dict(
@@ -30,7 +55,7 @@ module MiceRCallExt
             "m" => mids.m,
             "where" => AxisArray(reduce(hcat, mids.imputeWhere), Base.axes(reduce(hcat, mids.imputeWhere), 1), axes(mids.imputeWhere)[1][:]),
             "blocks" => nothing,
-            "call" => R"match.call()",
+            "call" => nothing,
             "nmis" => nothing,
             "method" => AxisArray(mids.methods, collect(string.(columnnames(mids.data)))),
             "predictorMatrix" => AxisArray(Matrix{Int}(mids.predictorMatrix), collect(string.(columnnames(mids.data))), collect(string.(columnnames(mids.data)))),

@@ -49,8 +49,8 @@ module Mice
         predictorMatrix::AxisMatrix{Int}
         visitSequence::Vector{String}
         iter::Int
-        meanTraces::Vector{Matrix{Float64}}
-        varTraces::Vector{Matrix{Float64}}
+        meanTraces::Vector{Matrix{Union{Missing, Float64}}}
+        varTraces::Vector{Matrix{Union{Missing, Float64}}}
         loggedEvents::Vector{String}
 
         function Mids(data, imputations, imputeWhere, m, methods, predictorMatrix, visitSequence, iter, meanTraces, varTraces, loggedEvents)
