@@ -3,7 +3,7 @@ module MiceRCallExt
     using CategoricalArrays: CategoricalValue
     using Mice
     using RCall: protect, RClass, @R_str, setclass!, unprotect, VecSxp
-    import RCall: rcopy, sexp, sexpclass
+    import RCall: rcopy, rcopytype, sexp, sexpclass
     using Tables: columnnames
 
     function rcopy(::Type{Mids}, s::Ptr{VecSxp})
@@ -31,7 +31,9 @@ module MiceRCallExt
         end
     end
 
-    function sexp(::Type{RClass{:list}}, mids::Mids)
+    rcopytype(::Type{RClass{:mids}}, x::Ptr{VecSxp}) = Mids
+
+    function sexp(::Type{RClass{:mids}}, mids::Mids)
         r = protect(sexp(Dict(
             "data" => mids.data,
             "imp" => AxisArray(
@@ -88,7 +90,7 @@ module MiceRCallExt
         return r
     end
 
-    sexpclass(mids::Mids) = RClass{:list}
+    sexpclass(mids::Mids) = RClass{:mids}
 
-    export sexp, sexpclass
+    export rcopy, rcopytype, sexp, sexpclass
 end
