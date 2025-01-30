@@ -2,7 +2,7 @@ module MiceRCallExt
     using AxisArrays: axes, AxisArray
     using CategoricalArrays: CategoricalValue
     using Mice
-    using RCall: protect, RClass, setclass!, unprotect, VecSxp
+    using RCall: protect, RClass, @R_str, setclass!, unprotect, VecSxp
     import RCall: rcopy, sexp, sexpclass
     using Tables: columnnames
 
@@ -55,7 +55,7 @@ module MiceRCallExt
             "m" => mids.m,
             "where" => AxisArray(reduce(hcat, mids.imputeWhere), Base.axes(reduce(hcat, mids.imputeWhere), 1), axes(mids.imputeWhere)[1][:]),
             "blocks" => nothing,
-            "call" => nothing,
+            "call" => R"match.call()",
             "nmis" => nothing,
             "method" => AxisArray(mids.methods, collect(string.(columnnames(mids.data)))),
             "predictorMatrix" => AxisArray(Matrix{Int}(mids.predictorMatrix), collect(string.(columnnames(mids.data))), collect(string.(columnnames(mids.data)))),
