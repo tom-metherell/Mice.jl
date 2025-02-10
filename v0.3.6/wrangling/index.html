@@ -1,0 +1,89 @@
+<!DOCTYPE html>
+<html lang="en"><head><meta charset="UTF-8"/><meta name="viewport" content="width=device-width, initial-scale=1.0"/><title>Data wrangling in Julia · Mice.jl</title><meta name="title" content="Data wrangling in Julia · Mice.jl"/><meta property="og:title" content="Data wrangling in Julia · Mice.jl"/><meta property="twitter:title" content="Data wrangling in Julia · Mice.jl"/><meta name="description" content="Documentation for Mice.jl."/><meta property="og:description" content="Documentation for Mice.jl."/><meta property="twitter:description" content="Documentation for Mice.jl."/><script async src="https://www.googletagmanager.com/gtag/js?id=G-0SJ9WPE2ZH"></script><script>  window.dataLayer = window.dataLayer || [];
+  function gtag(){dataLayer.push(arguments);}
+  gtag('js', new Date());
+  gtag('config', 'G-0SJ9WPE2ZH', {'page_path': location.pathname + location.search + location.hash});
+</script><script data-outdated-warner src="../assets/warner.js"></script><link href="https://cdnjs.cloudflare.com/ajax/libs/lato-font/3.0.0/css/lato-font.min.css" rel="stylesheet" type="text/css"/><link href="https://cdnjs.cloudflare.com/ajax/libs/juliamono/0.050/juliamono.min.css" rel="stylesheet" type="text/css"/><link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/css/fontawesome.min.css" rel="stylesheet" type="text/css"/><link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/css/solid.min.css" rel="stylesheet" type="text/css"/><link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/css/brands.min.css" rel="stylesheet" type="text/css"/><link href="https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.16.8/katex.min.css" rel="stylesheet" type="text/css"/><script>documenterBaseURL=".."</script><script src="https://cdnjs.cloudflare.com/ajax/libs/require.js/2.3.6/require.min.js" data-main="../assets/documenter.js"></script><script src="../search_index.js"></script><script src="../siteinfo.js"></script><script src="../../versions.js"></script><link class="docs-theme-link" rel="stylesheet" type="text/css" href="../assets/themes/catppuccin-mocha.css" data-theme-name="catppuccin-mocha"/><link class="docs-theme-link" rel="stylesheet" type="text/css" href="../assets/themes/catppuccin-macchiato.css" data-theme-name="catppuccin-macchiato"/><link class="docs-theme-link" rel="stylesheet" type="text/css" href="../assets/themes/catppuccin-frappe.css" data-theme-name="catppuccin-frappe"/><link class="docs-theme-link" rel="stylesheet" type="text/css" href="../assets/themes/catppuccin-latte.css" data-theme-name="catppuccin-latte"/><link class="docs-theme-link" rel="stylesheet" type="text/css" href="../assets/themes/documenter-dark.css" data-theme-name="documenter-dark" data-theme-primary-dark/><link class="docs-theme-link" rel="stylesheet" type="text/css" href="../assets/themes/documenter-light.css" data-theme-name="documenter-light" data-theme-primary/><script src="../assets/themeswap.js"></script></head><body><div id="documenter"><nav class="docs-sidebar"><div class="docs-package-name"><span class="docs-autofit"><a href="../">Mice.jl</a></span></div><button class="docs-search-query input is-rounded is-small is-clickable my-2 mx-auto py-1 px-2" id="documenter-search-query">Search docs (Ctrl + /)</button><ul class="docs-menu"><li><a class="tocitem" href="../">What is <code>Mice.jl</code>?</a></li><li><a class="tocitem" href="../gettingstarted/">Getting started</a></li><li class="is-active"><a class="tocitem" href>Data wrangling in Julia</a><ul class="internal"><li><a class="tocitem" href="#Data-types"><span>Data types</span></a></li><li><a class="tocitem" href="#Preparing-your-data-for-mice"><span>Preparing your data for <code>mice</code></span></a></li></ul></li><li><span class="tocitem">Imputation</span><ul><li><a class="tocitem" href="../mice/">Imputation (<code>mice</code>)</a></li><li><a class="tocitem" href="../customising-imputation/">Customising the imputation setup</a></li><li><a class="tocitem" href="../diagnostics/">Diagnostics</a></li><li><a class="tocitem" href="../binding-imputations/">Binding imputations together</a></li></ul></li><li><a class="tocitem" href="../analysis/">Analysis (<code>with</code>)</a></li><li><a class="tocitem" href="../pooling/">Pooling coefficients (<code>pool</code>)</a></li><li><a class="tocitem" href="../rcall/">Integration with R</a></li><li><a class="tocitem" href="../multithreading/">Multithreading</a></li><li><a class="tocitem" href="../benchmarks/">Benchmarks</a></li><li><a class="tocitem" href="../issues/">Issues</a></li><li><a class="tocitem" href="../whatsnext/">What&#39;s next?</a></li><li><a class="tocitem" href="../acknowledgements/">Acknowledgements</a></li><li><a class="tocitem" href="../references/">References</a></li></ul><div class="docs-version-selector field has-addons"><div class="control"><span class="docs-label button is-static is-size-7">Version</span></div><div class="docs-selector control is-expanded"><div class="select is-fullwidth is-size-7"><select id="documenter-version-selector"></select></div></div></div></nav><div class="docs-main"><header class="docs-navbar"><a class="docs-sidebar-button docs-navbar-link fa-solid fa-bars is-hidden-desktop" id="documenter-sidebar-button" href="#"></a><nav class="breadcrumb"><ul class="is-hidden-mobile"><li class="is-active"><a href>Data wrangling in Julia</a></li></ul><ul class="is-hidden-tablet"><li class="is-active"><a href>Data wrangling in Julia</a></li></ul></nav><div class="docs-right"><a class="docs-navbar-link" href="https://github.com/tom-metherell/Mice.jl" title="View the repository on GitHub"><span class="docs-icon fa-brands"></span><span class="docs-label is-hidden-touch">GitHub</span></a><a class="docs-navbar-link" href="https://github.com/tom-metherell/Mice.jl/blob/main/docs/src/wrangling.md" title="Edit source on GitHub"><span class="docs-icon fa-solid"></span></a><a class="docs-settings-button docs-navbar-link fa-solid fa-gear" id="documenter-settings-button" href="#" title="Settings"></a><a class="docs-article-toggle-button fa-solid fa-chevron-up" id="documenter-article-toggle-button" href="javascript:;" title="Collapse all docstrings"></a></div></header><article class="content" id="documenter-page"><h1 id="Data-wrangling-in-Julia"><a class="docs-heading-anchor" href="#Data-wrangling-in-Julia">Data wrangling in Julia</a><a id="Data-wrangling-in-Julia-1"></a><a class="docs-heading-anchor-permalink" href="#Data-wrangling-in-Julia" title="Permalink"></a></h1><p>The procedures used for data wrangling in Julia are often very similar to those used in R. However, there are some fundamental differences between the languages that it is important to be aware of.</p><h2 id="Data-types"><a class="docs-heading-anchor" href="#Data-types">Data types</a><a id="Data-types-1"></a><a class="docs-heading-anchor-permalink" href="#Data-types" title="Permalink"></a></h2><p>Julia has a number of different data types. These include integers, floats, strings (known in R as &quot;characters&quot;), booleans and missing values.</p><p>In a <code>DataFrame</code> or other table, each column will have at least one type assigned to it. For example:</p><pre><code class="language-julia hljs">using DataFrames
+
+myData = DataFrame(
+    :col1 =&gt; [1.0, 2.0, 3.0, 4.0],
+    :col2 =&gt; [1, 2, 3, 4],
+    :col3 =&gt; [&quot;1&quot;, &quot;2&quot;, &quot;3&quot;, &quot;4&quot;],
+    :col4 =&gt; [1.0, 2.0, missing, 4.0],
+    :col5 =&gt; [1, 2.0, &quot;3&quot;, missing]
+);
+
+myData.col1
+# 4-element Vector{Float64}:
+#  1.0
+#  2.0
+#  3.0
+#  4.0
+
+myData.col2
+# 4-element Vector{Int64}:
+#  1
+#  2
+#  3
+#  4
+
+myData.col3
+# 4-element Vector{String}:
+#  &quot;1&quot;
+#  &quot;2&quot;
+#  &quot;3&quot;
+#  &quot;4&quot;
+
+myData.col4
+# 4-element Vector{Union{Missing, Float64}}:
+#  1.0
+#  2.0
+#   missing
+#  4.0
+
+myData.col5
+# 4-element Vector{Any}:
+#  1
+#  2.0
+#   &quot;3&quot;
+#   missing</code></pre><p>The first three columns have a single type assigned to them. The fourth column has a <code>Union</code> type, which means that it can be either a <code>Float64</code> or <code>missing</code>. The fifth column has an <code>Any</code> type, which means that it can be any type.</p><p>If you try to replace a value in a column with a value of the wrong type, one of two things will happen:</p><pre><code class="language-julia hljs">myData[3, :col3] = 5
+# ERROR: MethodError: Cannot `convert` an object of type Int64 to an object of type String
+# ...
+
+myData[3, :col1] = 5;
+myData.col1
+# 4-element Vector{Float64}:
+#  1.0
+#  2.0
+#  5.0
+#  4.0</code></pre><p>As you can see, the first example throws an error, because you cannot convert an integer to a string. The second example works, because you can convert an integer to a float.</p><p>You can amend a column to allow missing values using the <code>allowmissing</code> function:</p><pre><code class="language-julia hljs">myData.col1 = allowmissing(myData.col1)
+# 4-element Vector{Union{Missing, Float64}}:
+#  1.0
+#  2.0
+#  5.0
+#  4.0</code></pre><p>or you can achieve this in place using the <code>allowmissing!</code> function:</p><pre><code class="language-julia hljs">allowmissing!(myData, 3);
+myData.col3
+# 4-element Vector{Union{Missing, String}}:
+#  &quot;1&quot;
+#  &quot;2&quot;
+#  &quot;3&quot;
+#  &quot;4&quot;</code></pre><h2 id="Preparing-your-data-for-mice"><a class="docs-heading-anchor" href="#Preparing-your-data-for-mice">Preparing your data for <code>mice</code></a><a id="Preparing-your-data-for-mice-1"></a><a class="docs-heading-anchor-permalink" href="#Preparing-your-data-for-mice" title="Permalink"></a></h2><p>The <code>mice</code> function in <code>Mice.jl</code> requires a <code>Tables.jl</code>-compatible table as its first argument. Columns which contain values of the <code>missing</code> type will be imputed (unless you specify otherwise: more on this later).</p><p>(Continuous) numeric variables don&#39;t require any special treatment. However, categorical variables are handled differently and may require some additional preparation.</p><p><code>Mice.jl</code> is compatible with <a href="https://categoricalarrays.juliadata.org/stable/"><code>CategoricalArrays.jl</code></a>, which allows you to specify that a column is categorical. For example:</p><pre><code class="language-julia hljs">using CategoricalArrays, DataFrames
+
+myData = DataFrame(
+    :col1 =&gt; [1, 2, 2, 3],
+    :col2 =&gt; categorical([1, 2, 2, 3])
+);
+
+myData.col1
+# 4-element Vector{Int64}:
+#  1
+#  2
+#  2
+#  3
+
+myData.col2
+# 4-element CategoricalArray{Int64,1,UInt32}:
+#  1
+#  2
+#  2
+#  3</code></pre><p>As you can see, the <code>col2</code> column is now a <code>CategoricalArray</code>. This is a special type of array that allows you to specify that a column is categorical. This is important, because <code>mice</code> will treat categorical variables differently to continuous variables.</p><p>If you have a column that contains strings (with or without missings, but with no other types), <code>Mice.jl</code> will handle it as a categorical variable automatically.</p><br> <div align="right"> Funded by Wellcome &nbsp;&nbsp;&nbsp; <img src="../wellcome-logo-white.png" style="vertical-align:middle" alt="Wellcome logo" width="50" height="50"> </div></article><nav class="docs-footer"><a class="docs-footer-prevpage" href="../gettingstarted/">« Getting started</a><a class="docs-footer-nextpage" href="../mice/">Imputation (<code>mice</code>) »</a><div class="flexbox-break"></div><p class="footer-message">Powered by <a href="https://github.com/JuliaDocs/Documenter.jl">Documenter.jl</a> and the <a href="https://julialang.org/">Julia Programming Language</a>.</p></nav></div><div class="modal" id="documenter-settings"><div class="modal-background"></div><div class="modal-card"><header class="modal-card-head"><p class="modal-card-title">Settings</p><button class="delete"></button></header><section class="modal-card-body"><p><label class="label">Theme</label><div class="select"><select id="documenter-themepicker"><option value="auto">Automatic (OS)</option><option value="documenter-light">documenter-light</option><option value="documenter-dark">documenter-dark</option><option value="catppuccin-latte">catppuccin-latte</option><option value="catppuccin-frappe">catppuccin-frappe</option><option value="catppuccin-macchiato">catppuccin-macchiato</option><option value="catppuccin-mocha">catppuccin-mocha</option></select></div></p><hr/><p>This document was generated with <a href="https://github.com/JuliaDocs/Documenter.jl">Documenter.jl</a> version 1.8.0 on <span class="colophon-date" title="Monday 10 February 2025 16:07">Monday 10 February 2025</span>. Using Julia version 1.9.2.</p></section><footer class="modal-card-foot"></footer></div></div></div></body></html>
