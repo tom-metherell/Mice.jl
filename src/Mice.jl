@@ -121,10 +121,10 @@ module Mice
     function mice(
         data::T;
         m::Int = 5,
-        imputeWhere::AxisVector{Vector{Bool}} = findMissings(data),
+        imputeWhere::AxisArray{Vector{Bool}, 1, Vector{Vector{Bool}}} = findMissings(data),
         visitSequence::Vector{String} = makeMonotoneSequence(imputeWhere),
-        methods::AxisVector{String} = makeMethods(data),
-        predictorMatrix::AxisMatrix{Int} = makePredictorMatrix(data),
+        methods::AxisArray{String, 1, Vector{String}} = makeMethods(data),
+        predictorMatrix::AxisArray{Int, 2, Matrix{Int}} = makePredictorMatrix(data),
         iter::Int = 10,
         progressReports::Bool = true,
         gcSchedule::Float64 = 0.3,

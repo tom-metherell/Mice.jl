@@ -4,7 +4,7 @@
 Returns an AxisVector of boolean vectors describing the locations of missing data in each
 column of the provided data table.
 """
-function findMissings(data::T) where{T}
+function findMissings(data::T)::AxisArray{Vector{Bool}, 1, Vector{Vector{Bool}}} where{T}
     istable(data) || throw(ArgumentError("Data not provided as a Tables.jl table."))
 
     imputeWhere = AxisArray(
@@ -15,7 +15,7 @@ function findMissings(data::T) where{T}
     return imputeWhere
 end
 
-function makeMonotoneSequence(imputeWhere::AxisVector{Vector{Bool}})
+function makeMonotoneSequence(imputeWhere::AxisArray{Vector{Bool}, 1, Vector{Vector{Bool}}})::Vector{String}
     # Sort the data frame names vector by missingness
     visitSequence = axes(imputeWhere)[1][sortperm(sum.(imputeWhere))][sum(sum.(imputeWhere) .== 0)+1:end]
 
@@ -75,11 +75,11 @@ end
 
 function initialiseWorkingData(
     data::T,
-    imputeWhere::AxisVector{Vector{Bool}},
+    imputeWhere::AxisArray{Vector{Bool}, 1, Vector{Vector{Bool}}},
     m::Int,
     visitSequence::Vector{String},
-    methods::AxisVector{String},
-    predictorMatrix::AxisMatrix{Int}
+    methods::AxisArray{String, 1, Vector{String}},
+    predictorMatrix::AxisArray{Int, 2, Matrix{Int}}
     ) where {T}
     istable(data) || throw(ArgumentError("Data not provided as a Tables.jl table."))
 
@@ -124,11 +124,11 @@ end
 function initialiseWorkingData(
     data::T,
     imputations::Vector{Matrix},
-    imputeWhere::AxisVector{Vector{Bool}},
+    imputeWhere::AxisArray{Vector{Bool}, 1, Vector{Vector{Bool}}},
     m::Int,
     visitSequence::Vector{String},
-    methods::AxisVector{String},
-    predictorMatrix::AxisMatrix{Int}
+    methods::AxisArray{String, 1, Vector{String}},
+    predictorMatrix::AxisArray{Int, 2, Matrix{Int}}
     ) where {T}
     istable(data) || throw(ArgumentError("Data not provided as a Tables.jl table."))
 
