@@ -127,7 +127,7 @@ module Mice
         predictorMatrix::AxisArray{Int, 2, Matrix{Int}} = makePredictorMatrix(data),
         iter::Int = 10,
         progressReports::Bool = true,
-        gcSchedule::Float64 = 0.3,
+        gcSchedule::Float64 = 0.0,
         kwargs...
         ) where {T}
         istable(data) || throw(ArgumentError("Data not provided as a Tables.jl table."))
