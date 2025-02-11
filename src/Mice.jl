@@ -80,7 +80,6 @@ module Mice
             predictorMatrix::AxisMatrix{Int} = makePredictorMatrix(data),
             iter::Int = 10,
             progressReports::Bool = true,
-            gcSchedule::Float64 = 0.3,
             kwargs...
             )
 
@@ -111,12 +110,6 @@ module Mice
     The number of iterations is specified by `iter`.
 
     If `progressReports` is `true`, a progress indicator will be displayed in the console.
-
-    `gcSchedule` dictates when the garbage collector will be (additionally) invoked. The 
-    number provided is the fraction of your RAM remaining at which the GC will be called.
-    For small datasets, you may get away with a value of `0.0` (never called), but for larger
-    datasets, it may be worthwhile to call it more frequently. The default is `0.3`, but for
-    really large jobs you may want to increase this value.
     """
     function mice(
         data::T;
@@ -127,7 +120,6 @@ module Mice
         predictorMatrix::AxisArray{Int, 2, Matrix{Int}} = makePredictorMatrix(data),
         iter::Int = 10,
         progressReports::Bool = true,
-        gcSchedule::Float64 = 0.0,
         kwargs...
         ) where {T}
         istable(data) || throw(ArgumentError("Data not provided as a Tables.jl table."))
@@ -160,11 +152,6 @@ module Mice
             # Run the Gibbs sampler
             sampler!(workingData, workingDataPacified, workingDataLevels, meanTraces, varTraces, imputeWhere, m, visitSequence, methods, predictorMatrix, iter, iterCounter, i, progressReports, 
 loggedEvents; kwargs...)
-            
-            # If free RAM falls below specified threshold, invoke the garbage collector
-            if Sys.free_memory()/Sys.total_memory() < gcSchedule
-                GC.gc()
-            end
         end
 
         # Clear the progress indicator
@@ -197,7 +184,6 @@ loggedEvents; kwargs...)
             mids::Mids;
             iter::Int = 10,
             progressReports::Bool = true,
-            gcSchedule::Float64 = 0.3;
             kwargs...
             )
 
@@ -205,14 +191,13 @@ loggedEvents; kwargs...)
 
     The number of *additional* iterations is specified by `iter`.
 
-    `progressReports` and `gcSchedule` can also be specified: all other arguments will be
-    ignored.
+    `progressReports` can also be specified: all other arguments will be
+    ignored or passed to inner functions.
     """
     function mice(
         mids::Mids;
         iter::Int = 10,
         progressReports::Bool = true,
-        gcSchedule::Float64 = 0.3,
         kwargs...
         )
 
@@ -256,11 +241,6 @@ loggedEvents; kwargs...)
             # Run the Gibbs sampler
             sampler!(workingData, workingDataPacified, workingDataLevels, meanTraces, varTraces, imputeWhere, m, visitSequence, methods, predictorMatrix, prevIter+iter, iterCounter, i, progressReports, 
 loggedEvents; kwargs...)
-            
-            # If free RAM falls below specified threshold, invoke the garbage collector
-            if Sys.free_memory()/Sys.total_memory() < gcSchedule
-                GC.gc()
-            end
         end
 
         # Clear the progress indicator
