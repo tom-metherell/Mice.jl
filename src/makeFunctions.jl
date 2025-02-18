@@ -8,7 +8,7 @@ function findMissings(data::T)::AxisArray{Vector{Bool}, 1, Vector{Vector{Bool}}}
     istable(data) || throw(ArgumentError("Data not provided as a Tables.jl table."))
 
     imputeWhere = AxisArray(
-        [Vector{Bool}(ismissing.(getcolumn(data, i))) for i in columnnames(data)],
+        [Vector{Bool}(ismissing.(getcolumn(data, i))) for i ∈ columnnames(data)],
         collect(string.(columnnames(data)))
     )
 
@@ -66,7 +66,7 @@ function makePredictorMatrix(data::T) where {T}
     )
     
     # Set the diagonal to 0
-    for i in 1:no
+    for i ∈ 1:no
         predictorMatrix[i, i] = 0
     end
 
@@ -90,7 +90,7 @@ function initialiseWorkingData(
 
     # Initialise working data vectors
     workingData = AxisArray(
-        [[getcolumn(data, Symbol(var)) isa CategoricalArray ? CategoricalArray(getcolumn(data, Symbol(var))) : Vector{eltype(getcolumn(data, Symbol(var)))}(getcolumn(data, Symbol(var))) for i in 1:m] for var in wdVars],
+        [[getcolumn(data, Symbol(var)) isa CategoricalArray ? CategoricalArray(getcolumn(data, Symbol(var))) : Vector{eltype(getcolumn(data, Symbol(var)))}(getcolumn(data, Symbol(var))) for i ∈ 1:m] for var ∈ wdVars],
         wdVars
     )
 
@@ -104,14 +104,14 @@ function initialiseWorkingData(
             whereCount = sum(whereY)
 
             # For each imputation
-            for j in 1:m
+            for j ∈ 1:m
                 # Initialise using a random sample from the observed data
                 workingData[var][j][whereY] = sampleImpute!(workingData[var][j][.!whereY], whereCount)
             end
 
             # Convert to non-missing type
             if workingData[var][1] isa CategoricalArray
-                workingData[var] = [CategoricalArray{nonmissingtype(eltype(workingData[var][1]))}(workingData[var][j]) for j in 1:m]
+                workingData[var] = [CategoricalArray{nonmissingtype(eltype(workingData[var][1]))}(workingData[var][j]) for j ∈ 1:m]
             else
                 workingData[var] = convert(Vector{Vector{nonmissingtype(eltype(workingData[var][1]))}}, workingData[var])
             end
@@ -139,7 +139,7 @@ function initialiseWorkingData(
 
     # Initialise working data vectors
     workingData = AxisArray(
-        [[getcolumn(data, Symbol(var)) isa CategoricalArray ? CategoricalArray(getcolumn(data, Symbol(var))) : Vector{eltype(getcolumn(data, Symbol(var)))}(getcolumn(data, Symbol(var))) for i in 1:m] for var in wdVars],
+        [[getcolumn(data, Symbol(var)) isa CategoricalArray ? CategoricalArray(getcolumn(data, Symbol(var))) : Vector{eltype(getcolumn(data, Symbol(var)))}(getcolumn(data, Symbol(var))) for i ∈ 1:m] for var ∈ wdVars],
         wdVars
     )
 
@@ -147,14 +147,14 @@ function initialiseWorkingData(
         # If the variable is to be imputed
         if var ∈ imputed
             # For each imputation
-            for j in 1:m
+            for j ∈ 1:m
                 # Initialise using the provided imputations
                 workingData[var][j][imputeWhere[var]] = imputations[findfirst(visitSequence .== var)][:, j]
             end
 
             # Convert to non-missing type
             if workingData[var][1] isa CategoricalArray
-                for j in eachindex(workingData[var])
+                for j ∈ eachindex(workingData[var])
                     workingData[var][j] = convert(CategoricalArray{nonmissingtype(eltype(workingData[var][1]))}, workingData[var][j])
                 end
             else

@@ -4,10 +4,10 @@ end
 
 # This extension of the contrasts_matrix function from StatsModels.jl allows orthogonal polynomial contrast coding
 function contrasts_matrix(C::PolynomialCoding, _, n)
-    X = reduce(hcat, [((1:n) .- mean(1:n)) .^ i for i in 0:n-1])
+    X = reduce(hcat, [((1:n) .- mean(1:n)) .^ i for i ∈ 0:n-1])
     qrX = qr(X)
     Z = qrX.Q * Diagonal(qrX.R)
-    for i in Base.axes(Z, 2)
+    for i ∈ Base.axes(Z, 2)
         Z[:, i] = Z[:, i] ./ sqrt(sum(Z[:, i].^2))
     end
     return Z[:, 2:end]
@@ -15,7 +15,7 @@ end
 
 # This extension of the termnames function from StatsModels.jl names the new dummy variables correctly
 function termnames(C::PolynomialCoding, levels::AbstractVector, _::Integer)
-    return Vector{String}([".^$i" for i in 1:length(levels)])
+    return Vector{String}([".^$i" for i ∈ 1:length(levels)])
 end
 
 function pacify(y::AbstractArray)
@@ -26,7 +26,7 @@ function pacify(y::AbstractArray)
     yDummies = Matrix{Float64}(undef, length(y), length(yLevels))
 
     # Convert the variable to dummy variables
-    for q in eachindex(yLevels)
+    for q ∈ eachindex(yLevels)
         yDummies[:, q] = y .== yLevels[q]
     end
 
@@ -55,8 +55,8 @@ function removeLinDeps!(
         yₒ = y[.!whereY]
 
         # Convert y to dummy variables (as floats)
-        mapping = Dict(levels(yₒ)[i] => i-1 for i in eachindex(levels(yₒ)))
-        yₒ = Vector{Float64}([mapping[v] for v in yₒ])
+        mapping = Dict(levels(yₒ)[i] => i-1 for i ∈ eachindex(levels(yₒ)))
+        yₒ = Vector{Float64}([mapping[v] for v ∈ yₒ])
     else
         # Grab observed y-values (as floats)
         yₒ = Vector{Float64}(y[.!whereY])
@@ -110,19 +110,19 @@ end
 function pacifyWorkingData(workingData::AxisVector{Vector})
     categoricalColumns = Vector{String}([])
 
-    for i in eachindex(workingData)
+    for i ∈ eachindex(workingData)
         if workingData[i][1] isa CategoricalArray || nonmissingtype(eltype(workingData[i][1])) <: Union{AbstractString, CategoricalValue}
             push!(categoricalColumns, axes(workingData)[1][i])
         end
     end
 
     workingDataLevels = AxisArray(
-        [levels(workingData[yVar][1]) for yVar in categoricalColumns],
+        [levels(workingData[yVar][1]) for yVar ∈ categoricalColumns],
         categoricalColumns
     )
 
     workingDataPacified = AxisArray(
-        [[pacifyWorkingData(workingData[yVar][j], workingDataLevels[yVar]) for j in eachindex(workingData[yVar])] for yVar in categoricalColumns],
+        [[pacifyWorkingData(workingData[yVar][j], workingDataLevels[yVar]) for j ∈ eachindex(workingData[yVar])] for yVar ∈ categoricalColumns],
         categoricalColumns
     )
 
@@ -134,14 +134,14 @@ function pacifyWorkingData(workingData::AbstractVector, levels::Vector)
 
     workingDataPacified = Matrix{Float64}(undef, length(workingData), size(contrastsMatrix, 2))
 
-    for i in Base.axes(workingDataPacified, 2)
-        for j in eachindex(levels)
+    for i ∈ Base.axes(workingDataPacified, 2)
+        for j ∈ eachindex(levels)
             workingDataPacified[workingData .== levels[j], i] .= contrastsMatrix[j, i]
         end
     end
 
     # Standardise everything
-    for i in Base.axes(workingDataPacified, 2)
+    for i ∈ Base.axes(workingDataPacified, 2)
         workingDataPacified[:, i] = standardize(UnitRangeTransform, workingDataPacified[:, i])
     end
 

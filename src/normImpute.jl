@@ -11,8 +11,8 @@ function normImpute!(
     unusedKwargs...
     )
 
-    Xₒ = Matrix{Float64}(hcat(repeat([1], length(whereY) - whereCount), X[.!whereY, :]))
-    Xₘ = Matrix{Float64}(hcat(repeat([1], whereCount), X[whereY, :]))
+    Xₒ = Matrix{Float64}(hcat(ones(length(whereY) - whereCount), X[.!whereY, :]))
+    Xₘ = Matrix{Float64}(hcat(ones(whereCount), X[whereY, :]))
 
     β̂, β̇, σ̇ = blrDraw!(yₒ, Xₒ, ridge, yVar, iterCounter, j, loggedEvents)
 

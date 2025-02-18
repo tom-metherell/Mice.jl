@@ -3,12 +3,13 @@ module Mice
     using AxisArrays: axes, AxisArray, AxisMatrix, AxisVector
     using CategoricalArrays: CategoricalArray, CategoricalPool, CategoricalValue, levels
     using Distributions: ccdf, Chisq, FDist, Normal, TDist
+    using GLM: glm
     using LinearAlgebra: cholesky, Diagonal, diagm, eigen, Hermitian, inv, qr, rank, svd
     using PrecompileTools: @compile_workload
     using Printf: @printf
     using Random: rand, randn, randperm
     import RecipesBase: plot
-    using Statistics: cor, mean, quantile, var
+    using Statistics: cor, mean, quantile, std, var
     using StatsAPI: coef, coefnames, nobs, stderror
     using StatsBase: CoefTable, PValue, sample, standardize, UnitRangeTransform, zscore
     import StatsModels: contrasts_matrix, termnames
@@ -148,7 +149,7 @@ module Mice
         end
 
         # For each iteration, for each variable
-        for iterCounter in 1:iter, i in eachindex(visitSequence)
+        for iterCounter ∈ 1:iter, i ∈ eachindex(visitSequence)
             # Run the Gibbs sampler
             sampler!(workingData, workingDataPacified, workingDataLevels, meanTraces, varTraces, imputeWhere, m, visitSequence, methods, predictorMatrix, iter, iterCounter, i, progressReports, 
 loggedEvents; kwargs...)
@@ -159,7 +160,7 @@ loggedEvents; kwargs...)
             @printf "\u1b[A\33[2K\n\33[2K\n\33[2K\n\33[2K\n\33[2K\n\33[2K\n\33[2K\u1b[A\u1b[A\u1b[A\u1b[A\u1b[A\u1b[A\r"
         end
 
-        imputations = [reduce(hcat, [workingData[yVar][j][imputeWhere[yVar]] for j in 1:m]) for yVar in visitSequence]
+        imputations = [reduce(hcat, [workingData[yVar][j][imputeWhere[yVar]] for j ∈ 1:m]) for yVar ∈ visitSequence]
 
         # Define Mids output
         midsObj = Mids(
@@ -222,12 +223,12 @@ loggedEvents; kwargs...)
 
         # Initialise new mean and variance traces
         meanTraces = initialiseTraces(visitSequence, iter+prevIter, m)
-        for w in eachindex(meanTraces)
+        for w ∈ eachindex(meanTraces)
             meanTraces[w][1:prevIter, :] = prevMeanTraces[w]
         end
 
         varTraces = initialiseTraces(visitSequence, iter+prevIter, m)
-        for w in eachindex(varTraces)
+        for w ∈ eachindex(varTraces)
             varTraces[w][1:prevIter, :] = prevVarTraces[w]
         end
 
@@ -237,7 +238,7 @@ loggedEvents; kwargs...)
         end
 
         # For each new iteration, for each variable
-        for iterCounter in prevIter+1:prevIter+iter, i in eachindex(visitSequence)
+        for iterCounter ∈ prevIter+1:prevIter+iter, i ∈ eachindex(visitSequence)
             # Run the Gibbs sampler
             sampler!(workingData, workingDataPacified, workingDataLevels, meanTraces, varTraces, imputeWhere, m, visitSequence, methods, predictorMatrix, prevIter+iter, iterCounter, i, progressReports, 
 loggedEvents; kwargs...)
@@ -248,7 +249,7 @@ loggedEvents; kwargs...)
             @printf "\u1b[A\33[2K\n\33[2K\n\33[2K\n\33[2K\n\33[2K\n\33[2K\n\33[2K\u1b[A\u1b[A\u1b[A\u1b[A\u1b[A\u1b[A\r"
         end
 
-        imputations = [reduce(hcat, [workingData[yVar][j][imputeWhere[yVar]] for j in 1:m]) for yVar in visitSequence]
+        imputations = [reduce(hcat, [workingData[yVar][j][imputeWhere[yVar]] for j ∈ 1:m]) for yVar ∈ visitSequence]
 
         # Define the new Mids output
         midsObj = Mids(
@@ -369,7 +370,7 @@ loggedEvents; kwargs...)
         # Initialise new imputations object
         imputations = Vector{Matrix}(undef, length(mids1.imputations))
         # Concatenate imputations
-        for i in eachindex(imputations)
+        for i ∈ eachindex(imputations)
             if isassigned(mids1.imputations, i)
                 imputations[i] = hcat(mids1.imputations[i], mids2.imputations[i])
             end
@@ -379,10 +380,10 @@ loggedEvents; kwargs...)
         meanTraces = Vector{Matrix}(undef, length(mids1.meanTraces))
         varTraces = Vector{Matrix}(undef, length(mids1.varTraces))
         # Concatenate traces
-        for i in eachindex(meanTraces)
+        for i ∈ eachindex(meanTraces)
             meanTraces[i] = hcat(mids1.meanTraces[i], mids2.meanTraces[i])
         end
-        for i in eachindex(varTraces)
+        for i ∈ eachindex(varTraces)
             varTraces[i] = hcat(mids1.varTraces[i], mids2.varTraces[i])
         end    
         
@@ -419,7 +420,7 @@ loggedEvents; kwargs...)
 
         midsObj = midsVector[1]
     
-        for i in eachindex(midsVector)[2:end]
+        for i ∈ eachindex(midsVector)[2:end]
             midsObj = bindImputations(midsObj, midsVector[i])
         end
 

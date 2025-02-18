@@ -24,7 +24,7 @@ function complete(
     data = deepcopy(columntable(mids.data))
 
     # For each variable
-    for i in eachindex(mids.visitSequence)
+    for i ∈ eachindex(mids.visitSequence)
         # If it was imputed
         if isassigned(mids.imputations, i)
             # Replace missings with imputed values
@@ -57,11 +57,11 @@ function listComplete(
     data = Vector{T}(undef, mids.m)
 
     # For each imputation
-    for i in 1:mids.m
+    for i ∈ 1:mids.m
         # Get the observed data
         theseData = deepcopy(columntable(mids.data))
         # For each variable
-        for j in eachindex(mids.visitSequence)
+        for j ∈ eachindex(mids.visitSequence)
             # If it was imputed
             if isassigned(mids.imputations, j)
                 # Replace missings with imputed values
@@ -113,7 +113,7 @@ function with(
     datalist = listComplete(mids)
 
     # For each imputation
-    for i in eachindex(datalist)
+    for i ∈ eachindex(datalist)
         # Conduct the analysis on the completed data
         data = datalist[i]
         analyses[i] = func(data)

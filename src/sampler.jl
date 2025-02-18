@@ -34,7 +34,7 @@ function sampler!(
         # Also check that there are actually data to be imputed in the column
         if methods[yVar] ∈ ["mean", "sample"] && any(whereY)
             # For each imputation
-            for j in 1:m
+            for j ∈ 1:m
                 # Impute the data by the specified method
                 if methods[yVar] == "mean"
                     # Impute the missing data with the mean of the observed data
@@ -63,7 +63,7 @@ function sampler!(
         elseif methods[yVar] ∈ ["norm", "pmm", "rf"] && any(whereY)
 
             # For each imputation
-            for j in 1:m
+            for j ∈ 1:m
                 # Grab the predictors' data
                 X = Matrix{Float64}(reduce(hcat, [predictor ∈ axes(workingDataPacified)[1] ? workingDataPacified[predictor][j] : workingData[predictor][j] for predictor in predictors]))
                     
@@ -117,7 +117,7 @@ function sampler!(
             if methods[yVar] == ""
                 push!(loggedEvents, "Iteration $iterCounter, variable $yVar: imputation skipped - no method specified.")
             # Invalid method specified
-            elseif !(methods[yVar] ∈ ["mean", "norm", "pmm", "rf", "sample"])
+            elseif methods[yVar] ∉ ["mean", "norm", "pmm", "rf", "sample"]
                 push!(loggedEvents, "Iteration $iterCounter, variable $yVar: imputation skipped - method not supported.")
             # Neither of these => there is no missing data
             else
@@ -143,8 +143,8 @@ function updateTraces!(
     # If the imputed data are categorical
     if imputedData isa CategoricalArray || nonmissingtype(eltype(imputedData)) <: Union{AbstractString, CategoricalValue}
         # Convert the imputed data to integers
-        mapping = Dict(levels(imputedData)[i] => i-1 for i in eachindex(levels(imputedData)))
-        imputedData = [mapping[v] for v in imputedData]
+        mapping = Dict(levels(imputedData)[i] => i-1 for i ∈ eachindex(levels(imputedData)))
+        imputedData = [mapping[v] for v ∈ imputedData]
     end
 
     # Find the mean and variance and append these to the traces

@@ -14,14 +14,14 @@ function pmmImpute!(
     )
 
     # Get the X-values for the rows with observed and missing y-values, respectively
-    Xₒ = Matrix{Float64}(hcat(repeat([1], length(whereY) - whereCount), X[.!whereY, :]))
-    Xₘ = Matrix{Float64}(hcat(repeat([1], whereCount), X[whereY, :]))
+    Xₒ = Matrix{Float64}(hcat(ones(length(whereY) - whereCount), X[.!whereY, :]))
+    Xₘ = Matrix{Float64}(hcat(ones(whereCount), X[whereY, :]))
 
     # If y is categorical
     if nonmissingtype(eltype(yₒ)) <: Union{AbstractString, CategoricalValue}
         # Convert to dummy variables (as floats) via CCA
-        mapping = Dict(levels(yₒ)[i] => i-1 for i in eachindex(levels(yₒ)))
-        yNum = Vector{Float64}([mapping[v] for v in yₒ])
+        mapping = Dict(levels(yₒ)[i] => i-1 for i ∈ eachindex(levels(yₒ)))
+        yNum = Vector{Float64}([mapping[v] for v ∈ yₒ])
         yNum = quantify(yNum, Xₒ)
     else
         yNum = Vector{Float64}(yₒ)
@@ -55,8 +55,8 @@ function pmmImpute!(
     unusedKwargs...
     )
 
-    Xₒ = Matrix{Float64}(hcat(repeat([1], sum(.!whereY)), X[.!whereY, :]))
-    Xₘ = Matrix{Float64}(hcat(repeat([1], whereCount), X[whereY, :]))
+    Xₒ = Matrix{Float64}(hcat(ones(sum(.!whereY)), X[.!whereY, :]))
+    Xₘ = Matrix{Float64}(hcat(ones(whereCount), X[whereY, :]))
 
     yNum = quantify(yₒ, Xₒ)
 
@@ -97,7 +97,7 @@ function matchIndex(
     indices = similar(ẏₘ, Int)
 
     # Loop over the target units
-    for i in eachindex(ẏₘ)
+    for i ∈ eachindex(ẏₘ)
         value = ẏₘ[i]
         donorID = selections[i]
         count = 0
