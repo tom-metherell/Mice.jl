@@ -16,11 +16,12 @@
 
     imputedDataPmm = mice(ct, m = 1, iter = 1, progressReports = false)
 
-    meanMethods = makeMethods(ct)
-    meanMethods["b"] = "mean"
-    imputedDataMean = mice(ct, m = 1, iter = 1, methods = meanMethods, progressReports = false)
+    meanLRMethods = makeMethods(ct)
+    meanLRMethods["b"] = "mean"
+    meanLRMethods["d"] = "logreg"
+    imputedDataMeanLR = mice(ct, m = 1, iter = 1, methods = meanLRMethods, progressReports = false)
 
-    normMethods = meanMethods
+    normMethods = makeMethods(ct)
     normMethods["b"] = "norm"
     imputedDataNorm = mice(ct, m = 1, iter = 1, methods = normMethods, progressReports = false)
 

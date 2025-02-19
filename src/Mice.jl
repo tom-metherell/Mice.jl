@@ -2,8 +2,8 @@ module Mice
     # Dependencies
     using AxisArrays: axes, AxisArray, AxisMatrix, AxisVector
     using CategoricalArrays: CategoricalArray, CategoricalPool, CategoricalValue, levels
-    using Distributions: ccdf, Chisq, FDist, Normal, TDist
-    using GLM: glm
+    using Distributions: Bernoulli, ccdf, Chisq, FDist, Normal, TDist
+    using GLM: Binomial, glm, LogitLink, vcov
     using LinearAlgebra: cholesky, Diagonal, diagm, eigen, Hermitian, inv, qr, rank, svd
     using PrecompileTools: @compile_workload
     using Printf: @printf
@@ -64,6 +64,7 @@ module Mice
     include("with.jl")
     include("pool.jl")
     include("sampler.jl")
+    include("logregImpute.jl")
     include("normImpute.jl")
     include("pacify.jl")
     include("pmmImpute.jl")

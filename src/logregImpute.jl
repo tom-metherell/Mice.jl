@@ -3,6 +3,7 @@ function logregImpute!(
     y::AbstractArray,
     X::Matrix{Float64},
     whereY::Vector{Bool},
+    whereCount::Int,
     yVar::String,
     iterCounter::Int,
     j::Int,
@@ -15,14 +16,18 @@ function logregImpute!(
         XAug, yAug, whereYAug, weights = augment(y, X, whereY)
     end
 
-    whereCount = sum(whereYAug) # is this actually needed?
     Xₒ = hcat(ones(length(whereYAug) - whereCount), XAug[.!whereYAug, :])
     Xₘ = hcat(ones(whereCount), XAug[whereYAug, :])
     yₒ = yAug[.!whereYAug]
 
     modelFit = glm(Xₒ, yₒ, Binomial(), LogitLink(), wts = weights[.!whereYAug])
 
-    # TBC
+    β̂ = coef(modelFit)
+    V = cholesky(Hermitian(inv(cholesky(modelFit.pp)))).L
+    β̇ = β̂ + V * randn(size(V, 2))
+
+    p = 1 ./ (1 .+ exp.(-Xₘ * β̇))
+    return rand.(Bernoulli.(p))
 end
 
 function augment(

@@ -60,7 +60,7 @@ function sampler!(
 
         # For variables using a conditional method
         # Also check that there are actually data to be imputed in the column
-        elseif methods[yVar] ∈ ["norm", "pmm", "rf"] && any(whereY)
+        elseif methods[yVar] ∈ ["logreg", "norm", "pmm", "rf"] && any(whereY)
 
             # For each imputation
             for j ∈ 1:m
@@ -85,7 +85,9 @@ function sampler!(
                     end
 
                     # Impute the missing data by the specified method
-                    if methods[yVar] == "pmm"
+                    if methods[yVar] == "logreg"
+                        workingData[yVar][j][whereY] = logregImpute!(workingData[yVar][j], X, whereY, whereCount, yVar, iterCounter, j, loggedEvents; kwargs...)
+                    elseif methods[yVar] == "pmm"
                         workingData[yVar][j][whereY] = pmmImpute!(workingData[yVar][j][.!whereY], X, whereY, whereCount, yVar, iterCounter, j, loggedEvents; kwargs...)
                     elseif methods[yVar] == "norm"
                         workingData[yVar][j][whereY] = normImpute!(workingData[yVar][j][.!whereY], X, whereY, whereCount, yVar, iterCounter, j, loggedEvents; kwargs...)
@@ -117,7 +119,7 @@ function sampler!(
             if methods[yVar] == ""
                 push!(loggedEvents, "Iteration $iterCounter, variable $yVar: imputation skipped - no method specified.")
             # Invalid method specified
-            elseif methods[yVar] ∉ ["mean", "norm", "pmm", "rf", "sample"]
+            elseif methods[yVar] ∉ ["logreg", "mean", "norm", "pmm", "rf", "sample"]
                 push!(loggedEvents, "Iteration $iterCounter, variable $yVar: imputation skipped - method not supported.")
             # Neither of these => there is no missing data
             else

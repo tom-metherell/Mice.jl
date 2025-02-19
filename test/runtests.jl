@@ -176,3 +176,37 @@ end
 
     @test length(results.coefs) == 7
 end
+
+@testset "Mice (logreg, DF)" begin
+    data = CSV.read("data/cirrhosis.csv", DataFrame, missingstring = "NA")
+    
+    data.Stage = categorical(data.Stage)
+
+    for j in ["Ascites", "Hepatomegaly", "Spiders", "Edema"]
+        data[!, j] = Vector{Union{Missing, Int}}(
+            [ismissing(data[i, j]) ? missing : (data[i, j] == "Y" ? 1 : 0) for i in Base.axes(data, 1)]
+        )
+    end
+
+    theMethods = makeMethods(data)
+    theMethods[["Ascites", "Hepatomegaly", "Spiders", "Edema"]] .= "logreg"
+
+    predictorMatrix = makePredictorMatrix(data)
+    predictorMatrix[:, ["ID", "N_Days"]] .= false
+
+    imputedData = mice(data, iter = 1, methods = theMethods, predictorMatrix = predictorMatrix, progressReports = false)
+
+    @test length(imputedData.loggedEvents) == 0
+
+    imputedDataList = listComplete(imputedData)
+
+    @test sum(sum.(ismissing.(Matrix.(imputedDataList)))) == 0
+
+    analyses = with(imputedData, data -> lm(@formula(N_Days ~ Ascites + Hepatomegaly + Spiders + Edema), data))
+
+    @test length(analyses.analyses) == 5
+
+    results = pool(analyses)
+
+    @test length(results.coefs) == 5
+end
