@@ -155,6 +155,7 @@ The imputation methods are the functions that are used to impute each variable. 
 | `sample` | Random sample from observed values | Any |
 | `mean` | Mean of observed values | Numeric (float) |
 | `norm` | Bayesian linear regression | Numeric (float) |
+| `logreg` | Logistic regression | Binary |
 
 ```@raw html
 <a name="rf-warning">

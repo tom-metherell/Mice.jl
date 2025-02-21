@@ -182,14 +182,8 @@ end
     
     data.Stage = categorical(data.Stage)
 
-    for j in ["Ascites", "Hepatomegaly", "Spiders", "Edema"]
-        data[!, j] = Vector{Union{Missing, Int}}(
-            [ismissing(data[i, j]) ? missing : (data[i, j] == "Y" ? 1 : 0) for i in Base.axes(data, 1)]
-        )
-    end
-
     theMethods = makeMethods(data)
-    theMethods[["Ascites", "Hepatomegaly", "Spiders", "Edema"]] .= "logreg"
+    theMethods[["Drug", "Ascites", "Hepatomegaly", "Spiders"]] .= "logreg"
 
     predictorMatrix = makePredictorMatrix(data)
     predictorMatrix[:, ["ID", "N_Days"]] .= false
@@ -202,11 +196,11 @@ end
 
     @test sum(sum.(ismissing.(Matrix.(imputedDataList)))) == 0
 
-    analyses = with(imputedData, data -> lm(@formula(N_Days ~ Ascites + Hepatomegaly + Spiders + Edema), data))
+    analyses = with(imputedData, data -> lm(@formula(N_Days ~ Drug + Sex + Ascites + Hepatomegaly + Spiders), data))
 
     @test length(analyses.analyses) == 5
 
     results = pool(analyses)
 
-    @test length(results.coefs) == 5
+    @test length(results.coefs) == 6
 end

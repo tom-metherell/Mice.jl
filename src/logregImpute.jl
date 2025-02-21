@@ -11,14 +11,26 @@ function logregImpute!(
     unusedKwargs...
     )
 
+    cats = sort(unique(y))
+    if length(cats) ≠ 2
+        throw(ArgumentError("Variable $yVar to be imputed by logistic regression must be binary."))
+    end
+
     # Augment data to avoid perfect prediction (à la White et al., 2010)
     if sum(.!whereY) > 1
-        XAug, yAug, whereYAug, weights = augment(y, X, whereY)
+        XAug, yAug, whereYAug, weights = augment(y, X, whereY, cats, 2)
     end
 
     Xₒ = hcat(ones(length(whereYAug) - whereCount), XAug[.!whereYAug, :])
     Xₘ = hcat(ones(whereCount), XAug[whereYAug, :])
-    yₒ = yAug[.!whereYAug]
+
+    if y isa CategoricalArray || eltype(y) <: Union{CategoricalValue, AbstractString}
+        yₒ = ([findfirst(x -> x == yAug[i], cats) for i ∈ eachindex(yAug[.!whereYAug])] .- 1)
+    elseif any(y ∉ [0, 1])
+        yₒ = ((yAug[.!whereYAug] .- minimum(yAug[.!whereYAug])) ./ (maximum(yAug[.!whereYAug]) - minimum(yAug[.!whereYAug])))
+    else
+        yₒ = yAug[.!whereYAug]
+    end
 
     modelFit = glm(Xₒ, yₒ, Binomial(), LogitLink(), wts = weights[.!whereYAug])
 
@@ -27,17 +39,18 @@ function logregImpute!(
     β̇ = β̂ + V * randn(size(V, 2))
 
     p = 1 ./ (1 .+ exp.(-Xₘ * β̇))
-    return rand.(Bernoulli.(p))
+
+    return cats[rand.(Bernoulli.(p)) .+ 1]
 end
 
 function augment(
     y::AbstractArray,
     X::Matrix{Float64},
-    whereY::Vector{Bool}
+    whereY::Vector{Bool},
+    cats::AbstractArray,
+    numCats::Int
     )
 
-    cats = sort(unique(skipmissing(y)))
-    numCats = length(cats)
     ncolX = size(X, 2)
 
     means = mean.(skipmissing(eachcol(X)))
