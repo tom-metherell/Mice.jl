@@ -1,6 +1,6 @@
 # The sampler! function includes a ! as it updates workingData, workingDataPacified, meanTraces, varTraces and loggedEvents in place
 function sampler!(
-    workingData::AxisVector{Vector},
+    workingData::AxisVector,
     workingDataPacified::AxisVector,
     workingDataLevels::AxisVector,
     meanTraces::Vector{Matrix{Float64}},
