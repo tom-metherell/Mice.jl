@@ -107,7 +107,7 @@ function removeLinDeps!(
     X = X[:, keep]
 end
 
-function pacifyWorkingData(workingData::AxisVector{Vector})
+function pacifyWorkingData(workingData::AxisVector)
     categoricalColumns = Vector{String}([])
 
     for i in eachindex(workingData)
