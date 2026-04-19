@@ -117,7 +117,7 @@ function pacifyWorkingData(workingData::AxisVector)
     end
 
     workingDataLevels = AxisArray(
-        [levels(workingData[yVar][1]) for yVar in categoricalColumns],
+        [collect(levels(workingData[yVar][1])) for yVar in categoricalColumns],
         categoricalColumns
     )
 
@@ -129,7 +129,7 @@ function pacifyWorkingData(workingData::AxisVector)
     return workingDataPacified, workingDataLevels
 end
 
-function pacifyWorkingData(workingData::AbstractVector, levels::Vector)
+function pacifyWorkingData(workingData::AbstractVector, levels::AbstractVector)
     contrastsMatrix = contrasts_matrix(PolynomialCoding(), 1, length(levels))
 
     workingDataPacified = Matrix{Float64}(undef, length(workingData), size(contrastsMatrix, 2))

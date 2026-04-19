@@ -136,3 +136,9 @@ function matchIndex(
 
     return indices
 end
+
+const PMM_IMPUTER = Imputer((yData, X, whereY, whereCount, yVar, iterCounter, j, loggedEvents; donors::Int = 5, ridge::Float64 = 1e-5, kwargs...) -> begin
+    pmmImpute!(yData[.!whereY], X, whereY, whereCount, yVar, iterCounter, j, loggedEvents; donors = donors, ridge = ridge, kwargs...)
+end)
+
+registerImputer!("pmm", PMM_IMPUTER)

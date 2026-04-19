@@ -6,7 +6,7 @@ function sampleImpute!(
     # If there are at least some non-missing data
     if length(yₒ) > 0
         imputedData = sample(yₒ, whereCount)
-    elseif y isa CategoricalArray
+    elseif yₒ isa CategoricalArray
         # Sample from the levels of the categorical variable
         imputedData = CategoricalArray{nonmissingtype(eltype(yₒ))}(sample(levels(yₒ), whereCount))
     else
@@ -16,3 +16,9 @@ function sampleImpute!(
 
     return imputedData
 end
+
+const SAMPLE_IMPUTER = Imputer((yData, X, whereY, whereCount, yVar, iterCounter, j, loggedEvents; kwargs...) -> begin
+    sampleImpute!(yData[.!whereY], whereCount)
+end; requiresPredictors = false)
+
+registerImputer!("sample", SAMPLE_IMPUTER)

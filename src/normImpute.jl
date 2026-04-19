@@ -45,3 +45,9 @@ function blrDraw!(
 
     return β̂, β̇, σ̇
 end
+
+const NORM_IMPUTER = Imputer((yData, X, whereY, whereCount, yVar, iterCounter, j, loggedEvents; ridge::Float64 = 1e-5, kwargs...) -> begin
+    normImpute!(yData[.!whereY], X, whereY, whereCount, yVar, iterCounter, j, loggedEvents; ridge = ridge, kwargs...)
+end)
+
+registerImputer!("norm", NORM_IMPUTER)

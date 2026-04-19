@@ -106,7 +106,16 @@ function initialiseWorkingData(
             # For each imputation
             for j in 1:m
                 # Initialise using a random sample from the observed data
-                workingData[var][j][whereY] = sampleImpute!(workingData[var][j][.!whereY], whereCount)
+                workingData[var][j][whereY] = IMPUTERS["sample"].f(
+                    workingData[var][j],
+                    nothing,
+                    whereY,
+                    whereCount,
+                    var,
+                    0,
+                    j,
+                    String[]
+                )
             end
 
             # Convert to non-missing type

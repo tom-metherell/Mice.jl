@@ -1,7 +1,7 @@
 name = "Mice"
 uuid = "d4678d24-b338-4f96-a2c8-a66549d61c16"
+version = "0.4.0"
 authors = ["Tom Metherell <thomas.metherell.22@ucl.ac.uk> and contributors"]
-version = "0.3.8"
 
 [deps]
 AxisArrays = "39de3d68-74b9-583c-8d2d-e117c070f3a9"
@@ -31,7 +31,7 @@ MiceRCallExt = "RCall"
 [compat]
 AxisArrays = "0.4"
 BetaML = "0.8, 0.9, 0.10, 0.11, 0.12"
-CategoricalArrays = "0.10"
+CategoricalArrays = "1"
 DataFrames = "1.6"
 Distributions = "0.25"
 PrecompileTools = "1.2"

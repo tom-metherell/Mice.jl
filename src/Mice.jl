@@ -59,15 +59,16 @@ module Mice
         end
     end
 
+    include("imputers.jl")
     include("makeFunctions.jl")
     include("with.jl")
     include("pool.jl")
     include("sampler.jl")
+    include("meanImpute.jl")
     include("normImpute.jl")
     include("pacify.jl")
     include("pmmImpute.jl")
     include("quantify.jl")
-    include("rfImpute.jl")
     include("sampleImpute.jl")
 
     """
@@ -120,6 +121,7 @@ module Mice
         predictorMatrix::AxisArray{Int, 2, Matrix{Int}} = makePredictorMatrix(data),
         iter::Int = 10,
         progressReports::Bool = true,
+        imputers::AbstractDict{String, <:Imputer} = IMPUTERS,
         kwargs...
         ) where {T}
         istable(data) || throw(ArgumentError("Data not provided as a Tables.jl table."))
@@ -150,8 +152,7 @@ module Mice
         # For each iteration, for each variable
         for iterCounter in 1:iter, i in eachindex(visitSequence)
             # Run the Gibbs sampler
-            sampler!(workingData, workingDataPacified, workingDataLevels, meanTraces, varTraces, imputeWhere, m, visitSequence, methods, predictorMatrix, iter, iterCounter, i, progressReports, 
-loggedEvents; kwargs...)
+            sampler!(workingData, workingDataPacified, workingDataLevels, meanTraces, varTraces, imputeWhere, m, visitSequence, methods, predictorMatrix, iter, iterCounter, i, progressReports, loggedEvents; imputers = imputers, kwargs...)
         end
 
         # Clear the progress indicator
@@ -198,6 +199,7 @@ loggedEvents; kwargs...)
         mids::Mids;
         iter::Int = 10,
         progressReports::Bool = true,
+        imputers::AbstractDict{String, <:Imputer} = IMPUTERS,
         kwargs...
         )
 
@@ -239,8 +241,7 @@ loggedEvents; kwargs...)
         # For each new iteration, for each variable
         for iterCounter in prevIter+1:prevIter+iter, i in eachindex(visitSequence)
             # Run the Gibbs sampler
-            sampler!(workingData, workingDataPacified, workingDataLevels, meanTraces, varTraces, imputeWhere, m, visitSequence, methods, predictorMatrix, prevIter+iter, iterCounter, i, progressReports, 
-loggedEvents; kwargs...)
+            sampler!(workingData, workingDataPacified, workingDataLevels, meanTraces, varTraces, imputeWhere, m, visitSequence, methods, predictorMatrix, prevIter+iter, iterCounter, i, progressReports, loggedEvents; imputers = imputers, kwargs...)
         end
 
         # Clear the progress indicator
@@ -444,7 +445,7 @@ loggedEvents; kwargs...)
         return(midsObj)
     end
 
-    export bindImputations, complete, findMissings, listComplete, makeMethods, makePredictorMatrix, mice, Mids, Mipo, Mira, pool, plot, with
+    export bindImputations, complete, findMissings, Imputer, listComplete, makeMethods, makePredictorMatrix, mice, Mids, Mipo, Mira, pool, plot, registerImputer!, with
 
     include("precompile.jl")
 end

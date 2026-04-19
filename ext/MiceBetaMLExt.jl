@@ -1,8 +1,7 @@
 module MiceBetaMLExt
     using BetaML: fit!, RandomForestImputer, NONE
     using CategoricalArrays: CategoricalArray, CategoricalPool, CategoricalValue, levels
-    using Mice: makeMethods, mice
-    import Mice: rfImpute!
+    using Mice: Imputer, makeMethods, mice, registerImputer!
     using PrecompileTools: @compile_workload
     using Random: rand, randperm
 
@@ -23,7 +22,20 @@ module MiceBetaMLExt
 
         ŷX = fit!(RandomForestImputer(; n_trees = n_trees, verbosity = verbosity, kwargs...), yX)
 
-        return y == yDecat ? (eltype(y) <: Integer ? round.(ŷX[whereY, 1], digits = 0) : ŷX[whereY, 1]) : parse.(eltype(levels(y)), ŷX[whereY, 1])
+        if y == yDecat
+            return eltype(y) <: Integer ? round.(ŷX[whereY, 1], digits = 0) : ŷX[whereY, 1]
+        end
+
+        levelLookup = Dict(string.(levels(y)) .=> levels(y))
+        return convert.(nonmissingtype(eltype(y)), getindex.(Ref(levelLookup), ŷX[whereY, 1]))
+    end
+
+    const RF_IMPUTER = Imputer((yData, X, whereY, whereCount, yVar, iterCounter, j, loggedEvents; n_trees::Int = 10, verbosity = NONE, kwargs...) -> begin
+        rfImpute!(yData, X, whereY; n_trees = n_trees, verbosity = verbosity, kwargs...)
+    end)
+
+    function __init__()
+        registerImputer!("rf", RF_IMPUTER)
     end
 
     @compile_workload begin
