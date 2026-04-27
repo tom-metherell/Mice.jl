@@ -27,7 +27,7 @@ function sampler!(
     whereCount = sum(whereY)
 
     # Grab the names of the predictors
-    predictors = axes(predictorMatrix[yVar, :])[1][predictorMatrix[yVar, :] .== 1]
+    predictors = axes(predictorMatrix[yVar, :])[1][predictorMatrix[yVar, :] .≠ 0]
 
     methodName = methods[yVar]
 
@@ -47,6 +47,7 @@ function sampler!(
     end
 
     methodImputer = imputers[methodName]
+    twoLevel = methodImputer.twoLevel
 
     if methodImputer.requiresPredictors && isempty(predictors)
         push!(loggedEvents, "Iteration $iterCounter, variable $yVar: imputation skipped - no predictors.")
@@ -55,11 +56,33 @@ function sampler!(
 
     for j in 1:m
         X = nothing
+        types = Int[]
 
         if methodImputer.requiresPredictors
-            X = Matrix{Float64}(reduce(hcat, [predictor ∈ axes(workingDataPacified)[1] ? workingDataPacified[predictor][j] : workingData[predictor][j] for predictor in predictors]))
+            predictorData = Vector{Any}(undef, length(predictors))
+
+            for p in eachindex(predictors)
+                predictor = predictors[p]
+                predictorType = predictorMatrix[yVar, predictor]
+
+                # For two-level methods, classing variables (coded -2) should remain in their original form.
+                if twoLevel && predictorType == -2
+                    predictorData[p] = workingData[predictor][j]
+                elseif predictor ∈ axes(workingDataPacified)[1]
+                    predictorData[p] = workingDataPacified[predictor][j]
+                else
+                    predictorData[p] = workingData[predictor][j]
+                end
+            end
+
+            X = Matrix{Float64}(reduce(hcat, predictorData))
             origNCol = size(X, 2)
             removeLinDeps!(X, workingData[yVar][j], whereY, whereCount)
+
+            types = vcat([
+                repeat([predictorMatrix[yVar, predictor]], size(predictorData[p], 2))
+                for (p, predictor) in enumerate(predictors)
+            ]...)
 
             if size(X, 2) == 0
                 push!(loggedEvents, "Iteration $iterCounter, variable $yVar, imputation $j: imputation skipped - all predictors dropped because of high multicollinearity.")
@@ -72,17 +95,37 @@ function sampler!(
             end
         end
 
-        workingData[yVar][j][whereY] = methodImputer.f(
-            workingData[yVar][j],
-            X,
-            whereY,
-            whereCount,
-            yVar,
-            iterCounter,
-            j,
-            loggedEvents;
-            kwargs...
-        )
+        if twoLevel
+            workingData[yVar][j][whereY] = methodImputer.f(
+                workingData[yVar][j],
+                X,
+                whereY,
+                whereCount,
+                types,
+                yVar,
+                iterCounter,
+                j,
+                loggedEvents;
+                kwargs...
+            )
+        else
+            if methodImputer.requiresPredictors && any(types .≠ 1)
+                push!(loggedEvents, "Iteration $iterCounter, variable $yVar, imputation $j: imputation skipped - predictor matrix contains unsupported values.")
+                continue
+            end
+
+            workingData[yVar][j][whereY] = methodImputer.f(
+                workingData[yVar][j],
+                X,
+                whereY,
+                whereCount,
+                yVar,
+                iterCounter,
+                j,
+                loggedEvents;
+                kwargs...
+            )
+        end
 
         updateTraces!(meanTraces, varTraces, workingData[yVar][j][whereY], i, iterCounter, j)
 

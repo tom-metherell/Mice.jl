@@ -4,15 +4,16 @@
 Generic wrapper for an imputation function.
 
 The wrapped function should accept:
-`(yData, X, whereY, whereCount, yVar, iterCounter, j, loggedEvents; kwargs...)`
-and return the imputed values for `yData[whereY]`.
+`(yData, X, whereY, whereCount, (types,) yVar, iterCounter, j, loggedEvents; kwargs...)`
+and return the imputed values for `yData[whereY]`. `types` is only passed for two-level imputation methods.
 """
 struct Imputer
     f::Function
     requiresPredictors::Bool
+    twoLevel::Bool
 end
 
-Imputer(f::Function; requiresPredictors::Bool = true) = Imputer(f, requiresPredictors)
+Imputer(f::Function; requiresPredictors::Bool = true, twoLevel::Bool = false) = Imputer(f, requiresPredictors, twoLevel)
 
 const IMPUTERS = Dict{String, Imputer}()
 
