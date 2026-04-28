@@ -60,7 +60,7 @@ function twoLevelPmmImpute!(
     ŷₘ = [dot(Xₘ[r, :], β[gfₘ[r], :]) for r in eachindex(gfₘ)]
 
     βList = [vec(β[c, :]) for c in 1:nClasses]
-    ŷₒ = [dot(Xₒ[r, :], βList[gf[r]]) for r in eachindex(gf)]
+    ŷₒ = [dot(Xₒ[r, :], βList[gf[r]]) for r in eachindex(gf)]
 
     indices = matchIndex(ŷₒ, ŷₘ, donors)
     return yₒRaw[indices]

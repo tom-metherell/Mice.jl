@@ -1,6 +1,6 @@
 # The pmmImpute! function includes a ! as it updates loggedEvents in place
 function pmmImpute!(
-    yₒ::AbstractArray,
+    yData::AbstractArray,
     X::Matrix{Float64},
     whereY::Vector{Bool},
     whereCount::Int,
@@ -12,6 +12,8 @@ function pmmImpute!(
     ridge::Float64 = 1e-5,
     unusedKwargs...
     )
+
+    yₒ = yData[.!whereY]
 
     # Get the X-values for the rows with observed and missing y-values, respectively
     Xₒ = Matrix{Float64}(hcat(repeat([1], length(whereY) - whereCount), X[.!whereY, :]))
@@ -42,7 +44,7 @@ end
 
 # Comments are as above
 function pmmImpute!(
-    yₒ::CategoricalArray,
+    yData::CategoricalArray,
     X::Matrix{Float64},
     whereY::Vector{Bool},
     whereCount::Int,
@@ -54,6 +56,8 @@ function pmmImpute!(
     ridge::Float64 = 1e-5,
     unusedKwargs...
     )
+
+    yₒ = yData[.!whereY]
 
     Xₒ = Matrix{Float64}(hcat(repeat([1], sum(.!whereY)), X[.!whereY, :]))
     Xₘ = Matrix{Float64}(hcat(repeat([1], whereCount), X[whereY, :]))
@@ -138,7 +142,7 @@ function matchIndex(
 end
 
 const PMM_IMPUTER = Imputer((yData, X, whereY, whereCount, yVar, iterCounter, j, loggedEvents; donors::Int = 5, ridge::Float64 = 1e-5, kwargs...) -> begin
-    pmmImpute!(yData[.!whereY], X, whereY, whereCount, yVar, iterCounter, j, loggedEvents; donors = donors, ridge = ridge, kwargs...)
+    pmmImpute!(yData, X, whereY, whereCount, yVar, iterCounter, j, loggedEvents; donors = donors, ridge = ridge, kwargs...)
 end)
 
 registerImputer!("pmm", PMM_IMPUTER)

@@ -1,12 +1,13 @@
 module MiceMixedModelsExt
-    using CategoricalArrays: CategoricalArray, CategoricalPool, CategoricalValue, levels
+    using CategoricalArrays: categorical, CategoricalArray, CategoricalPool, CategoricalValue, levels
     using Distributions
-    using LinearAlgebra: Diagonal, Symmetric, cholesky, dot, eigen, inv, transpose
-    using Mice: Imputer, makeMethods, makePredictorMatrix, mice, randWishart, registerImputer!, symridge
+    using LinearAlgebra: Diagonal, Symmetric, cholesky, dot, eigen, inv, transpose, Hermitian, I
+    using Mice: Imputer, makeMethods, makePredictorMatrix, mice, prepareTwoLevelImputationInputs, randWishart, registerImputer!, symridge
     using MixedModels: GeneralizedLinearMixedModel, fit!, fixef, ranef
     using PrecompileTools: @compile_workload
     using Random: rand, randn
-    using Statistics: var
+    using Statistics: cov, var
+    using StatsBase: countmap
     import StatsAPI
     import StatsModels
 
@@ -22,7 +23,6 @@ module MiceMixedModelsExt
         j::Int,
         loggedEvents::Vector{String};
         intercept::Bool = true,
-        nIterations::Int = 100,
         ridge::Float64 = 1e-4,
         unusedKwargs...
         )
@@ -31,32 +31,16 @@ module MiceMixedModelsExt
             return Vector{eltype(yData)}(undef, 0)
         end
 
-        # Keep keyword for API compatibility.
-        _ = nIterations
-
-        if intercept
-            X = hcat(ones(Float64, size(X, 1)), X)
-            types = vcat(2, types)
-        end
-
-        classCols = findall(types .== -2)
-        randomCols = findall(types .== 2)
-        fixedCols = findall(types .> 0)
-
-        if isempty(classCols)
-            throw(ArgumentError("Two-level binary method specified, but no class variable (coded -2) found."))
-        end
-        if isempty(randomCols)
+        if isempty(findall(types .== 2))
             throw(ArgumentError("Two-level binary requires at least one random predictor (coded 2)."))
         end
 
-        classMatrix = Matrix{Float64}(X[:, classCols])
-        classKeys = [Tuple(classMatrix[r, c] for c in axes(classMatrix, 2)) for r in axes(classMatrix, 1)]
-        classLevels = unique(classKeys)
-        nClasses = length(classLevels)
-        classMap = Dict(level => idx for (idx, level) in enumerate(classLevels))
-        gfFull = [classMap[key] for key in classKeys]
-        gf = gfFull[.!whereY]
+        prep = prepareTwoLevelImputationInputs(X, whereY, types; intercept = false)
+        gfFull = prep.gfFull
+        gf = prep.gf
+        nClasses = prep.nClasses
+        randomCols = prep.randomCols
+        fixedCols = prep.fixedCols
 
         yₒRaw = yData[.!whereY]
         yₒ = Vector{Float64}([y isa CategoricalValue ? y.ref - 1 : convert(Float64, y) for y in yₒRaw])
@@ -83,31 +67,37 @@ module MiceMixedModelsExt
             throw(ArgumentError("Two-level binary requires at least one random-effect column in the design matrix."))
         end
 
-        randColsNoIntercept = [k for k in 1:size(Zₒ, 2) if !all(abs.(Zₒ[:, k] .- 1.0) .< 1e-12)]
-
         colSyms = Symbol[:y, :cluster]
-        colData = Vector{Any}[yObs, gf]
+        colData = Any[yObs, categorical(gf)]  # Changed from Vector{Any}[...]
 
         fixedSyms = Symbol[]
         for k in 1:size(Xₒ, 2)
             s = Symbol("x", k)
             push!(fixedSyms, s)
             push!(colSyms, s)
-            push!(colData, Xₒ[:, k])
+            push!(colData, Xₒ[:, k])  # Already Float64 from the matrix
         end
 
         randomSyms = Symbol[]
-        for k in randColsNoIntercept
-            s = Symbol("z", k)
-            push!(randomSyms, s)
-            push!(colSyms, s)
-            push!(colData, Zₒ[:, k])
+        for k in 1:size(Zₒ, 2)
+            if !all(abs.(Zₒ[:, k] .- 1.0) .< 1e-12)
+                s = Symbol("z", k)
+                push!(randomSyms, s)
+                push!(colSyms, s)
+                push!(colData, Zₒ[:, k])
+            end  # Already Float64 from the matrix
         end
 
         tableData = NamedTuple{Tuple(colSyms)}(Tuple(colData))
 
-        fixedPart = isempty(fixedSyms) ? "1" : "1 + " * join(string.(fixedSyms), " + ")
+        if intercept
+            fixedPart = isempty(fixedSyms) ? "1" : "1 + " * join(string.(fixedSyms), " + ")
+        else
+            fixedPart = isempty(fixedSyms) ? "0" : "0 + " * join(string.(fixedSyms), " + ")
+        end
+
         randomPart = isempty(randomSyms) ? "(1 | cluster)" : "(1 + " * join(string.(randomSyms), " + ") * " | cluster)"
+
         formulaString = "y ~ " * fixedPart * " + " * randomPart
         formulaExpr = Meta.parse(formulaString)
         f = Core.eval(@__MODULE__, :(StatsModels.@formula($formulaExpr)))
@@ -120,54 +110,77 @@ module MiceMixedModelsExt
             return yData[whereY]
         end
 
-        βhat = fixef(model)
+        β̂ = fixef(model)
         βcov = Matrix{Float64}(StatsAPI.vcov(model))
-        βcov = symridge(βcov, ridge)
-        βdraw = βhat + cholesky(βcov).U' * randn(length(βhat))
 
-        rancoef = Matrix{Float64}(ranef(model)[1])
+        # Sample fixed effects with regularization if needed
+        β̇ = try
+            β̂ + cholesky(Hermitian(βcov)).U' * randn(length(β̂))
+        catch e1
+            try
+                βcov_reg = βcov + ridge * I(length(β̂))
+                β̂ + cholesky(Hermitian(βcov_reg)).U' * randn(length(β̂))
+            catch e2
+                push!(loggedEvents, "2l.bin: Fixed effects sampling failed for $(yVar), using point estimates")
+                β̂
+            end
+        end
+
+        rancoef = Matrix{Float64}(ranef(model)[1])'
         q = size(rancoef, 2)
-        ψhat = q == 1 ? reshape(var(vec(rancoef)), 1, 1) : Statistics.cov(rancoef)
-        ψhat = symridge(Matrix{Float64}(ψhat), ridge)
+        ψ̂ = q == 1 ? reshape(var(vec(rancoef)), 1, 1) : cov(rancoef, dims = 1)
 
-        λ = transpose(rancoef) * rancoef
-        s = q * ψhat
-        temp = symridge(λ + s, ridge)
-        ev = eigen(Symmetric(temp))
-        evValues = max.(ev.values, 0.0)
-        deco = ev.vectors * Diagonal(sqrt.(evValues))
+        # Ensure ψ̂ is positive definite
+        ψ̂ = Hermitian(ψ̂ + ridge * I(q))
+
+        λ = rancoef' * rancoef
+        s = q * ψ̂
+        ev = eigen(Hermitian(λ + s))
+        eigenvalues = max.(ev.values, ridge)  # Ensure positive eigenvalues
+        deco = ev.vectors * Diagonal(sqrt.(eigenvalues))
 
         ν = size(rancoef, 1) + q
-        ψstarInvScale = randWishart(ν, Diagonal(ones(q)))
-        ψstar = inv(symridge(deco * ψstarInvScale * transpose(deco), ridge))
-        ψstar = symridge(ψstar, ridge)
+        ψ̇InvScale = randWishart(ν, Diagonal(ones(q)))
+
+        # Use pseudo-inverse with ridge for numerical stability
+        ψ̇ = try
+            inv(Hermitian(deco * ψ̇InvScale * transpose(deco) + ridge * I(q)))
+        catch
+            # Fallback to regularized estimate
+            Hermitian(ψ̂ + ridge * I(q))
+        end
 
         # Impute missing values using final coefficients
-        gfMissing = gfFull[whereY]
-        imputedValues = Vector{Float64}(undef, whereCount)
+        gfₘ = gfFull[whereY]
+        imps = Vector{Float64}(undef, whereCount)
         randEffectDraws = Dict{Int, Vector{Float64}}()
 
+        # Prepare design matrices for prediction
+        # If intercept was included in model, add column of 1s
+        Xₘ_pred = intercept ? hcat(ones(size(Xₘ, 1)), Xₘ) : Xₘ
+        Zₘ_pred = hcat(ones(size(Zₘ, 1)), Zₘ)  # Always add random intercept column
+
         for i in 1:whereCount
-            classIdx = gfMissing[i]
+            classIdx = gfₘ[i]
             if !haskey(randEffectDraws, classIdx)
-                randEffectDraws[classIdx] = vec(rand(Distributions.MvNormal(zeros(q), ψstar)))
+                randEffectDraws[classIdx] = vec(rand(Distributions.MvNormal(zeros(q), ψ̇)))
             end
-            η = dot(Xₘ[i, :], βdraw) + dot(Zₘ[i, :], randEffectDraws[classIdx])
+            η = dot(Xₘ_pred[i, :], β̇) + dot(Zₘ_pred[i, :], randEffectDraws[classIdx])
             p = 1.0 / (1.0 + exp(-η))
-            imputedValues[i] = rand() < p ? 1.0 : 0.0
+            imps[i] = rand(Binomial(1, p))
         end
 
         # Convert back to original data type
         if eltype(yₒRaw) <: CategoricalValue
             levels_list = levels(yₒRaw[1])
-            return CategoricalArray([levels_list[Int(val) + 1] for val in imputedValues], levels_list)
+            return CategoricalArray([levels_list[Int(val) + 1] for val in imps], levels_list)
         else
-            return imputedValues
+            return imps
         end
     end
 
-    const TWO_LEVEL_BIN_IMPUTER = Imputer((yData, X, whereY, whereCount, types, yVar, iterCounter, j, loggedEvents; intercept::Bool = true, nIterations::Int = 100, ridge::Float64 = 1e-4, kwargs...) -> begin
-        twoLevelBinImpute!(yData, X, whereY, whereCount, types, yVar, iterCounter, j, loggedEvents; intercept = intercept, nIterations = nIterations, ridge = ridge, kwargs...)
+    const TWO_LEVEL_BIN_IMPUTER = Imputer((yData, X, whereY, whereCount, types, yVar, iterCounter, j, loggedEvents; intercept::Bool = true, ridge::Float64 = 1e-4, kwargs...) -> begin
+        twoLevelBinImpute!(yData, X, whereY, whereCount, types, yVar, iterCounter, j, loggedEvents; intercept = intercept, ridge = ridge, kwargs...)
     end; twoLevel = true)
 
     function __init__()
@@ -198,6 +211,6 @@ module MiceMixedModelsExt
         predictorMatrix["y", "x"] = 2
         predictorMatrix["y", "cluster"] = -2
 
-        mice(ct, m = 1, iter = 1, methods = methods, predictorMatrix = predictorMatrix, progressReports = false, nIterations = 1, ridge = 1e-3)
+        mice(ct, m = 1, iter = 1, methods = methods, predictorMatrix = predictorMatrix, progressReports = false, ridge = 1e-3)
     end
 end

@@ -156,6 +156,14 @@ The imputation methods are the functions that are used to impute each variable. 
 | `mean` | Mean of observed values | Numeric (float) |
 | `norm` | Bayesian linear regression | Numeric (float) |
 
+### Two-level methods
+
+| Method | Description | Variable type |
+| ------ | ----------- | ------------- |
+| `2l.pmm` | Predictive mean matching | Any |
+| `2l.norm` | Bayesian linear mixed model | Numeric (float) |
+| `2l.bin` | Logistic mixed model | Binary |
+
 ```@raw html
 <a name="rf-warning">
 </a> 
@@ -225,6 +233,12 @@ Random.seed!(1234); # Set random seed for reproducibility
 
 # Not run
 mice(myData, methods = myMethods)
+```
+
+You can now also define your own imputation methods.
+
+```@docs
+Imputer
 ```
 
 ```@raw html

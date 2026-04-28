@@ -29,18 +29,6 @@ function secondLevelOnlyModeImpute!(
     classMap = Dict(level => idx for (idx, level) in enumerate(classLevels))
     gfFull = [classMap[key] for key in classKeys]
 
-    # Check for partial missing level-2 data
-    for class in 1:nClasses
-        classIdx = findall(gfFull .== class)
-        obsIdx = classIdx[.!whereY[classIdx]]
-        misIdx = classIdx[whereY[classIdx]]
-        
-        if !isempty(obsIdx) && !isempty(misIdx)
-            clusterIds = join(classLevels[class], ", ")
-            throw(ArgumentError("Two-level imputation found partially missing level-2 data in cluster $clusterIds. Use 2lonly.mean to fix inconsistencies."))
-        end
-    end
-
     # Calculate mode for each class
     classModes = Vector{eltype(yData)}(undef, nClasses)
     for i in 1:nClasses

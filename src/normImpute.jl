@@ -1,5 +1,5 @@
 function normImpute!(
-    yₒ::Vector{Float64},
+    yData::Vector{Float64},
     X::Matrix{Float64},
     whereY::Vector{Bool},
     whereCount::Int,
@@ -10,6 +10,8 @@ function normImpute!(
     ridge::Float64 = 1e-5,
     unusedKwargs...
     )
+
+    yₒ = yData[.!whereY]
 
     Xₒ = Matrix{Float64}(hcat(repeat([1], length(whereY) - whereCount), X[.!whereY, :]))
     Xₘ = Matrix{Float64}(hcat(repeat([1], whereCount), X[whereY, :]))
@@ -47,7 +49,7 @@ function blrDraw!(
 end
 
 const NORM_IMPUTER = Imputer((yData, X, whereY, whereCount, yVar, iterCounter, j, loggedEvents; ridge::Float64 = 1e-5, kwargs...) -> begin
-    normImpute!(yData[.!whereY], X, whereY, whereCount, yVar, iterCounter, j, loggedEvents; ridge = ridge, kwargs...)
+    normImpute!(yData, X, whereY, whereCount, yVar, iterCounter, j, loggedEvents; ridge = ridge, kwargs...)
 end)
 
 registerImputer!("norm", NORM_IMPUTER)

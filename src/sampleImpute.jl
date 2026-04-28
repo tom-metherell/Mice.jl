@@ -1,7 +1,10 @@
 function sampleImpute!(
-    yₒ::AbstractArray,
+    yData::AbstractArray,
+    whereY::Vector{Bool},
     whereCount::Int
     )
+
+    yₒ = yData[.!whereY]
 
     # If there are at least some non-missing data
     if length(yₒ) > 0
@@ -18,7 +21,7 @@ function sampleImpute!(
 end
 
 const SAMPLE_IMPUTER = Imputer((yData, X, whereY, whereCount, yVar, iterCounter, j, loggedEvents; kwargs...) -> begin
-    sampleImpute!(yData[.!whereY], whereCount)
+    sampleImpute!(yData, whereY, whereCount)
 end; requiresPredictors = false)
 
 registerImputer!("sample", SAMPLE_IMPUTER)

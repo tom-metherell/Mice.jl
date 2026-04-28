@@ -98,20 +98,24 @@ function _imputationLevel2!(
     # Numeric data are averaged; non-numeric data use the class mode.
     yType = nonmissingtype(eltype(yData))
     isNumeric = yType <: Real
-    yₒ2l = isNumeric ? Float64[] : Vector{yType}(undef, nClasses)
+    y2l = isNumeric ? Vector{Float64}(undef, nClasses) : Vector{yType}(undef, nClasses)
     for i in 1:nClasses
         classIdx = findall(gfFull .== i)
         obsIdx = classIdx[.!whereY[classIdx]]
         if !isempty(obsIdx)
             classValues = yData[obsIdx]
-            yₒ2l[i] = isNumeric ? Float64(mean(classValues)) : mode(classValues)
+            y2l[i] = isNumeric ? Float64(mean(classValues)) : mode(classValues)
         end
     end
 
     # Call the specified imputation method at the aggregated level-2
-    imps2l = imputationMethod(yₒ2l, X2lAgg, whereY2l, sum(whereY2l), yVar, iterCounter, j, loggedEvents; ridge=ridge, kwargs...)
+    imps2l = imputationMethod(y2l, X2lAgg, whereY2l, sum(whereY2l), yVar, iterCounter, j, loggedEvents; ridge=ridge, kwargs...)
+
+    # Map the missing class ids to positions in imps2l.
+    missingClassPositions = findall(whereY2l)
+    missingClassMap = Dict(missingClass => idx for (idx, missingClass) in enumerate(missingClassPositions))
 
     # Map level-2 imputations back to original missing rows
     gfₘ = gfFull[whereY]
-    return [imps2l[gfₘ[i]] for i in 1:whereCount]
+    return [imps2l[missingClassMap[gfₘ[i]]] for i in 1:whereCount]
 end

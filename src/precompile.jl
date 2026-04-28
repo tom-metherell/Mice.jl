@@ -40,41 +40,56 @@ end
     x = randn(n)
     yNorm = Vector{Union{Missing, Float64}}(@. 0.3 + 0.9 * x + 0.1 * cluster + 0.2 * randn())
 
-    yNorm[[3, 9, 14, 21, 27, 34, 40, 46]] .= missing
+    yNormMissingWithinClusters = deepcopy(yNorm)
+    yNormMissingWithinClusters[[2, 8, 13, 19, 25, 31, 37, 43]] .= missing
 
-    ct2l = (
-        y = yNorm,
+    yNormMissingEntireClusters = deepcopy(yNorm)
+    yNormMissingEntireClusters[cluster .== 3] .= missing
+
+    ct2lMissingWithinClusters = (
+        y = yNormMissingWithinClusters,
         x = x,
         cluster = cluster
     )
 
-    predictorMatrix = makePredictorMatrix(ct2l)
+    ct2lMissingEntireClusters = (
+        y = yNormMissingEntireClusters,
+        x = x,
+        cluster = cluster
+    )
+
+    predictorMatrix = makePredictorMatrix(ct2lMissingWithinClusters)
     predictorMatrix[:, :] .= 0
     predictorMatrix["y", "x"] = 2
     predictorMatrix["y", "cluster"] = -2
 
-    methods2lNorm = makeMethods(ct2l)
+    methods2lNorm = makeMethods(ct2lMissingWithinClusters)
     methods2lNorm .= ""
     methods2lNorm["y"] = "2l.norm"
-    mice(ct2l, m = 1, iter = 1, methods = methods2lNorm, predictorMatrix = predictorMatrix, progressReports = false, nIterations = 0, ridge = 1e-3)
+    mice(ct2lMissingWithinClusters, m = 1, iter = 1, methods = methods2lNorm, predictorMatrix = predictorMatrix, progressReports = false, nIterations = 0, ridge = 1e-3)
 
-    methods2lPmm = makeMethods(ct2l)
+    methods2lPmm = makeMethods(ct2lMissingWithinClusters)
     methods2lPmm .= ""
     methods2lPmm["y"] = "2l.pmm"
-    mice(ct2l, m = 1, iter = 1, methods = methods2lPmm, predictorMatrix = predictorMatrix, progressReports = false, nIterations = 0, ridge = 1e-3)
+    mice(ct2lMissingWithinClusters, m = 1, iter = 1, methods = methods2lPmm, predictorMatrix = predictorMatrix, progressReports = false, nIterations = 0, ridge = 1e-3)
 
-    methods2lOnlyMean = makeMethods(ct2l)
+    methods2lOnlyMean = makeMethods(ct2lMissingWithinClusters)
     methods2lOnlyMean .= ""
     methods2lOnlyMean["y"] = "2lonly.mean"
-    mice(ct2l, m = 1, iter = 1, methods = methods2lOnlyMean, predictorMatrix = predictorMatrix, progressReports = false, ridge = 1e-3)
+    mice(ct2lMissingWithinClusters, m = 1, iter = 1, methods = methods2lOnlyMean, predictorMatrix = predictorMatrix, progressReports = false, ridge = 1e-3)
 
-    methods2lOnlyNorm = makeMethods(ct2l)
+    methods2lOnlyMode = makeMethods(ct2lMissingWithinClusters)
+    methods2lOnlyMode .= ""
+    methods2lOnlyMode["y"] = "2lonly.mode"
+    mice(ct2lMissingWithinClusters, m = 1, iter = 1, methods = methods2lOnlyMode, predictorMatrix = predictorMatrix, progressReports = false, ridge = 1e-3)
+
+    methods2lOnlyNorm = makeMethods(ct2lMissingEntireClusters)
     methods2lOnlyNorm .= ""
     methods2lOnlyNorm["y"] = "2lonly.norm"
-    mice(ct2l, m = 1, iter = 1, methods = methods2lOnlyNorm, predictorMatrix = predictorMatrix, progressReports = false, ridge = 1e-3)
+    mice(ct2lMissingEntireClusters, m = 1, iter = 1, methods = methods2lOnlyNorm, predictorMatrix = predictorMatrix, progressReports = false, ridge = 1e-3)
 
-    methods2lOnlyPmm = makeMethods(ct2l)
+    methods2lOnlyPmm = makeMethods(ct2lMissingEntireClusters)
     methods2lOnlyPmm .= ""
     methods2lOnlyPmm["y"] = "2lonly.pmm"
-    mice(ct2l, m = 1, iter = 1, methods = methods2lOnlyPmm, predictorMatrix = predictorMatrix, progressReports = false, ridge = 1e-3)
+    mice(ct2lMissingEntireClusters, m = 1, iter = 1, methods = methods2lOnlyPmm, predictorMatrix = predictorMatrix, progressReports = false, ridge = 1e-3)
 end

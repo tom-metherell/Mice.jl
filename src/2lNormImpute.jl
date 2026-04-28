@@ -44,7 +44,7 @@ function twoLevelNormImpute!(
 
     for r in eachindex(gfₘ)
         class = gfₘ[r]
-        imps[r] = Xₘ[r, :] ⋅ β[class, :] + randn() * sqrt(1 / invσ²[class])
+        imps[r] = dot(Xₘ[r, :], β[class, :]) + randn() * sqrt(1 / invσ²[class])
     end
 
     return imps
@@ -66,6 +66,7 @@ function prepareTwoLevelImputationInputs(
 
     classCols = findall(typesWork .== -2)
     randomCols = findall(typesWork .== 2)
+    fixedCols = findall(typesWork .> 0)
 
     if isempty(classCols)
         throw(ArgumentError("Two-level imputation method specified, but no class variable (coded -2) found."))
@@ -89,6 +90,7 @@ function prepareTwoLevelImputationInputs(
         X = XWork,
         types = typesWork,
         randomCols = randomCols,
+        fixedCols = fixedCols,
         gfFull = gfFull,
         gf = gf,
         nClasses = nClasses,

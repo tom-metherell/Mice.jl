@@ -1,8 +1,8 @@
 using Documenter, DocumenterCitations, Mice
 
-bib = CitationBibliography("docs/references.bib")
+bib = CitationBibliography(joinpath(@__DIR__, "references.bib"), style = :authoryear)
 
-makedocs(
+makedocs(;
     sitename = "Mice.jl",
     modules = [Mice],
     pages = ["index.md",
