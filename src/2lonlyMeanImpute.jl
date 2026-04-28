@@ -1,6 +1,6 @@
 # The secondLevelOnlyMeanImpute! function includes a ! as it updates loggedEvents in place
 function secondLevelOnlyMeanImpute!(
-    yData::AbstractArray,
+    yData::Vector{Float64},
     X::Matrix{Float64},
     whereY::Vector{Bool},
     whereCount::Int,
@@ -13,7 +13,7 @@ function secondLevelOnlyMeanImpute!(
     )
 
     if whereCount == 0
-        return Vector{eltype(yData)}(undef, 0)
+        return Float64[]
     end
 
     classCols = findall(types .== -2)
@@ -30,23 +30,20 @@ function secondLevelOnlyMeanImpute!(
     gfFull = [classMap[key] for key in classKeys]
     gf = gfFull[.!whereY]
 
-    yₒRaw = yData[.!whereY]
-    yₒ = Vector{Float64}(yₒRaw)
+    yₒ = yData[.!whereY]
 
     if length(unique(gf)) < nClasses
         throw(ArgumentError("Two-level imputation requires at least one observed outcome per class."))
     end
 
-    # Calculate mean for each group
-    groupMeans = [mean(yₒ[gf .== class]) for class in 1:nClasses]
-
     # Get class assignments for missing observations
-    gfMissing = gfFull[whereY]
+    gfₘ = gfFull[whereY]
 
-    # Impute with group means
-    imputedValues = [groupMeans[gfMissing[i]] for i in 1:whereCount]
+    # Calculate class means
+    classStats = [mean(yₒ[gf .== class]) for class in 1:nClasses]
 
-    return eltype(yData) <: Union{AbstractString, CategoricalValue} ? yₒRaw[[argmin(abs.(yₒ .- val)) for val in imputedValues]] : imputedValues
+    # Impute with class means
+    return [classStats[gfₘ[i]] for i in 1:whereCount]
 end
 
 const SECOND_LEVEL_ONLY_MEAN_IMPUTER = Imputer((yData, X, whereY, whereCount, types, yVar, iterCounter, j, loggedEvents; kwargs...) -> begin

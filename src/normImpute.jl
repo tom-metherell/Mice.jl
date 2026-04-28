@@ -1,5 +1,5 @@
 function normImpute!(
-    yₒ::AbstractArray,
+    yₒ::Vector{Float64},
     X::Matrix{Float64},
     whereY::Vector{Bool},
     whereCount::Int,

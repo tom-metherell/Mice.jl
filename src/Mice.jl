@@ -10,7 +10,7 @@ module Mice
     import RecipesBase: plot
     using Statistics: cor, mean, quantile, var
     using StatsAPI: coef, coefnames, nobs, stderror
-    using StatsBase: CoefTable, PValue, sample, standardize, UnitRangeTransform, zscore
+    using StatsBase: CoefTable, PValue, mode, sample, standardize, UnitRangeTransform, zscore
     import StatsModels: contrasts_matrix, termnames
     using StatsModels: AbstractContrasts, ModelFrame, ModelMatrix, setcontrasts!, term
     using Tables: columnnames, columns, columntable, getcolumn, istable
@@ -71,6 +71,7 @@ module Mice
     include("2lonlyMeanImpute.jl")
     include("2lonlyNormImpute.jl")
     include("2lonlyPmmImpute.jl")
+    include("2lonlyModeImpute.jl")
     include("pacify.jl")
     include("pmmImpute.jl")
     include("quantify.jl")
