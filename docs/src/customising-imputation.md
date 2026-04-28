@@ -239,6 +239,7 @@ You can now also define your own imputation methods.
 
 ```@docs
 Imputer
+registerImputer!
 ```
 
 ```@raw html
