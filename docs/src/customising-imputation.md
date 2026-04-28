@@ -163,6 +163,10 @@ The imputation methods are the functions that are used to impute each variable. 
 | `2l.pmm` | Predictive mean matching | Any |
 | `2l.norm` | Bayesian linear mixed model | Numeric (float) |
 | `2l.bin` | Logistic mixed model | Binary |
+| `2lonly.pmm` | Predictive mean matching (aggregated) | Any |
+| `2lonly.mode` | Mode of observed values in class | Any |
+| `2lonly.norm` | Bayesian linear mixed model (aggregated) | Numeric (float) |
+| `2lonly.mean` | Mean of observed values in class | Numeric (float) |
 
 ```@raw html
 <a name="rf-warning">
