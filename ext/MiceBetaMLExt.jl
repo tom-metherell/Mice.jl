@@ -5,6 +5,24 @@ module MiceBetaMLExt
     using PrecompileTools: @compile_workload
     using Random: rand, randperm
 
+    function _rf_imputer_with_supported_kwargs(; n_trees::Int = 10, verbosity = NONE, kwargs...)
+        imputerKw = (n_trees = n_trees, verbosity = verbosity)
+
+        for (k, v) in pairs(kwargs)
+            candidateKw = merge(imputerKw, NamedTuple{(k,)}((v,)))
+            try
+                RandomForestImputer(; candidateKw...)
+                imputerKw = candidateKw
+            catch e
+                if !(e isa MethodError)
+                    rethrow(e)
+                end
+            end
+        end
+
+        return RandomForestImputer(; imputerKw...)
+    end
+
     function rfImpute!(
         y::AbstractArray,
         X::Matrix{Float64},
@@ -20,7 +38,8 @@ module MiceBetaMLExt
 
         yX[whereY, 1] .= missing
 
-        ŷX = fit!(RandomForestImputer(; n_trees = n_trees, verbosity = verbosity, kwargs...), yX)
+        rfImputer = _rf_imputer_with_supported_kwargs(; n_trees = n_trees, verbosity = verbosity, kwargs...)
+        ŷX = fit!(rfImputer, yX)
 
         if y == yDecat
             return eltype(y) <: Integer ? round.(ŷX[whereY, 1], digits = 0) : ŷX[whereY, 1]

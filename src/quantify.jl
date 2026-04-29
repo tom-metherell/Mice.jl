@@ -22,7 +22,7 @@ function miceCCA(
     dx = rank(X)
     dy = rank(Y)
 
-    Z = svd((transpose(qrY.Q) * (qrX.Q * diagm(nr, dx, repeat([1], min(nr, dx)))))[1:dy, :])
+    Z = svd((transpose(qrY.Q) * (qrX.Q * diagm(nr, dx, repeat([1], min(nr, dx)))))[1:dy, :], full = true)
 
     Ycoef = qrY.R \ Z.U
 

@@ -2,15 +2,15 @@ module Mice
     # Dependencies
     using AxisArrays: axes, AxisArray, AxisMatrix, AxisVector
     using CategoricalArrays: CategoricalArray, CategoricalPool, CategoricalValue, levels
-    using Distributions: ccdf, Chisq, FDist, Normal, TDist
-    using LinearAlgebra: cholesky, Diagonal, diagm, eigen, Hermitian, inv, qr, rank, svd
+    using Distributions: ccdf, Chisq, FDist, Gamma, Normal, TDist
+    using LinearAlgebra: cholesky, diag, Diagonal, diagm, dot, eigen, Hermitian, inv, qr, rank, svd
     using PrecompileTools: @compile_workload
     using Printf: @printf
     using Random: rand, randn, randperm
     import RecipesBase: plot
     using Statistics: cor, mean, quantile, var
     using StatsAPI: coef, coefnames, nobs, stderror
-    using StatsBase: CoefTable, PValue, sample, standardize, UnitRangeTransform, zscore
+    using StatsBase: CoefTable, PValue, mode, sample, standardize, UnitRangeTransform, zscore
     import StatsModels: contrasts_matrix, termnames
     using StatsModels: AbstractContrasts, ModelFrame, ModelMatrix, setcontrasts!, term
     using Tables: columnnames, columns, columntable, getcolumn, istable
@@ -66,6 +66,12 @@ module Mice
     include("sampler.jl")
     include("meanImpute.jl")
     include("normImpute.jl")
+    include("2lNormImpute.jl")
+    include("2lPmmImpute.jl")
+    include("2lonlyMeanImpute.jl")
+    include("2lonlyNormImpute.jl")
+    include("2lonlyPmmImpute.jl")
+    include("2lonlyModeImpute.jl")
     include("pacify.jl")
     include("pmmImpute.jl")
     include("quantify.jl")

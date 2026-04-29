@@ -128,7 +128,7 @@ myPredictorMatrix
 #  0  1  1  0
 
 # To stop col1 from predicting col3
-myPredictorMatrix["col3", "col1"] = false;
+myPredictorMatrix["col3", "col1"] = 0;
 myPredictorMatrix
 # 2-dimensional AxisArray{Int64,2,...} with axes:
 #     :row, ["id", "col1", "col2", "col3"]
@@ -145,16 +145,30 @@ Random.seed!(1234); # Set random seed for reproducibility
 mice(myData, predictorMatrix = myPredictorMatrix)
 ```
 
+For the predictor matrix in two-level imputation, use `1` for fixed effects, `2` for fixed and random effects and `-2` for grouping variables.
+
 ## Methods
 The imputation methods are the functions that are used to impute each variable. By default, `mice` uses predictive mean matching (`"pmm"`) for all variables. Currently `Mice.jl` supports the following methods:
 
-| Method | Description | Variable type |
-| ------ | ----------- | ------------- |
-| `pmm` | Predictive mean matching | Any |
-| `rf` | Random forest | Any (but see [below](#rf-warning)) |
-| `sample` | Random sample from observed values | Any |
-| `mean` | Mean of observed values | Numeric (float) |
-| `norm` | Bayesian linear regression | Numeric (float) |
+| Method | Description | Variable type | Required packages |
+| ------ | ----------- | ------------- | ----------------- |
+| `pmm` | Predictive mean matching | Any | |
+| `rf` | Random forest | Any (but see [below](#rf-warning)) | BetaML |
+| `sample` | Random sample from observed values | Any | |
+| `mean` | Mean of observed values | Numeric (float) | |
+| `norm` | Bayesian linear regression | Numeric (float) | |
+
+### Two-level methods
+
+| Method | Description | Variable type | Required packages |
+| ------ | ----------- | ------------- | ----------------- |
+| `2l.pmm` | Predictive mean matching | Any | |
+| `2l.norm` | Bayesian linear mixed model | Numeric (float) | |
+| `2l.bin` | Logistic mixed model | Binary | MixedModels |
+| `2lonly.pmm` | Predictive mean matching (aggregated) | Any | |
+| `2lonly.mode` | Mode of observed values in class | Any | |
+| `2lonly.norm` | Bayesian linear mixed model (aggregated) | Numeric (float) | |
+| `2lonly.mean` | Mean of observed values in class | Numeric (float) | |
 
 ```@raw html
 <a name="rf-warning">
@@ -225,6 +239,13 @@ Random.seed!(1234); # Set random seed for reproducibility
 
 # Not run
 mice(myData, methods = myMethods)
+```
+
+You can now also define your own imputation methods.
+
+```@docs
+Imputer
+registerImputer!
 ```
 
 ```@raw html
