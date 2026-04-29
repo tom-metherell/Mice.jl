@@ -67,25 +67,37 @@ module MiceMixedModelsExt
             throw(ArgumentError("Two-level binary requires at least one random-effect column in the design matrix."))
         end
 
-        colSyms = Symbol[:y, :cluster]
-        colData = Any[yObs, categorical(gf)]  # Changed from Vector{Any}[...]
-
         fixedSyms = Symbol[]
-        for k in 1:size(Xₒ, 2)
-            s = Symbol("x", k)
-            push!(fixedSyms, s)
-            push!(colSyms, s)
-            push!(colData, Xₒ[:, k])  # Already Float64 from the matrix
-        end
-
         randomSyms = Symbol[]
-        for k in 1:size(Zₒ, 2)
-            if !all(abs.(Zₒ[:, k] .- 1.0) .< 1e-12)
-                s = Symbol("z", k)
-                push!(randomSyms, s)
+        colSyms = Symbol[:y, :cluster]
+        colData = Any[yObs, categorical(gf)]
+
+        labelMap = Dict{Int, Symbol}()
+        addedCols = Set{Int}()
+
+        allCols = unique(vcat(fixedCols, randomCols))
+
+        for col in allCols
+            if !haskey(labelMap, col)
+                labelMap[col] = Symbol("x", col)
+            end
+            s = labelMap[col]
+            
+            # Add to colData only once
+            if !(col in addedCols)
                 push!(colSyms, s)
-                push!(colData, Zₒ[:, k])
-            end  # Already Float64 from the matrix
+                push!(colData, X[obsMask, col])
+                push!(addedCols, col)
+            end
+        end
+        
+        # Build fixed and random symbol lists using the shared labelMap
+        for k in eachindex(fixedCols)
+            push!(fixedSyms, labelMap[fixedCols[k]])
+        end
+        
+        for k in eachindex(randomCols)
+            push!(randomSyms, labelMap[randomCols[k]])
         end
 
         tableData = NamedTuple{Tuple(colSyms)}(Tuple(colData))
@@ -130,11 +142,8 @@ module MiceMixedModelsExt
         q = size(rancoef, 2)
         ψ̂ = q == 1 ? reshape(var(vec(rancoef)), 1, 1) : cov(rancoef, dims = 1)
 
-        # Ensure ψ̂ is positive definite
-        ψ̂ = Hermitian(ψ̂ + ridge * I(q))
-
         λ = rancoef' * rancoef
-        s = q * ψ̂
+        s = q * Hermitian(ψ̂)
         ev = eigen(Hermitian(λ + s))
         eigenvalues = max.(ev.values, ridge)  # Ensure positive eigenvalues
         deco = ev.vectors * Diagonal(sqrt.(eigenvalues))
@@ -144,7 +153,7 @@ module MiceMixedModelsExt
 
         # Use pseudo-inverse with ridge for numerical stability
         ψ̇ = try
-            inv(Hermitian(deco * ψ̇InvScale * transpose(deco) + ridge * I(q)))
+            inv(Hermitian(deco * ψ̇InvScale * transpose(deco)))
         catch
             # Fallback to regularized estimate
             Hermitian(ψ̂ + ridge * I(q))

@@ -25,7 +25,7 @@ function make_two_level_binary_workload()
     n = 48
     cluster = repeat(1:8, inner = 6)
     x = randn(n)
-    y = Vector{Union{Missing, Int}}(repeat([0, 1], inner = 1, outer = 24))
+    y = Vector{Union{Missing, Int}}(repeat([0, 1], outer = 24))
 
     yMissingWithinClusters = copy(y)
     yMissingWithinClusters[[2, 8, 13, 19, 25, 31, 37, 43]] .= missing
@@ -81,7 +81,7 @@ function assert_standard_workflow(data; methods = nothing, predictorMatrix = not
     end
 end
 
-function run_two_level_method(data, method; nIterations = 0)
+function run_two_level_method(data, method; nIterations = 0, intercept = true)
     predictorMatrix = makePredictorMatrix(data)
     predictorMatrix[:, :] .= 0
     predictorMatrix["y", "x"] = 2
@@ -95,7 +95,7 @@ function run_two_level_method(data, method; nIterations = 0)
     methods .= ""
     methods["y"] = method
 
-    return mice(data, m = 1, iter = 1, methods = methods, predictorMatrix = predictorMatrix, progressReports = false, nIterations = nIterations, ridge = 1e-3)
+    return mice(data, m = 1, iter = 1, methods = methods, predictorMatrix = predictorMatrix, progressReports = false, nIterations = nIterations, ridge = 1e-3, intercept = intercept)
 end
 
 function cirrhosis_dataframe()
@@ -204,8 +204,8 @@ end
     @test length(imputedData.loggedEvents) == 0
 end
 
-@testset "Mice (2l.bin, TT)" begin
+@testset "Mice (2l.bin, TT, no intercept)" begin
     binaryWorkload = Table(make_two_level_binary_workload())
-    imputedData = run_two_level_method(binaryWorkload, "2l.bin")
+    imputedData = run_two_level_method(binaryWorkload, "2l.bin", intercept = false)
     @test length(imputedData.loggedEvents) == 0
 end
