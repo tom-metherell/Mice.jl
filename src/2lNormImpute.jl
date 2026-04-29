@@ -169,7 +169,7 @@ function symridge(A::AbstractMatrix{Float64}, ridge::Float64 = 1e-4)
 end
 
 function chol2inv(C)
-    return inv(C.U) * inv(C.U')
+    return inv(C.U' * C.U)
 end
 
 function randWishart(df::Int, sqrtΣ::AbstractMatrix{Float64})

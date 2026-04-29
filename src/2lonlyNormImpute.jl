@@ -73,7 +73,7 @@ function _imputationLevel2!(
         
         if !isempty(obsIdx) && !isempty(misIdx)
             clusterIds = join(classLevels[class], ", ")
-            throw(ArgumentError("Two-level imputation found partially missing level-2 data in cluster $clusterIds. Use 2lonly.mean to fix inconsistencies."))
+            throw(ArgumentError("Two-level imputation found partially missing level-2 data in cluster $clusterIds. Use 2lonly.mean or 2lonly.mode to fix inconsistencies."))
         end
     end
 
