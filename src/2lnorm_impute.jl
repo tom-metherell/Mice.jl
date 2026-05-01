@@ -31,7 +31,6 @@ function twolevelnorm_impute!(
     Xₛₛ = [transpose(A) * A for A in XG]
     yg = [yₒ[gf .== class] for class in 1:nclasses]
     ng = [sum(gf .== class) for class in 1:nclasses]
-    nRc = size(Xₒ, 2)
 
     β, invσ² = drawtwolevelparams(XG, Xₛₛ, yg, ng, n_iterations, ridge)
 
@@ -79,8 +78,8 @@ function preparetwolevelimputationinputs(
     classkeys = [Tuple(classmatrix[r, c] for c in axes(classmatrix, 2)) for r in axes(classmatrix, 1)]
     classlevels = unique(classkeys)
     nclasses = length(classlevels)
-    classMap = Dict(level => idx for (idx, level) in enumerate(classlevels))
-    gf_full = [classMap[key] for key in classkeys]
+    classmap = Dict(level => idx for (idx, level) in enumerate(classlevels))
+    gf_full = [classmap[key] for key in classkeys]
     gf = gf_full[.!where_y]
 
     Xₒ = Matrix{Float64}(Xwork[.!where_y, randomcols])
