@@ -89,6 +89,7 @@ function preparetwolevelimputationinputs(
     return (
         X = Xwork,
         types = typeswork,
+        classcols = classcols,
         randomcols = randomcols,
         fixedcols = fixedcols,
         gf_full = gf_full,

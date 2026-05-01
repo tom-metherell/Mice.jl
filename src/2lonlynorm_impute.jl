@@ -50,18 +50,16 @@ function _imputationlevel2(
     kwargs...
     )
 
-    classcols = findall(types .== -2)
+    prep = preparetwolevelimputationinputs(X, where_y, types)
+    classcols = prep.classcols
+
     if isempty(classcols)
         throw(ArgumentError("Two-level imputation method specified, but no class variable (coded -2) found."))
     end
 
     # Extract class information
-    classmatrix = Matrix{Float64}(X[:, classcols])
-    classkeys = [Tuple(classmatrix[r, c] for c in axes(classmatrix, 2)) for r in axes(classmatrix, 1)]
-    classlevels = unique(classkeys)
-    nclasses = length(classlevels)
-    classmap = Dict(level => idx for (idx, level) in enumerate(classlevels))
-    gf_full = [classmap[key] for key in classkeys]
+    nclasses = prep.nclasses
+    gf_full = prep.gf_full
 
     # Check for partial missing level-2 data
     # (level-2 data should be constant within each class)
@@ -77,7 +75,7 @@ function _imputationlevel2(
     end
 
     # Aggregate level-1 predictors to level-2 by class means
-    randomcols = findall(types .== 2)
+    randomcols = prep.randomcols
     X2lagg = Matrix{Float64}(undef, nclasses, length(randomcols))
     for i in 1:nclasses
         classindex = findall(gf_full .== i)
