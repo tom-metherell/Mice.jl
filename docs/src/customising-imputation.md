@@ -3,13 +3,13 @@
 You can customise various aspects of the imputation setup by passing keyword arguments to `mice`. These are described above. You can also use some of the functions below to define objects that you can customise to alter how `mice` handles the imputation.
 
 ## Locations to impute
-You can customise which data points are imputed by manipulating the `imputeWhere` argument. By default, this will specify that all missing data are to be imputed (using the function `findMissings()`).
+You can customise which data points are imputed by manipulating the `imputewhere` argument. By default, this will specify that all missing data are to be imputed (using the function `findmissings()`).
 
 ```@docs
-findMissings
+findmissings
 ```
 
-You can over-impute existing data by setting the locations of non-missing data to `true` in the relevant vector in `imputeWhere`. For example, to over-impute the value of `col1` for the first row, you could do the following:
+You can over-impute existing data by setting the locations of non-missing data to `true` in the relevant vector in `imputewhere`. For example, to over-impute the value of `col1` for the first row, you could do the following:
 
 ```julia
 using DataFrames, Mice, Random
@@ -20,7 +20,7 @@ myData = DataFrame(
     :col3 => Vector{Union{Missing, String}}([missing, "2", missing, "4", missing])
 );
 
-myImputeWhere = findMissings(myData)
+myImputeWhere = findmissings(myData)
 # 1-dimensional AxisArray{Vector{Bool},1,...} with axes:
 #     :row, ["col1", "col2", "col3"]
 # And data, a 3-element Vector{Vector{Bool}}:
@@ -38,11 +38,11 @@ myImputeWhere
 #  [1, 0, 1, 0, 1]
 
 # Not run
-mice(myData, imputeWhere = myImputeWhere)
+mice(myData, imputewhere = myImputeWhere)
 ```
 
 ## Visit sequence
-The visit sequence is the order in which the variables are imputed. By default, `mice` sorts the variables in order of missingness (lowest to highest) via the internal function `makeMonotoneSequence`. You can instead define your own visit sequence by creating a vector of variable names in your desired order and passing that to `mice`. For example:
+The visit sequence is the order in which the variables are imputed. By default, `mice` sorts the variables in order of missingness (lowest to highest) via the internal function `makemonotonesequence`. You can instead define your own visit sequence by creating a vector of variable names in your desired order and passing that to `mice`. For example:
 
 ```julia
 using DataFrames, Mice, Random
@@ -53,7 +53,7 @@ myData = DataFrame(
     :col3 => Vector{Union{Missing, String}}([missing, "2", missing, "4", missing])
 );
 
-Mice.makeMonotoneSequence(findMissings(myData))
+Mice.makemonotonesequence(findmissings(myData))
 # 3-element Vector{String}:
 #  "col2"
 #  "col1"
@@ -68,7 +68,7 @@ myVisitSequence1 = names(myData)
 Random.seed!(1234); # Set random seed for reproducibility
 
 # Not run
-mice(myData, visitSequence = myVisitSequence1)
+mice(myData, visitsequence = myVisitSequence1)
 
 myVisitSequence2 = ["col3", "col1", "col2"]
 # 3-element Vector{String}:
@@ -77,20 +77,20 @@ myVisitSequence2 = ["col3", "col1", "col2"]
 # "col2"
 
 # Not run
-mice(myData, visitSequence = myVisitSequence2)
+mice(myData, visitsequence = myVisitSequence2)
 ```
 
 Assuming that the imputations converge normally, changing the visit sequence should not dramatically affect the output. However, it can be useful to change the visit sequence if you want to impute variables in a particular order for a specific reason. The sequence used by default in `Mice.jl` can make convergence faster in cases where the data follow a (near-)"monotone" missing data pattern [van_buuren_flexible_2018](@cite).
 
-You can leave variables out of the `visitSequence` to cause `mice()` to not impute them.
+You can leave variables out of the `visitsequence` to cause `mice()` to not impute them.
 
 ## Predictor matrix
 The predictor matrix defines which variables in the imputation model are used to predict which others. By default, every variable predicts every other variable, but there are a wide range of cases in which this is not desirable. For example, if your dataset includes an ID column, this is clearly useless for imputation and should be ignored.
 
-To create a default predictor matrix that you can edit, you can use the function `makePredictorMatrix`.
+To create a default predictor matrix that you can edit, you can use the function `makepredictormatrix`.
 
 ```@docs
-makePredictorMatrix
+makepredictormatrix
 ```
 
 You can then edit the predictor matrix to remove any predictive relationships that you do not want to include in the imputation model. For example:
@@ -105,7 +105,7 @@ myData = DataFrame(
     :col3 => Vector{Union{Missing, String}}([missing, "2", missing, "4", missing])
 );
 
-myPredictorMatrix = makePredictorMatrix(myData)
+myPredictorMatrix = makepredictormatrix(myData)
 # 2-dimensional AxisArray{Int64,2,...} with axes:
 #     :row, ["id", "col1", "col2", "col3"]
 #     :col, ["id", "col1", "col2", "col3"]
@@ -142,7 +142,7 @@ myPredictorMatrix
 Random.seed!(1234); # Set random seed for reproducibility
 
 # Not run
-mice(myData, predictorMatrix = myPredictorMatrix)
+mice(myData, predictormatrix = myPredictorMatrix)
 ```
 
 For the predictor matrix in two-level imputation, use `1` for fixed effects, `2` for fixed and random effects and `-2` for grouping variables.
@@ -185,10 +185,10 @@ The imputation methods are the functions that are used to impute each variable. 
 
 The `mean` and `sample` methods should not generally be used.
 
-To create a default methods vector, use the function `makeMethods`.
+To create a default methods vector, use the function `makemethods`.
 
 ```@docs
-makeMethods
+makemethods
 ```
 
 You can then customise the vector as needed. For example:
@@ -203,7 +203,7 @@ myData = DataFrame(
     :col3 => Vector{Union{Missing, String}}([missing, "2", missing, "4", missing])
 );
 
-myMethods = makeMethods(myData)
+myMethods = makemethods(myData)
 # 1-dimensional AxisArray{String,1,...} with axes:
 #     :row, ["id", "col1", "col2", "col3"]
 # And data, a 4-element Vector{String}:
@@ -245,7 +245,7 @@ You can now also define your own imputation methods.
 
 ```@docs
 Imputer
-registerImputer!
+registerimputer!
 ```
 
 ```@raw html

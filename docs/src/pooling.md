@@ -18,14 +18,14 @@ myData = CSV.read("test/data/cirrhosis.csv", DataFrame, missingstring = "NA");
 
 myData.Stage = categorical(myData.Stage); # Making the Stage variable categorical
 
-myPredictorMatrix = makePredictorMatrix(myData);
+myPredictorMatrix = makepredictormatrix(myData);
 myPredictorMatrix[:, ["ID", "N_Days"]] .= false;
 
 Random.seed!(1234); # Set random seed for reproducibility
 
-imputedData = mice(myData, predictorMatrix = myPredictorMatrix);
+imputeddata = mice(myData, predictormatrix = myPredictorMatrix);
 
-analysesLMs = with(imputedData, data -> lm(@formula(N_Days ~ Drug + Age + Stage + Bilirubin), data));
+analysesLMs = with(imputeddata, data -> lm(@formula(N_Days ~ Drug + Age + Stage + Bilirubin), data));
 # returns Mira of linear model outputs from each imputed dataset
 
 resultsLMs = pool(analysesLMs);

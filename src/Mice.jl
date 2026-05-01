@@ -24,69 +24,69 @@ module Mice
 
     The imputed data are stored as `imputations` (one column per imputation).
 
-    The locations at which data have been imputed are stored as `imputeWhere`.
+    The locations at which data have been imputed are stored as `imputewhere`.
 
     The number of imputations is stored as `m`.
 
     The imputation method for each variable is stored as `methods`.
 
-    The predictor matrix is stored as `predictorMatrix`.
+    The predictor matrix is stored as `predictormatrix`.
 
-    The order in which the variables are imputed is stored as `visitSequence`.
+    The order in which the variables are imputed is stored as `visitsequence`.
 
     The number of iterations is stored as `iter`.
 
-    The mean of each variable across the imputations is stored as `meanTraces`.
+    The mean of each variable across the imputations is stored as `meantraces`.
 
-    The variance of each variable across the imputations is stored as `varTraces`.
+    The variance of each variable across the imputations is stored as `vartraces`.
     """
     struct Mids
         data
         imputations::Vector{Matrix}
-        imputeWhere::AxisVector{Vector{Bool}}
+        imputewhere::AxisVector{Vector{Bool}}
         m::Int
         methods::AxisVector{String}
-        predictorMatrix::AxisMatrix{Int}
-        visitSequence::Vector{String}
+        predictormatrix::AxisMatrix{Int}
+        visitsequence::Vector{String}
         iter::Int
-        meanTraces::Vector{Matrix{Union{Missing, Float64}}}
-        varTraces::Vector{Matrix{Union{Missing, Float64}}}
-        loggedEvents::Vector{String}
+        meantraces::Vector{Matrix{Union{Missing, Float64}}}
+        vartraces::Vector{Matrix{Union{Missing, Float64}}}
+        loggedevents::Vector{String}
 
-        function Mids(data, imputations, imputeWhere, m, methods, predictorMatrix, visitSequence, iter, meanTraces, varTraces, loggedEvents)
+        function Mids(data, imputations, imputewhere, m, methods, predictormatrix, visitsequence, iter, meantraces, vartraces, loggedevents)
             istable(data) || throw(ArgumentError("Data not provided as a Tables.jl table."))
-            new(data, imputations, imputeWhere, m, methods, predictorMatrix, visitSequence, iter, meanTraces, varTraces, loggedEvents)
+            new(data, imputations, imputewhere, m, methods, predictormatrix, visitsequence, iter, meantraces, vartraces, loggedevents)
         end
     end
 
     include("imputers.jl")
-    include("makeFunctions.jl")
+    include("makefunctions.jl")
     include("with.jl")
     include("pool.jl")
     include("sampler.jl")
-    include("meanImpute.jl")
-    include("normImpute.jl")
-    include("2lNormImpute.jl")
-    include("2lPmmImpute.jl")
-    include("2lonlyMeanImpute.jl")
-    include("2lonlyNormImpute.jl")
-    include("2lonlyPmmImpute.jl")
-    include("2lonlyModeImpute.jl")
+    include("mean_impute.jl")
+    include("norm_impute.jl")
+    include("2lnorm_impute.jl")
+    include("2lpmm_impute.jl")
+    include("2lonlymean_impute.jl")
+    include("2lonlynorm_impute.jl")
+    include("2lonlypmm_impute.jl")
+    include("2lonlymode_impute.jl")
     include("pacify.jl")
-    include("pmmImpute.jl")
+    include("pmm_impute.jl")
     include("quantify.jl")
-    include("sampleImpute.jl")
+    include("sample_impute.jl")
 
     """
         mice(
             data;
             m::Int = 5,
-            imputeWhere::AxisVector{Vector{Bool}} = findMissings(data),
-            visitSequence::Vector{String} = makeMonotoneSequence(imputeWhere),
-            methods::AxisVector{String} = makeMethods(data),
-            predictorMatrix::AxisMatrix{Int} = makePredictorMatrix(data),
+            imputewhere::AxisVector{Vector{Bool}} = findmissings(data),
+            visitsequence::Vector{String} = makemonotonesequence(imputewhere),
+            methods::AxisVector{String} = makemethods(data),
+            predictormatrix::AxisMatrix{Int} = makepredictormatrix(data),
             iter::Int = 10,
-            progressReports::Bool = true,
+            progressreports::Bool = true,
             kwargs...
             )
 
@@ -97,10 +97,10 @@ module Mice
 
     The number of imputations created is specified by `m`.
 
-    `imputeWhere` is an `AxisVector` of boolean vectors specifying where data are to be
+    `imputewhere` is an `AxisVector` of boolean vectors specifying where data are to be
     imputed. The default is to impute all missing data.
 
-    The variables will be imputed in the order specified by `visitSequence`. 
+    The variables will be imputed in the order specified by `visitsequence`. 
     The default is sorted by proportion of missing data in ascending order; 
     the order can be customised using a vector of variable names in the desired order.
     Any column not to be imputed at all can be left out of the visit sequence.
@@ -109,88 +109,88 @@ module Mice
     The default is to use predictive mean matching (`pmm`) for all variables.
     Any variable not to be imputed can be marked as such using an empty string ("").
 
-    The predictor matrix is specified by the `AxisMatrix` `predictorMatrix`. 
+    The predictor matrix is specified by the `AxisMatrix` `predictormatrix`. 
     The default is to use all other variables as predictors for each variable. 
     Any variable not predicting another variable can be marked as such in the matrix
     using a 0.
 
     The number of iterations is specified by `iter`.
 
-    If `progressReports` is `true`, a progress indicator will be displayed in the console.
+    If `progressreports` is `true`, a progress indicator will be displayed in the console.
     """
     function mice(
         data::T;
         m::Int = 5,
-        imputeWhere::AxisArray{Vector{Bool}, 1, Vector{Vector{Bool}}} = findMissings(data),
-        visitSequence::Vector{String} = makeMonotoneSequence(imputeWhere),
-        methods::AxisArray{String, 1, Vector{String}} = makeMethods(data),
-        predictorMatrix::AxisArray{Int, 2, Matrix{Int}} = makePredictorMatrix(data),
+        imputewhere::AxisArray{Vector{Bool}, 1, Vector{Vector{Bool}}} = findmissings(data),
+        visitsequence::Vector{String} = makemonotonesequence(imputewhere),
+        methods::AxisArray{String, 1, Vector{String}} = makemethods(data),
+        predictormatrix::AxisArray{Int, 2, Matrix{Int}} = makepredictormatrix(data),
         iter::Int = 10,
-        progressReports::Bool = true,
+        progressreports::Bool = true,
         imputers::AbstractDict{String, <:Imputer} = IMPUTERS,
         kwargs...
         ) where {T}
         istable(data) || throw(ArgumentError("Data not provided as a Tables.jl table."))
 
         # If nothing to be imputed: throw error
-        if sum(sum.(imputeWhere)) == 0
+        if sum(sum.(imputewhere)) == 0
             throw(ArgumentError("Provided dataset contains no missing data to be imputed."))
         end
 
         # Initialise working data, with imputed locations replaced with random draws from the observed data
-        workingData = initialiseWorkingData(data, imputeWhere, m, visitSequence, methods, predictorMatrix)
+        workingdata = initialiseworkingdata(data, imputewhere, m, visitsequence, methods, predictormatrix)
 
         # Replacing categorical values with dummies where necessary
-        workingDataPacified, workingDataLevels = pacifyWorkingData(workingData)
+        workingdatapacified, workingdatalevels = pacifyworkingdata(workingdata)
 
         # Initialise mean and variance traces (for plotting)
-        meanTraces = initialiseTraces(visitSequence, iter, m)
-        varTraces = initialiseTraces(visitSequence, iter, m)
+        meantraces = initialisetraces(visitsequence, iter, m)
+        vartraces = initialisetraces(visitsequence, iter, m)
 
         # Initialise log of events
-        loggedEvents = Vector{String}([])
+        loggedevents = Vector{String}([])
 
         # Print header of progress indicator
-        if progressReports
+        if progressreports
             @printf "======= MICE progress =======\n"
         end
 
         # For each iteration, for each variable
-        for iterCounter in 1:iter, i in eachindex(visitSequence)
+        for itercounter in 1:iter, i in eachindex(visitsequence)
             # Run the Gibbs sampler
-            sampler!(workingData, workingDataPacified, workingDataLevels, meanTraces, varTraces, imputeWhere, m, visitSequence, methods, predictorMatrix, iter, iterCounter, i, progressReports, loggedEvents; imputers = imputers, kwargs...)
+            sampler!(workingdata, workingdatapacified, workingdatalevels, meantraces, vartraces, imputewhere, m, visitsequence, methods, predictormatrix, iter, itercounter, i, progressreports, loggedevents; imputers = imputers, kwargs...)
         end
 
         # Clear the progress indicator
-        if progressReports
+        if progressreports
             @printf "\u1b[A\33[2K\n\33[2K\n\33[2K\n\33[2K\n\33[2K\n\33[2K\n\33[2K\u1b[A\u1b[A\u1b[A\u1b[A\u1b[A\u1b[A\r"
         end
 
-        imputations = [reduce(hcat, [workingData[yVar][j][imputeWhere[yVar]] for j in 1:m]) for yVar in visitSequence]
+        imputations = [reduce(hcat, [workingdata[yvar][j][imputewhere[yvar]] for j in 1:m]) for yvar in visitsequence]
 
         # Define Mids output
-        midsObj = Mids(
+        midsobj = Mids(
             data,
             imputations,
-            imputeWhere,
+            imputewhere,
             m,
             methods,
-            predictorMatrix,
-            visitSequence,
+            predictormatrix,
+            visitsequence,
             iter,
-            meanTraces,
-            varTraces,
-            loggedEvents
+            meantraces,
+            vartraces,
+            loggedevents
         )
 
-        return midsObj
+        return midsobj
     end
 
     """
         mice(
             mids::Mids;
             iter::Int = 10,
-            progressReports::Bool = true,
+            progressreports::Bool = true,
             kwargs...
             )
 
@@ -198,13 +198,13 @@ module Mice
 
     The number of *additional* iterations is specified by `iter`.
 
-    `progressReports` can also be specified: all other arguments will be
+    `progressreports` can also be specified: all other arguments will be
     ignored or passed to inner functions.
     """
     function mice(
         mids::Mids;
         iter::Int = 10,
-        progressReports::Bool = true,
+        progressreports::Bool = true,
         imputers::AbstractDict{String, <:Imputer} = IMPUTERS,
         kwargs...
         )
@@ -212,67 +212,67 @@ module Mice
         # Grab existing parameters from the input Mids
         data = mids.data
         imputations = mids.imputations
-        imputeWhere = mids.imputeWhere
+        imputewhere = mids.imputewhere
         m = mids.m
         methods = mids.methods
-        predictorMatrix = mids.predictorMatrix
-        visitSequence = mids.visitSequence
+        predictormatrix = mids.predictormatrix
+        visitsequence = mids.visitsequence
         prevIter = mids.iter
-        prevMeanTraces = mids.meanTraces
-        prevVarTraces = mids.varTraces
-        loggedEvents = mids.loggedEvents
+        prevMeanTraces = mids.meantraces
+        prevVarTraces = mids.vartraces
+        loggedevents = mids.loggedevents
 
         # Initialise working data & version with dummy variables
-        workingData = initialiseWorkingData(data, imputations, imputeWhere, m, visitSequence, methods, predictorMatrix)
+        workingdata = initialiseworkingdata(data, imputations, imputewhere, m, visitsequence, methods, predictormatrix)
 
         # Replacing categorical values with dummies where necessary
-        workingDataPacified, workingDataLevels = pacifyWorkingData(workingData)
+        workingdatapacified, workingdatalevels = pacifyworkingdata(workingdata)
 
         # Initialise new mean and variance traces
-        meanTraces = initialiseTraces(visitSequence, iter+prevIter, m)
-        for w in eachindex(meanTraces)
-            meanTraces[w][1:prevIter, :] = prevMeanTraces[w]
+        meantraces = initialisetraces(visitsequence, iter+prevIter, m)
+        for w in eachindex(meantraces)
+            meantraces[w][1:prevIter, :] = prevMeanTraces[w]
         end
 
-        varTraces = initialiseTraces(visitSequence, iter+prevIter, m)
-        for w in eachindex(varTraces)
-            varTraces[w][1:prevIter, :] = prevVarTraces[w]
+        vartraces = initialisetraces(visitsequence, iter+prevIter, m)
+        for w in eachindex(vartraces)
+            vartraces[w][1:prevIter, :] = prevVarTraces[w]
         end
 
         # Print header of progress indicator
-        if progressReports
+        if progressreports
             @printf "======= MICE progress =======\n"
         end
 
         # For each new iteration, for each variable
-        for iterCounter in prevIter+1:prevIter+iter, i in eachindex(visitSequence)
+        for itercounter in prevIter+1:prevIter+iter, i in eachindex(visitsequence)
             # Run the Gibbs sampler
-            sampler!(workingData, workingDataPacified, workingDataLevels, meanTraces, varTraces, imputeWhere, m, visitSequence, methods, predictorMatrix, prevIter+iter, iterCounter, i, progressReports, loggedEvents; imputers = imputers, kwargs...)
+            sampler!(workingdata, workingdatapacified, workingdatalevels, meantraces, vartraces, imputewhere, m, visitsequence, methods, predictormatrix, prevIter+iter, itercounter, i, progressreports, loggedevents; imputers = imputers, kwargs...)
         end
 
         # Clear the progress indicator
-        if progressReports
+        if progressreports
             @printf "\u1b[A\33[2K\n\33[2K\n\33[2K\n\33[2K\n\33[2K\n\33[2K\n\33[2K\u1b[A\u1b[A\u1b[A\u1b[A\u1b[A\u1b[A\r"
         end
 
-        imputations = [reduce(hcat, [workingData[yVar][j][imputeWhere[yVar]] for j in 1:m]) for yVar in visitSequence]
+        imputations = [reduce(hcat, [workingdata[yvar][j][imputewhere[yvar]] for j in 1:m]) for yvar in visitsequence]
 
         # Define the new Mids output
-        midsObj = Mids(
+        midsobj = Mids(
             data,
             imputations,
-            imputeWhere,
+            imputewhere,
             m,
             methods,
-            predictorMatrix,
-            visitSequence,
+            predictormatrix,
+            visitsequence,
             prevIter+iter,
-            meanTraces,
-            varTraces,
-            loggedEvents
+            meantraces,
+            vartraces,
+            loggedevents
         )
         
-        return midsObj
+        return midsobj
     end
 
     """
@@ -290,11 +290,11 @@ module Mice
         )
 
         # Find index of variable in the visit sequence
-        var_no = findfirst(mids.visitSequence .== var)
+        var_no = findfirst(mids.visitsequence .== var)
 
         # Plot the means and standard deviations across iterations
-        a = plot(mids.meanTraces[var_no], xlabel = "Iteration", ylabel = "Mean")
-        b = plot(sqrt.(mids.varTraces[var_no]), xlabel = "Iteration", ylabel = "Standard deviation")
+        a = plot(mids.meantraces[var_no], xlabel = "Iteration", ylabel = "Mean")
+        b = plot(sqrt.(mids.vartraces[var_no]), xlabel = "Iteration", ylabel = "Standard deviation")
 
         # Combine plots in a 1x2 grid
         plot(a, b, layout = (1, 2), legend = false, title = var)
@@ -307,7 +307,7 @@ module Mice
             )
         
     Plots the mean and standard deviation of the imputed values for a given variable.
-    Here `var_no` is given as an integer (the index of the variable in the `visitSequence`).
+    Here `var_no` is given as an integer (the index of the variable in the `visitsequence`).
     """
     function plot(
         mids::Mids,
@@ -315,18 +315,18 @@ module Mice
         )
         
         # Find the variable name in the visit sequence
-        var = mids.visitSequence[var_no]
+        var = mids.visitsequence[var_no]
 
         # Plot the means and standard deviations across iterations
-        a = plot(mids.meanTraces[var_no], xlabel = "Iteration", ylabel = "Mean")
-        b = plot(sqrt.(mids.varTraces[var_no]), xlabel = "Iteration", ylabel = "Standard deviation")
+        a = plot(mids.meantraces[var_no], xlabel = "Iteration", ylabel = "Mean")
+        b = plot(sqrt.(mids.vartraces[var_no]), xlabel = "Iteration", ylabel = "Standard deviation")
 
         # Combine plots in a 1x2 grid
         plot(a, b, layout = (1, 2), legend = false, title = var)
     end
 
     """
-        bindImputations(
+        bindimputations(
             mids1::Mids,
             mids2::Mids
             )
@@ -335,7 +335,7 @@ module Mice
     same dataset, with the same imputation methods, predictor matrix, visit sequence and
     number of iterations. The numbers of imputations can be different.
     """
-    function bindImputations(
+    function bindimputations(
         mids1::Mids,
         mids2::Mids
         )
@@ -345,8 +345,8 @@ module Mice
             throw(ArgumentError("Cannot bind these Mids objects: they appear to result from different datasets."))
         end
 
-        imputeWhere = mids1.imputeWhere
-        if imputeWhere ≠ mids2.imputeWhere
+        imputewhere = mids1.imputewhere
+        if imputewhere ≠ mids2.imputewhere
             throw(ArgumentError("Cannot bind these Mids objects: the locations of imputed data are different."))
         end
 
@@ -355,13 +355,13 @@ module Mice
             throw(ArgumentError("Cannot bind these Mids objects: the imputation methods are different."))
         end
 
-        predictorMatrix = mids1.predictorMatrix
-        if predictorMatrix ≠ mids2.predictorMatrix
+        predictormatrix = mids1.predictormatrix
+        if predictormatrix ≠ mids2.predictormatrix
             throw(ArgumentError("Cannot bind these Mids objects: the predictor matrices are different."))
         end
 
-        visitSequence = mids1.visitSequence
-        if visitSequence ≠ mids2.visitSequence
+        visitsequence = mids1.visitsequence
+        if visitsequence ≠ mids2.visitsequence
             throw(ArgumentError("Cannot bind these Mids objects: the visit sequences are different."))
         end
 
@@ -371,7 +371,7 @@ module Mice
         end
 
         m = mids1.m + mids2.m
-        loggedEvents = vcat(mids1.loggedEvents, mids2.loggedEvents)
+        loggedevents = vcat(mids1.loggedevents, mids2.loggedevents)
 
         # Initialise new imputations object
         imputations = Vector{Matrix}(undef, length(mids1.imputations))
@@ -383,58 +383,58 @@ module Mice
         end
 
         # Initialise new mean and variance traces
-        meanTraces = Vector{Matrix}(undef, length(mids1.meanTraces))
-        varTraces = Vector{Matrix}(undef, length(mids1.varTraces))
+        meantraces = Vector{Matrix}(undef, length(mids1.meantraces))
+        vartraces = Vector{Matrix}(undef, length(mids1.vartraces))
         # Concatenate traces
-        for i in eachindex(meanTraces)
-            meanTraces[i] = hcat(mids1.meanTraces[i], mids2.meanTraces[i])
+        for i in eachindex(meantraces)
+            meantraces[i] = hcat(mids1.meantraces[i], mids2.meantraces[i])
         end
-        for i in eachindex(varTraces)
-            varTraces[i] = hcat(mids1.varTraces[i], mids2.varTraces[i])
+        for i in eachindex(vartraces)
+            vartraces[i] = hcat(mids1.vartraces[i], mids2.vartraces[i])
         end    
         
         # Define the new Mids output
-        midsObj = Mids(
+        midsobj = Mids(
             data,
             imputations,
-            imputeWhere,
+            imputewhere,
             m,
             methods,
-            predictorMatrix,
-            visitSequence,
+            predictormatrix,
+            visitsequence,
             iter,
-            meanTraces,
-            varTraces,
-            loggedEvents
+            meantraces,
+            vartraces,
+            loggedevents
         )
 
-        return midsObj
+        return midsobj
     end
 
     """
-        bindImputations(
-            midsVector::Vector{Mids}
+        bindimputations(
+            midsvector::Vector{Mids}
             )
 
     Combines a vector of `Mids` objects into one `Mids` object. They must all have been
     created from the same dataset with the same imputation methods, predictor matrix,
     visit sequence and number of iterations. The number of imputations can be different.
     """
-    function bindImputations(
-        midsVector::Vector{Mids}
+    function bindimputations(
+        midsvector::Vector{Mids}
         )
 
-        midsObj = midsVector[1]
+        midsobj = midsvector[1]
     
-        for i in eachindex(midsVector)[2:end]
-            midsObj = bindImputations(midsObj, midsVector[i])
+        for i in eachindex(midsvector)[2:end]
+            midsobj = bindimputations(midsobj, midsvector[i])
         end
 
-        return midsObj
+        return midsobj
     end
 
     """
-        bindImputations(
+        bindimputations(
             mids...
             )
 
@@ -442,16 +442,16 @@ module Mice
     created from the same dataset with the same imputation methods, predictor matrix, visit
     sequence and number of iterations. The number of imputations can be different.
     """
-    function bindImputations(
+    function bindimputations(
         mids...
         )
 
-        midsObj = reduce(bindImputations, mids)
+        midsobj = reduce(bindimputations, mids)
 
-        return(midsObj)
+        return(midsobj)
     end
 
-    export bindImputations, complete, findMissings, Imputer, listComplete, makeMethods, makePredictorMatrix, mice, Mids, Mipo, Mira, pool, plot, registerImputer!, with
+    export bindimputations, complete, findmissings, Imputer, listcomplete, makemethods, makepredictormatrix, mice, Mids, Mipo, Mira, pool, plot, registerimputer!, with
 
     include("precompile.jl")
 end

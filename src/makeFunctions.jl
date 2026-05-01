@@ -1,35 +1,35 @@
 """
-    findMissings(data)
+    findmissings(data)
 
 Returns an AxisVector of boolean vectors describing the locations of missing data in each
 column of the provided data table.
 """
-function findMissings(data::T)::AxisArray{Vector{Bool}, 1, Vector{Vector{Bool}}} where{T}
+function findmissings(data::T)::AxisArray{Vector{Bool}, 1, Vector{Vector{Bool}}} where{T}
     istable(data) || throw(ArgumentError("Data not provided as a Tables.jl table."))
 
-    imputeWhere = AxisArray(
+    imputewhere = AxisArray(
         [Vector{Bool}(ismissing.(getcolumn(data, i))) for i in columnnames(data)],
         collect(string.(columnnames(data)))
     )
 
-    return imputeWhere
+    return imputewhere
 end
 
-function makeMonotoneSequence(imputeWhere::AxisArray{Vector{Bool}, 1, Vector{Vector{Bool}}})::Vector{String}
+function makemonotonesequence(imputewhere::AxisArray{Vector{Bool}, 1, Vector{Vector{Bool}}})::Vector{String}
     # Sort the data frame names vector by missingness
-    visitSequence = axes(imputeWhere)[1][sortperm(sum.(imputeWhere))][sum(sum.(imputeWhere) .== 0)+1:end]
+    visitsequence = axes(imputewhere)[1][sortperm(sum.(imputewhere))][sum(sum.(imputewhere) .== 0)+1:end]
 
-    return visitSequence
+    return visitsequence
 end
 
 """
-    makeMethods(data)
+    makemethods(data)
 
 Returns an AxisVector of strings defining the method by which each variable in `data`
 should be imputed in the `mice()` function. The default method is predictive mean matching
 (pmm).
 """
-function makeMethods(data::T) where {T}
+function makemethods(data::T) where {T}
     istable(data) || throw(ArgumentError("Data not provided as a Tables.jl table."))
 
     names = collect(string.(columnnames(data)))
@@ -45,21 +45,21 @@ function makeMethods(data::T) where {T}
 end
 
 """
-    makePredictorMatrix(data)
+    makepredictormatrix(data)
 
 Returns an AxisMatrix of integers defining the predictors for each variable in `data`.
 The variables to be predicted are on the rows, and the predictors are on the columns.
 The default is to use all variables as predictors for all other variables (i.e. all
 1s except for the diagonal, which is 0).
 """
-function makePredictorMatrix(data::T) where {T}
+function makepredictormatrix(data::T) where {T}
     istable(data) || throw(ArgumentError("Data not provided as a Tables.jl table."))
 
     names = collect(string.(columnnames(data)))
     no = length(names)
 
     # Initialise the predictor matrix with 1s
-    predictorMatrix = AxisArray(
+    predictormatrix = AxisArray(
         fill(1, no, no),
         names,
         names
@@ -67,50 +67,50 @@ function makePredictorMatrix(data::T) where {T}
     
     # Set the diagonal to 0
     for i in 1:no
-        predictorMatrix[i, i] = 0
+        predictormatrix[i, i] = 0
     end
 
-    return predictorMatrix
+    return predictormatrix
 end
 
-function initialiseWorkingData(
+function initialiseworkingdata(
     data::T,
-    imputeWhere::AxisArray{Vector{Bool}, 1, Vector{Vector{Bool}}},
+    imputewhere::AxisArray{Vector{Bool}, 1, Vector{Vector{Bool}}},
     m::Int,
-    visitSequence::Vector{String},
+    visitsequence::Vector{String},
     methods::AxisArray{String, 1, Vector{String}},
-    predictorMatrix::AxisArray{Int, 2, Matrix{Int}}
+    predictormatrix::AxisArray{Int, 2, Matrix{Int}}
     ) where {T}
     istable(data) || throw(ArgumentError("Data not provided as a Tables.jl table."))
 
     # Select only variables that will predict another or will be imputed themselves
-    predictors = axes(predictorMatrix)[2][findall(col -> any(x -> x != 0, col), eachcol(predictorMatrix))]
-    imputed = visitSequence[findall(x -> methods[x] ≠ "", visitSequence)]
-    wdVars = collect(string.(columnnames(data)))[in.(collect(string.(columnnames(data))), Ref(vcat(imputed, predictors)))]
+    predictors = axes(predictormatrix)[2][findall(col -> any(x -> x != 0, col), eachcol(predictormatrix))]
+    imputed = visitsequence[findall(x -> methods[x] ≠ "", visitsequence)]
+    wdvars = collect(string.(columnnames(data)))[in.(collect(string.(columnnames(data))), Ref(vcat(imputed, predictors)))]
 
     # Initialise working data vectors
-    workingData = AxisArray(
-        [[getcolumn(data, Symbol(var)) isa CategoricalArray ? CategoricalArray(getcolumn(data, Symbol(var))) : Vector{eltype(getcolumn(data, Symbol(var)))}(getcolumn(data, Symbol(var))) for i in 1:m] for var in wdVars],
-        wdVars
+    workingdata = AxisArray(
+        [[getcolumn(data, Symbol(var)) isa CategoricalArray ? CategoricalArray(getcolumn(data, Symbol(var))) : Vector{eltype(getcolumn(data, Symbol(var)))}(getcolumn(data, Symbol(var))) for i in 1:m] for var in wdvars],
+        wdvars
     )
 
-    for var ∈ wdVars
+    for var ∈ wdvars
         # If the variable is to be imputed
         if var ∈ imputed
             # Get locations of data to be imputed in column
-            whereY = imputeWhere[var]
+            where_y = imputewhere[var]
 
             # Count data to be imputed in column
-            whereCount = sum(whereY)
+            wherecount = sum(where_y)
 
             # For each imputation
             for j in 1:m
                 # Initialise using a random sample from the observed data
-                workingData[var][j][whereY] = IMPUTERS["sample"].f(
-                    workingData[var][j],
+                workingdata[var][j][where_y] = IMPUTERS["sample"].f(
+                    workingdata[var][j],
                     nothing,
-                    whereY,
-                    whereCount,
+                    where_y,
+                    wherecount,
                     var,
                     0,
                     j,
@@ -119,75 +119,75 @@ function initialiseWorkingData(
             end
 
             # Convert to non-missing type
-            if workingData[var][1] isa CategoricalArray
-                workingData[var] = [CategoricalArray{nonmissingtype(eltype(workingData[var][1]))}(workingData[var][j]) for j in 1:m]
+            if workingdata[var][1] isa CategoricalArray
+                workingdata[var] = [CategoricalArray{nonmissingtype(eltype(workingdata[var][1]))}(workingdata[var][j]) for j in 1:m]
             else
-                workingData[var] = convert(Vector{Vector{nonmissingtype(eltype(workingData[var][1]))}}, workingData[var])
+                workingdata[var] = convert(Vector{Vector{nonmissingtype(eltype(workingdata[var][1]))}}, workingdata[var])
             end
         end
     end
 
-    return workingData
+    return workingdata
 end
 
-function initialiseWorkingData(
+function initialiseworkingdata(
     data::T,
     imputations::Vector{Matrix},
-    imputeWhere::AxisArray{Vector{Bool}, 1, Vector{Vector{Bool}}},
+    imputewhere::AxisArray{Vector{Bool}, 1, Vector{Vector{Bool}}},
     m::Int,
-    visitSequence::Vector{String},
+    visitsequence::Vector{String},
     methods::AxisArray{String, 1, Vector{String}},
-    predictorMatrix::AxisArray{Int, 2, Matrix{Int}}
+    predictormatrix::AxisArray{Int, 2, Matrix{Int}}
     ) where {T}
     istable(data) || throw(ArgumentError("Data not provided as a Tables.jl table."))
 
     # Comments as above
-    predictors = axes(predictorMatrix)[2][findall(col -> any(x -> x != 0, col), eachcol(predictorMatrix))]
-    imputed = visitSequence[findall(x -> methods[x] ≠ "", visitSequence)]
-    wdVars = collect(string.(columnnames(data)))[in.(collect(string.(columnnames(data))), Ref(vcat(imputed, predictors)))]
+    predictors = axes(predictormatrix)[2][findall(col -> any(x -> x != 0, col), eachcol(predictormatrix))]
+    imputed = visitsequence[findall(x -> methods[x] ≠ "", visitsequence)]
+    wdvars = collect(string.(columnnames(data)))[in.(collect(string.(columnnames(data))), Ref(vcat(imputed, predictors)))]
 
     # Initialise working data vectors
-    workingData = AxisArray(
-        [[getcolumn(data, Symbol(var)) isa CategoricalArray ? CategoricalArray(getcolumn(data, Symbol(var))) : Vector{eltype(getcolumn(data, Symbol(var)))}(getcolumn(data, Symbol(var))) for i in 1:m] for var in wdVars],
-        wdVars
+    workingdata = AxisArray(
+        [[getcolumn(data, Symbol(var)) isa CategoricalArray ? CategoricalArray(getcolumn(data, Symbol(var))) : Vector{eltype(getcolumn(data, Symbol(var)))}(getcolumn(data, Symbol(var))) for i in 1:m] for var in wdvars],
+        wdvars
     )
 
-    for var ∈ wdVars
+    for var ∈ wdvars
         # If the variable is to be imputed
         if var ∈ imputed
             # For each imputation
             for j in 1:m
                 # Initialise using the provided imputations
-                workingData[var][j][imputeWhere[var]] = imputations[findfirst(visitSequence .== var)][:, j]
+                workingdata[var][j][imputewhere[var]] = imputations[findfirst(visitsequence .== var)][:, j]
             end
 
             # Convert to non-missing type
-            if workingData[var][1] isa CategoricalArray
-                for j in eachindex(workingData[var])
-                    workingData[var][j] = convert(CategoricalArray{nonmissingtype(eltype(workingData[var][1]))}, workingData[var][j])
+            if workingdata[var][1] isa CategoricalArray
+                for j in eachindex(workingdata[var])
+                    workingdata[var][j] = convert(CategoricalArray{nonmissingtype(eltype(workingdata[var][1]))}, workingdata[var][j])
                 end
             else
-                workingData[var] = convert(Vector{Vector{nonmissingtype(eltype(workingData[var][1]))}}, workingData[var])
+                workingdata[var] = convert(Vector{Vector{nonmissingtype(eltype(workingdata[var][1]))}}, workingdata[var])
             end
         end
     end
 
-    return workingData
+    return workingdata
 end
 
 # Allow US spelling of initialise
-const initializeWorkingData = initialiseWorkingData
+const initializeworkingdata = initialiseworkingdata
 
-function initialiseTraces(
-    visitSequence::Vector{String},
+function initialisetraces(
+    visitsequence::Vector{String},
     iter::Int,
     m::Int
     )
 
-    traces = [Matrix{Float64}(undef, iter, m) for _ = eachindex(visitSequence)]
+    traces = [Matrix{Float64}(undef, iter, m) for _ = eachindex(visitsequence)]
 
     return traces
 end
 
 # Allow US spelling of initialise
-const initializeTraces = initialiseTraces
+const initializetraces = initialisetraces

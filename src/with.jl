@@ -24,12 +24,12 @@ function complete(
     data = deepcopy(columntable(mids.data))
 
     # For each variable
-    for i in eachindex(mids.visitSequence)
+    for i in eachindex(mids.visitsequence)
         # If it was imputed
         if isassigned(mids.imputations, i)
             # Replace missings with imputed values
-            var = Symbol(mids.visitSequence[i])
-            data[var][mids.imputeWhere[string(var)]] = mids.imputations[i][:, imputation]
+            var = Symbol(mids.visitsequence[i])
+            data[var][mids.imputewhere[string(var)]] = mids.imputations[i][:, imputation]
         end
     end
 
@@ -39,14 +39,14 @@ function complete(
 end
 
 """
-    listComplete(
+    listcomplete(
         mids::Mids
         )
 
 Summarises the outputs of all imputations in a multiply imputed dataset (`Mids`) as a list
 of completed datasets.
 """
-function listComplete(
+function listcomplete(
     mids::Mids
     )
 
@@ -59,15 +59,15 @@ function listComplete(
     # For each imputation
     for i in 1:mids.m
         # Get the observed data
-        theseData = deepcopy(columntable(mids.data))
+        thesedata = deepcopy(columntable(mids.data))
         # For each variable
-        for j in eachindex(mids.visitSequence)
+        for j in eachindex(mids.visitsequence)
             # If it was imputed
             if isassigned(mids.imputations, j)
                 # Replace missings with imputed values
-                var = Symbol(mids.visitSequence[j])
-                theseData[var][mids.imputeWhere[string(var)]] = mids.imputations[j][:, i]
-                data[i] = T(theseData)
+                var = Symbol(mids.visitsequence[j])
+                thesedata[var][mids.imputewhere[string(var)]] = mids.imputations[j][:, i]
+                data[i] = T(thesedata)
             end
         end
     end
@@ -110,7 +110,7 @@ function with(
     analyses = Vector{Any}(undef, mids.m)
     
     # Fill in the missing values
-    datalist = listComplete(mids)
+    datalist = listcomplete(mids)
 
     # For each imputation
     for i in eachindex(datalist)

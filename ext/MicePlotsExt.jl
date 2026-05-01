@@ -1,5 +1,5 @@
 module MicePlotsExt
-    using Mice: makeMethods, mice
+    using Mice: makemethods, mice
     using Plots
     using PrecompileTools: @compile_workload
     using Random: rand, randn
@@ -17,11 +17,11 @@ module MicePlotsExt
             z = z
         )
 
-        methods = makeMethods(ct)
+        methods = makemethods(ct)
         methods .= ""
         methods["y"] = "norm"
 
-        mids = mice(ct, m = 1, iter = 1, methods = methods, progressReports = false)
+        mids = mice(ct, m = 1, iter = 1, methods = methods, progressreports = false)
         Plots.plot(mids, "y")
     end
 end

@@ -37,17 +37,17 @@ where:
 
 `m` is the number of imputations.
 
-`imputeWhere` is an `AxisVector` of vectors specifying which values of each variable are to be imputed. If not specified, all missing values are imputed. You can create a default `imputeWhere` vector (which you can then edit) using the function `findMissings(data)`.
+`imputewhere` is an `AxisVector` of vectors specifying which values of each variable are to be imputed. If not specified, all missing values are imputed. You can create a default `imputewhere` vector (which you can then edit) using the function `findmissings(data)`.
 
-`visitSequence` is a vector of column names specifying the order in which the columns should be imputed. If not specified, the order is determined automatically. You can skip the imputation of a column by removing it from the `visitSequence`.
+`visitsequence` is a vector of column names specifying the order in which the columns should be imputed. If not specified, the order is determined automatically. You can skip the imputation of a column by removing it from the `visitsequence`.
 
-`methods` is an `AxisVector` of imputation methods. If not specified, the default methods are used. Currently, `Mice.jl` supports only a few methods (`"pmm"`, `"rf"`, `"norm"`, `"mean"` and `"sample"`). You can make a default methods vector (which you can then edit) using the function `makeMethods(data)`.
+`methods` is an `AxisVector` of imputation methods. If not specified, the default methods are used. Currently, `Mice.jl` supports only a few methods (`"pmm"`, `"rf"`, `"norm"`, `"mean"` and `"sample"`). You can make a default methods vector (which you can then edit) using the function `makemethods(data)`.
 
-`predictorMatrix` is an `AxisMatrix` of predictors for each column (with the predictors in the columns of the matrix). If not specified, all other columns are used for each column. To prevent one column from predicting another, ensure that value of the corresponding cell is set to `0`. You can make a default predictor matrix (which you can then edit) using the function `makePredictorMatrix(data)`.
+`predictormatrix` is an `AxisMatrix` of predictors for each column (with the predictors in the columns of the matrix). If not specified, all other columns are used for each column. To prevent one column from predicting another, ensure that value of the corresponding cell is set to `0`. You can make a default predictor matrix (which you can then edit) using the function `makepredictormatrix(data)`.
 
 `iter` is the number of iterations to perform.
 
-`progressReports` is a boolean indicating whether to print progress reports.
+`progressreports` is a boolean indicating whether to print progress reports.
 
 #### Example
 ```julia
@@ -57,7 +57,7 @@ Random.seed!(1234)
 
 df = CSV.read("my_data.csv", DataFrame);
 
-imputedData = mice(df)
+imputeddata = mice(df)
 ```
 
 After imputation, you can use `plot(mids, variableNumber)` or `plot(mids, variableName)` to inspect the mean and variance trace plots.
@@ -81,9 +81,9 @@ Random.seed!(1234)
 
 df = CSV.read("my_data.csv", DataFrame);
 
-imputedData = mice(df);
+imputeddata = mice(df);
 
-analyses = with(imputedData, data -> glm(@formula(y ~ x1 + x2), data, Poisson(), LogLink()))
+analyses = with(imputeddata, data -> glm(@formula(y ~ x1 + x2), data, Poisson(), LogLink()))
 ```
 
 ### Pooling coefficients (`pool()`)
@@ -103,9 +103,9 @@ Random.seed!(1234)
 
 df = CSV.read("my_data.csv", DataFrame);
 
-imputedData = mice(df);
+imputeddata = mice(df);
 
-analyses = with(imputedData, data -> glm(@formula(y ~ x1 + x2), data, Poisson(), LogLink()));
+analyses = with(imputeddata, data -> glm(@formula(y ~ x1 + x2), data, Poisson(), LogLink()));
 
 results = pool(analyses)
 ```

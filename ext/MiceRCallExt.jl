@@ -12,18 +12,18 @@ module MiceRCallExt
             nt = rcopy(NamedTuple, s)
             Mids(
                 nt.data,
-                [Matrix(nt.imp[Symbol(i)]) for i in nt.visitSequence],
+                [Matrix(nt.imp[Symbol(i)]) for i in nt.visitsequence],
                 AxisArray(
                     [Vector{Bool}(nt.where[:, i]) for i in eachindex(1:size(nt.data, 2))], 
                     names(nt.data)
                 ),
                 Int(nt.m),
                 AxisArray(nt.method, names(nt.data)),
-                AxisArray(Matrix{Int}(nt.predictorMatrix), names(nt.data), names(nt.data)),
-                nt.visitSequence,
+                AxisArray(Matrix{Int}(nt.predictormatrix), names(nt.data), names(nt.data)),
+                nt.visitsequence,
                 Int(nt.iteration),
-                [nt.chainMean[findfirst(names(nt.data) .== i), :, :] for i in nt.visitSequence],
-                [nt.chainVar[findfirst(names(nt.data) .== i), :, :] for i in nt.visitSequence],
+                [nt.chainmean[findfirst(names(nt.data) .== i), :, :] for i in nt.visitsequence],
+                [nt.chainvar[findfirst(names(nt.data) .== i), :, :] for i in nt.visitsequence],
                 ["This Mids object originated in R. Logged events have not been transferred."]
             )
         finally
@@ -40,8 +40,8 @@ module MiceRCallExt
                 [
                     try 
                         AxisArray(
-                            eltype(mids.imputations[findfirst(mids.visitSequence .== i)]) <: CategoricalValue ? get.(mids.imputations[findfirst(mids.visitSequence .== i)]) : mids.imputations[findfirst(mids.visitSequence .== i)],
-                            string.(findall(mids.imputeWhere[mids.visitSequence[findfirst(mids.visitSequence .== i)]])),
+                            eltype(mids.imputations[findfirst(mids.visitsequence .== i)]) <: CategoricalValue ? get.(mids.imputations[findfirst(mids.visitsequence .== i)]) : mids.imputations[findfirst(mids.visitsequence .== i)],
+                            string.(findall(mids.imputewhere[mids.visitsequence[findfirst(mids.visitsequence .== i)]])),
                             string.(1:mids.m)
                         )
                     catch
@@ -55,13 +55,13 @@ module MiceRCallExt
                 collect(string.(columnnames(mids.data)))
             ),
             "m" => mids.m,
-            "where" => AxisArray(reduce(hcat, mids.imputeWhere), Base.axes(reduce(hcat, mids.imputeWhere), 1), axes(mids.imputeWhere)[1][:]),
+            "where" => AxisArray(reduce(hcat, mids.imputewhere), Base.axes(reduce(hcat, mids.imputewhere), 1), axes(mids.imputewhere)[1][:]),
             "blocks" => nothing,
             "call" => R"match.call()",
             "nmis" => nothing,
             "method" => AxisArray(mids.methods, collect(string.(columnnames(mids.data)))),
-            "predictorMatrix" => AxisArray(Matrix{Int}(mids.predictorMatrix), collect(string.(columnnames(mids.data))), collect(string.(columnnames(mids.data)))),
-            "visitSequence" => mids.visitSequence,
+            "predictormatrix" => AxisArray(Matrix{Int}(mids.predictormatrix), collect(string.(columnnames(mids.data))), collect(string.(columnnames(mids.data)))),
+            "visitsequence" => mids.visitsequence,
             "formulas" => nothing,
             "post" => nothing,
             "blots" => nothing,
@@ -70,18 +70,18 @@ module MiceRCallExt
             "iteration" => mids.iter,
             "lastSeedValue" => nothing,
             "chainMean" => AxisArray(
-                cat(dims = 3, [reduce(hcat, [[mids.meanTraces[findfirst(mids.visitSequence .== i)][j, k] for i in mids.visitSequence] for j in 1:mids.iter]) for k in 1:mids.m]...),
-                mids.visitSequence,
+                cat(dims = 3, [reduce(hcat, [[mids.meantraces[findfirst(mids.visitsequence .== i)][j, k] for i in mids.visitsequence] for j in 1:mids.iter]) for k in 1:mids.m]...),
+                mids.visitsequence,
                 string.(1:mids.iter),
                 ["Chain $k" for k in 1:mids.m]
             ),
             "chainVar" => AxisArray(
-                cat(dims = 3, [reduce(hcat, [[mids.varTraces[findfirst(mids.visitSequence .== i)][j, k] for i in mids.visitSequence] for j in 1:mids.iter]) for k in 1:mids.m]...),
-                mids.visitSequence,
+                cat(dims = 3, [reduce(hcat, [[mids.vartraces[findfirst(mids.visitsequence .== i)][j, k] for i in mids.visitsequence] for j in 1:mids.iter]) for k in 1:mids.m]...),
+                mids.visitsequence,
                 string.(1:mids.iter),
                 ["Chain $k" for k in 1:mids.m]
             ),
-            "loggedEvents" => nothing,
+            "loggedevents" => nothing,
             "version" => nothing,
             "date" => nothing
         )))

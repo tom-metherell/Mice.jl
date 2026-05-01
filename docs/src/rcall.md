@@ -17,19 +17,19 @@ R> data$Stage <- as.factor(data$Stage)
 
 julia> @rget data
 
-julia> predictorMatrix = makePredictorMatrix(data);
+julia> predictormatrix = makepredictormatrix(data);
     
-julia> predictorMatrix[:, ["ID", "N_Days"]] .= false;
+julia> predictormatrix[:, ["ID", "N_Days"]] .= false;
 
 julia> Random.seed!(1234); # Set random seed for reproducibility
 
-julia> imputedData = mice(data, predictorMatrix = predictorMatrix);
+julia> imputeddata = mice(data, predictormatrix = predictormatrix);
 
-julia> @rput imputedData
+julia> @rput imputeddata
 
 R> library(mice)
 
-R> analyses <- with(imputedData, lm(N_Days ~ Drug + Age + Stage + Bilirubin))
+R> analyses <- with(imputeddata, lm(N_Days ~ Drug + Age + Stage + Bilirubin))
 
 R> results <- summary(pool(analyses))
 ```

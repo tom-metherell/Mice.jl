@@ -1,7 +1,7 @@
 module MiceBetaMLExt
     using BetaML: fit!, RandomForestImputer, NONE
     using CategoricalArrays: CategoricalArray, CategoricalPool, CategoricalValue, levels
-    using Mice: Imputer, makeMethods, mice, registerImputer!
+    using Mice: Imputer, makemethods, mice, registerimputer!
     using PrecompileTools: @compile_workload
     using Random: rand, randperm
 
@@ -23,10 +23,10 @@ module MiceBetaMLExt
         return RandomForestImputer(; imputerKw...)
     end
 
-    function rfImpute!(
+    function rf_impute(
         y::AbstractArray,
         X::Matrix{Float64},
-        whereY::Vector{Bool};
+        where_y::Vector{Bool};
         n_trees::Int = 10,
         verbosity = NONE,
         kwargs...
@@ -36,25 +36,25 @@ module MiceBetaMLExt
 
         yX = Matrix{Union{Missing, eltype(yDecat), Float64}}(hcat(yDecat, X))
 
-        yX[whereY, 1] .= missing
+        yX[where_y, 1] .= missing
 
         rfImputer = _rf_imputer_with_supported_kwargs(; n_trees = n_trees, verbosity = verbosity, kwargs...)
         ŷX = fit!(rfImputer, yX)
 
         if y == yDecat
-            return eltype(y) <: Integer ? round.(ŷX[whereY, 1], digits = 0) : ŷX[whereY, 1]
+            return eltype(y) <: Integer ? round.(ŷX[where_y, 1], digits = 0) : ŷX[where_y, 1]
         end
 
         levelLookup = Dict(string.(levels(y)) .=> levels(y))
-        return convert.(nonmissingtype(eltype(y)), getindex.(Ref(levelLookup), ŷX[whereY, 1]))
+        return convert.(nonmissingtype(eltype(y)), getindex.(Ref(levelLookup), ŷX[where_y, 1]))
     end
 
-    const RF_IMPUTER = Imputer((yData, X, whereY, whereCount, yVar, iterCounter, j, loggedEvents; n_trees::Int = 10, verbosity = NONE, kwargs...) -> begin
-        rfImpute!(yData, X, whereY; n_trees = n_trees, verbosity = verbosity, kwargs...)
+    const RF_IMPUTER = Imputer((ydata, X, where_y, wherecount, yvar, itercounter, j, loggedevents; n_trees::Int = 10, verbosity = NONE, kwargs...) -> begin
+        rf_impute(ydata, X, where_y; n_trees = n_trees, verbosity = verbosity, kwargs...)
     end)
 
     function __init__()
-        registerImputer!("rf", RF_IMPUTER)
+        registerimputer!("rf", RF_IMPUTER)
     end
 
     @compile_workload begin
@@ -73,10 +73,10 @@ module MiceBetaMLExt
             col[rand(1:20, 1)] .= missing
         end
 
-        rfMethods = makeMethods(ct)
-        rfMethods["b"] = "rf"
-        imputedDataRf = mice(ct, m = 1, iter = 1, methods = rfMethods, progressReports = false)
+        rf_methods = makemethods(ct)
+        rf_methods["b"] = "rf"
+        imputedDataRf = mice(ct, m = 1, iter = 1, methods = rf_methods, progressreports = false)
     end
 
-    export rfImpute!
+    export rf_impute
 end

@@ -1,56 +1,56 @@
-# The sampler! function includes a ! as it updates workingData, workingDataPacified, meanTraces, varTraces and loggedEvents in place
+# The sampler! function includes a ! as it updates workingdata, workingdatapacified, meantraces, vartraces and loggedevents in place
 function sampler!(
-    workingData::AxisVector,
-    workingDataPacified::AxisVector,
-    workingDataLevels::AxisVector,
-    meanTraces::Vector{Matrix{Float64}},
-    varTraces::Vector{Matrix{Float64}},
-    imputeWhere::AxisArray{Vector{Bool}, 1, Vector{Vector{Bool}}},
+    workingdata::AxisVector,
+    workingdatapacified::AxisVector,
+    workingdatalevels::AxisVector,
+    meantraces::Vector{Matrix{Float64}},
+    vartraces::Vector{Matrix{Float64}},
+    imputewhere::AxisArray{Vector{Bool}, 1, Vector{Vector{Bool}}},
     m::Int,
-    visitSequence::Vector{String},
+    visitsequence::Vector{String},
     methods::AxisArray{String, 1, Vector{String}},
-    predictorMatrix::AxisArray{Int, 2, Matrix{Int}},
+    predictormatrix::AxisArray{Int, 2, Matrix{Int}},
     iter::Int,
-    iterCounter::Int,
+    itercounter::Int,
     i::Int,
-    progressReports::Bool,
-    loggedEvents::Vector{String};
+    progressreports::Bool,
+    loggedevents::Vector{String};
     imputers::AbstractDict{String, <:Imputer} = IMPUTERS,
     kwargs...
     )
     
     # Grab name of variable to be imputed
-    yVar = visitSequence[i]
+    yvar = visitsequence[i]
 
     # Grab locations of data to be imputed, and set these values to missing (in case of over-imputation)
-    whereY = imputeWhere[yVar]
-    whereCount = sum(whereY)
+    where_y = imputewhere[yvar]
+    wherecount = sum(where_y)
 
     # Grab the names of the predictors
-    predictors = axes(predictorMatrix[yVar, :])[1][predictorMatrix[yVar, :] .≠ 0]
+    predictors = axes(predictormatrix[yvar, :])[1][predictormatrix[yvar, :] .≠ 0]
 
-    methodName = methods[yVar]
+    methodname = methods[yvar]
 
-    if methodName == ""
-        push!(loggedEvents, "Iteration $iterCounter, variable $yVar: imputation skipped - no method specified.")
+    if methodname == ""
+        push!(loggedevents, "Iteration $itercounter, variable $yvar: imputation skipped - no method specified.")
         return
     end
 
-    if !isSupportedMethod(methodName, imputers)
-        push!(loggedEvents, "Iteration $iterCounter, variable $yVar: imputation skipped - method not supported.")
+    if !isSupportedMethod(methodname, imputers)
+        push!(loggedevents, "Iteration $itercounter, variable $yvar: imputation skipped - method not supported.")
         return
     end
 
-    if !any(whereY)
-        push!(loggedEvents, "Iteration $iterCounter, variable $yVar: imputation skipped - no missing data.")
+    if !any(where_y)
+        push!(loggedevents, "Iteration $itercounter, variable $yvar: imputation skipped - no missing data.")
         return
     end
 
-    methodImputer = imputers[methodName]
-    twoLevel = methodImputer.twoLevel
+    methodimputer = imputers[methodname]
+    twolevel = methodimputer.twolevel
 
-    if methodImputer.requiresPredictors && isempty(predictors)
-        push!(loggedEvents, "Iteration $iterCounter, variable $yVar: imputation skipped - no predictors.")
+    if methodimputer.requirespredictors && isempty(predictors)
+        push!(loggedevents, "Iteration $itercounter, variable $yvar: imputation skipped - no predictors.")
         return
     end
 
@@ -58,108 +58,108 @@ function sampler!(
         X = nothing
         types = Int[]
 
-        if methodImputer.requiresPredictors
-            predictorData = Vector{Any}(undef, length(predictors))
+        if methodimputer.requirespredictors
+            predictordata = Vector{Any}(undef, length(predictors))
 
             for p in eachindex(predictors)
                 predictor = predictors[p]
-                predictorType = predictorMatrix[yVar, predictor]
+                predictortype = predictormatrix[yvar, predictor]
 
                 # For two-level methods, classing variables (coded -2) should remain in their original form.
-                if twoLevel && predictorType == -2
-                    predictorData[p] = workingData[predictor][j]
-                elseif predictor ∈ axes(workingDataPacified)[1]
-                    predictorData[p] = workingDataPacified[predictor][j]
+                if twolevel && predictortype == -2
+                    predictordata[p] = workingdata[predictor][j]
+                elseif predictor ∈ axes(workingdatapacified)[1]
+                    predictordata[p] = workingdatapacified[predictor][j]
                 else
-                    predictorData[p] = workingData[predictor][j]
+                    predictordata[p] = workingdata[predictor][j]
                 end
             end
 
-            X = Matrix{Float64}(reduce(hcat, predictorData))
-            origNCol = size(X, 2)
-            removeLinDeps!(X, workingData[yVar][j], whereY, whereCount)
+            X = Matrix{Float64}(reduce(hcat, predictordata))
+            orig_ncol = size(X, 2)
+            removelindeps!(X, workingdata[yvar][j], where_y, wherecount)
 
             types = vcat([
-                repeat([predictorMatrix[yVar, predictor]], size(predictorData[p], 2))
+                repeat([predictormatrix[yvar, predictor]], size(predictordata[p], 2))
                 for (p, predictor) in enumerate(predictors)
             ]...)
 
             if size(X, 2) == 0
-                push!(loggedEvents, "Iteration $iterCounter, variable $yVar, imputation $j: imputation skipped - all predictors dropped because of high multicollinearity.")
+                push!(loggedevents, "Iteration $itercounter, variable $yvar, imputation $j: imputation skipped - all predictors dropped because of high multicollinearity.")
                 continue
             end
 
-            if size(X, 2) < origNCol
-                diff = origNCol - size(X, 2)
-                push!(loggedEvents, "Iteration $iterCounter, variable $yVar, imputation $j: $diff (dummy) predictors were dropped because of high multicollinearity.")
+            if size(X, 2) < orig_ncol
+                diff = orig_ncol - size(X, 2)
+                push!(loggedevents, "Iteration $itercounter, variable $yvar, imputation $j: $diff (dummy) predictors were dropped because of high multicollinearity.")
             end
         end
 
-        if twoLevel
-            workingData[yVar][j][whereY] = methodImputer.f(
-                workingData[yVar][j],
+        if twolevel
+            workingdata[yvar][j][where_y] = methodimputer.f(
+                workingdata[yvar][j],
                 X,
-                whereY,
-                whereCount,
+                where_y,
+                wherecount,
                 types,
-                yVar,
-                iterCounter,
+                yvar,
+                itercounter,
                 j,
-                loggedEvents;
+                loggedevents;
                 kwargs...
             )
         else
-            if methodImputer.requiresPredictors && any(types .≠ 1)
-                push!(loggedEvents, "Iteration $iterCounter, variable $yVar, imputation $j: imputation skipped - predictor matrix contains unsupported values.")
+            if methodimputer.requirespredictors && any(types .≠ 1)
+                push!(loggedevents, "Iteration $itercounter, variable $yvar, imputation $j: imputation skipped - predictor matrix contains unsupported values.")
                 continue
             end
 
-            workingData[yVar][j][whereY] = methodImputer.f(
-                workingData[yVar][j],
+            workingdata[yvar][j][where_y] = methodimputer.f(
+                workingdata[yvar][j],
                 X,
-                whereY,
-                whereCount,
-                yVar,
-                iterCounter,
+                where_y,
+                wherecount,
+                yvar,
+                itercounter,
                 j,
-                loggedEvents;
+                loggedevents;
                 kwargs...
             )
         end
 
-        updateTraces!(meanTraces, varTraces, workingData[yVar][j][whereY], i, iterCounter, j)
+        updatetraces!(meantraces, vartraces, workingdata[yvar][j][where_y], i, itercounter, j)
 
-        if workingData[yVar][j] isa CategoricalArray || nonmissingtype(eltype(workingData[yVar][j])) <: Union{AbstractString, CategoricalValue}
-            workingDataPacified[yVar][j] = pacifyWorkingData(workingData[yVar][j], workingDataLevels[yVar])
+        if workingdata[yvar][j] isa CategoricalArray || nonmissingtype(eltype(workingdata[yvar][j])) <: Union{AbstractString, CategoricalValue}
+            workingdatapacified[yvar][j] = pacifyworkingdata(workingdata[yvar][j], workingdatalevels[yvar])
         end
 
-        if progressReports
-            progress = ((iterCounter - 1)/iter + ((i-1)/length(visitSequence))/iter + (j/m)/length(visitSequence)/iter) * 100
-            progressRound = floor(Int8, progress / 10)
-            miceEmojis = string(repeat("🐁", progressRound), repeat("🐭", 10 - progressRound))
-            @printf "\33[2KIteration:  %u / %u\n\33[2KVariable:   %u / %u (%s)\n\33[2KImputation: %u / %u\n\33[2K%s   %.1f %%\n\33[2KLogged events: %u\n=============================\u1b[A\u1b[A\u1b[A\u1b[A\u1b[A\r" iterCounter iter i length(visitSequence) yVar j m miceEmojis progress length(loggedEvents)
+        if progressreports
+            progress = ((itercounter - 1)/iter + ((i-1)/length(visitsequence))/iter + (j/m)/length(visitsequence)/iter) * 100
+            progressround = floor(Int8, progress / 10)
+            miceemojis = string(repeat("🐁", progressround), repeat("🐭", 10 - progressround))
+            @printf "\33[2KIteration:  %u / %u\n\33[2KVariable:   %u / %u (%s)\n\33[2KImputation: %u / %u\n\33[2K%s   %.1f %%\n\33[2KLogged events: %u\n=============================\u1b[A\u1b[A\u1b[A\u1b[A\u1b[A\r" itercounter iter i length(visitsequence) yvar j m miceemojis progress length(loggedevents)
         end
     end
 end
 
-# The updateTraces! function includes a ! as it updates meanTraces and varTraces in place
-function updateTraces!(
-    meanTraces::Vector{Matrix{Float64}},
-    varTraces::Vector{Matrix{Float64}},
-    imputedData::AbstractArray,
+# The updatetraces! function includes a ! as it updates meantraces and vartraces in place
+function updatetraces!(
+    meantraces::Vector{Matrix{Float64}},
+    vartraces::Vector{Matrix{Float64}},
+    imputeddata::AbstractArray,
     i::Int,
-    iterCounter::Int,
+    itercounter::Int,
     j::Int
     )
 
     # If the imputed data are categorical
-    if imputedData isa CategoricalArray || nonmissingtype(eltype(imputedData)) <: Union{AbstractString, CategoricalValue}
+    if imputeddata isa CategoricalArray || nonmissingtype(eltype(imputeddata)) <: Union{AbstractString, CategoricalValue}
         # Convert the imputed data to integers
-        mapping = Dict(levels(imputedData)[i] => i-1 for i in eachindex(levels(imputedData)))
-        imputedData = [mapping[v] for v in imputedData]
+        mapping = Dict(levels(imputeddata)[i] => i-1 for i in eachindex(levels(imputeddata)))
+        imputeddata = [mapping[v] for v in imputeddata]
     end
 
     # Find the mean and variance and append these to the traces
-    meanTraces[i][iterCounter, j] = mean(imputedData)
-    varTraces[i][iterCounter, j] = var(imputedData)
+    meantraces[i][itercounter, j] = mean(imputeddata)
+    vartraces[i][itercounter, j] = var(imputeddata)
 end

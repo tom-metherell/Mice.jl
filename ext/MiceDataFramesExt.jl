@@ -1,7 +1,7 @@
 module MiceDataFramesExt
     using CategoricalArrays: CategoricalArray, CategoricalPool, CategoricalValue
     using DataFrames: DataFrame
-    using Mice: bindImputations, complete, listComplete, makeMethods, mice
+    using Mice: bindimputations, complete, listcomplete, makemethods, mice
     using PrecompileTools: @compile_workload
     using Random: rand, randperm
 
@@ -21,23 +21,23 @@ module MiceDataFramesExt
             df[rand(1:20, 1), col] .= missing
         end
 
-        imputedDataPmm = mice(df, m = 1, iter = 1, progressReports = false)
+        imputeddatapmm = mice(df, m = 1, iter = 1, progressreports = false)
 
-        meanMethods = makeMethods(df)
-        meanMethods["b"] = "mean"
-        imputedDataMean = mice(df, m = 1, iter = 1, methods = meanMethods, progressReports = false)
+        meanmethods = makemethods(df)
+        meanmethods["b"] = "mean"
+        imputeddatamean = mice(df, m = 1, iter = 1, methods = meanmethods, progressreports = false)
 
-        normMethods = meanMethods
-        normMethods["b"] = "norm"
-        imputedDataNorm = mice(df, m = 1, iter = 1, methods = normMethods, progressReports = false)
+        normmethods = meanmethods
+        normmethods["b"] = "norm"
+        imputeddatanorm = mice(df, m = 1, iter = 1, methods = normmethods, progressreports = false)
 
-        sampleMethods = normMethods
-        sampleMethods[:] .= "sample"
-        imputedDataSample = mice(df, m = 1, iter = 1, methods = sampleMethods, progressReports = false)
+        imputeddatanorm = normmethods
+        imputeddatanorm[:] .= "sample"
+        imputeddatasample = mice(df, m = 1, iter = 1, methods = imputeddatanorm, progressreports = false)
 
-        bindImputations(imputedDataPmm, imputedDataPmm)
+        bindimputations(imputeddatapmm, imputeddatapmm)
 
-        complete(imputedDataPmm, 1)
-        listComplete(imputedDataPmm)
+        complete(imputeddatapmm, 1)
+        listcomplete(imputeddatapmm)
     end
 end

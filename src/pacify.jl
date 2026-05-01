@@ -23,43 +23,43 @@ function pacify(y::AbstractArray)
     yLevels = levels(y)
 
     # Initialise the dummy matrix
-    yDummies = Matrix{Float64}(undef, length(y), length(yLevels))
+    ydummies = Matrix{Float64}(undef, length(y), length(yLevels))
 
     # Convert the variable to dummy variables
     for q in eachindex(yLevels)
-        yDummies[:, q] = y .== yLevels[q]
+        ydummies[:, q] = y .== yLevels[q]
     end
 
-    return yDummies
+    return ydummies
 end
 
-# The removeLinDeps! function includes a ! as it updates X in place
-function removeLinDeps!(
+# The removelindeps! function includes a ! as it updates X in place
+function removelindeps!(
     X::Matrix{Float64},
     y::AbstractArray,
-    whereY::Vector{Bool},
-    whereCount::Int
+    where_y::Vector{Bool},
+    wherecount::Int
     )
 
     # If all y-values are missing, stop now
-    if whereCount == length(whereY)
+    if wherecount == length(where_y)
         return
     end
 
     # Grab observed predictor data
-    Xₒ = Matrix{Float64}(X[.!whereY, :])
+    Xₒ = Matrix{Float64}(X[.!where_y, :])
     
     # If y is categorical
     if y isa CategoricalArray || nonmissingtype(eltype(y)) <: Union{AbstractString, CategoricalValue}
         # Grab observed y-values
-        yₒ = y[.!whereY]
+        yₒ = y[.!where_y]
 
         # Convert y to dummy variables (as floats)
         mapping = Dict(levels(yₒ)[i] => i-1 for i in eachindex(levels(yₒ)))
         yₒ = Vector{Float64}([mapping[v] for v in yₒ])
     else
         # Grab observed y-values (as floats)
-        yₒ = Vector{Float64}(y[.!whereY])
+        yₒ = Vector{Float64}(y[.!where_y])
     end
 
     # If the variance of observed y-values falls below the allowed threshold, delete all predictors and stop now
@@ -72,78 +72,78 @@ function removeLinDeps!(
     keep = var.(eachcol(Xₒ)) .> 1e-4 .&& cor.(eachcol(Xₒ), [yₒ]) .< 0.99
 
     # Get the total number of predictors currently being kept
-    keepSum = sum(keep)
+    keepsum = sum(keep)
 
     # If there are 0 or 1 remaining, stop now
-    if keepSum < 2
+    if keepsum < 2
         X = X[:, keep]
         return
     end
 
     # Otherwise, calculate the correlation matrix of the remaining predictorsa
-    xCors = cor(Xₒ)
-    nxCors = xCors[findall(keep), findall(keep)]
+    xcors = cor(Xₒ)
+    nxcors = xcors[findall(keep), findall(keep)]
 
     # Calculate the eigenvalues and eigenvectors of the correlation matrix and sort them
-    eigenCors = eigen(nxCors)
-    eigvalsorder = sortperm(abs.(eigenCors.values), rev = true)
-    sortedeigvals = eigenCors.values[eigvalsorder]
-    sortedeigvecs = eigenCors.vectors[:, eigvalsorder]
+    eigencors = eigen(nxcors)
+    eigvalsorder = sortperm(abs.(eigencors.values), rev = true)
+    sortedeigvals = eigencors.values[eigvalsorder]
+    sortedeigvecs = eigencors.vectors[:, eigvalsorder]
 
     # While the largest eigenvalue is more than 10_000 times larger than the smallest 
-    while sortedeigvals[keepSum] / sortedeigvals[1] < 1e-4
+    while sortedeigvals[keepsum] / sortedeigvals[1] < 1e-4
         # Remove the predictor contributing most to the eigenvector with the smallest eigenvalue
-        w = sortperm(abs.(sortedeigvecs[:, keepSum]), rev = true)[1]
+        w = sortperm(abs.(sortedeigvecs[:, keepsum]), rev = true)[1]
         keep[findall(keep)[w]] = false
-        nxCors = xCors[findall(keep), findall(keep)]
-        keepSum -= 1
-        eigenCors = eigen(nxCors)
-        eigvalsorder = sortperm(abs.(eigenCors.values), rev = true)
-        sortedeigvals = eigenCors.values[eigvalsorder]
-        sortedeigvecs = eigenCors.vectors[:, eigvalsorder]
+        nxcors = xcors[findall(keep), findall(keep)]
+        keepsum -= 1
+        eigencors = eigen(nxcors)
+        eigvalsorder = sortperm(abs.(eigencors.values), rev = true)
+        sortedeigvals = eigencors.values[eigvalsorder]
+        sortedeigvecs = eigencors.vectors[:, eigvalsorder]
     end
 
     # Remove the predictors that are not being kept
     X = X[:, keep]
 end
 
-function pacifyWorkingData(workingData::AxisVector)
-    categoricalColumns = Vector{String}([])
+function pacifyworkingdata(workingdata::AxisVector)
+    categoricalcolumns = Vector{String}([])
 
-    for i in eachindex(workingData)
-        if workingData[i][1] isa CategoricalArray || nonmissingtype(eltype(workingData[i][1])) <: Union{AbstractString, CategoricalValue}
-            push!(categoricalColumns, axes(workingData)[1][i])
+    for i in eachindex(workingdata)
+        if workingdata[i][1] isa CategoricalArray || nonmissingtype(eltype(workingdata[i][1])) <: Union{AbstractString, CategoricalValue}
+            push!(categoricalcolumns, axes(workingdata)[1][i])
         end
     end
 
-    workingDataLevels = AxisArray(
-        [collect(levels(workingData[yVar][1])) for yVar in categoricalColumns],
-        categoricalColumns
+    workingdatalevels = AxisArray(
+        [collect(levels(workingdata[yvar][1])) for yvar in categoricalcolumns],
+        categoricalcolumns
     )
 
-    workingDataPacified = AxisArray(
-        [[pacifyWorkingData(workingData[yVar][j], workingDataLevels[yVar]) for j in eachindex(workingData[yVar])] for yVar in categoricalColumns],
-        categoricalColumns
+    workingdatapacified = AxisArray(
+        [[pacifyworkingdata(workingdata[yvar][j], workingdatalevels[yvar]) for j in eachindex(workingdata[yvar])] for yvar in categoricalcolumns],
+        categoricalcolumns
     )
 
-    return workingDataPacified, workingDataLevels
+    return workingdatapacified, workingdatalevels
 end
 
-function pacifyWorkingData(workingData::AbstractVector, levels::AbstractVector)
-    contrastsMatrix = contrasts_matrix(PolynomialCoding(), 1, length(levels))
+function pacifyworkingdata(workingdata::AbstractVector, levels::AbstractVector)
+    contrastsmatrix = contrasts_matrix(PolynomialCoding(), 1, length(levels))
 
-    workingDataPacified = Matrix{Float64}(undef, length(workingData), size(contrastsMatrix, 2))
+    workingdatapacified = Matrix{Float64}(undef, length(workingdata), size(contrastsmatrix, 2))
 
-    for i in Base.axes(workingDataPacified, 2)
+    for i in Base.axes(workingdatapacified, 2)
         for j in eachindex(levels)
-            workingDataPacified[workingData .== levels[j], i] .= contrastsMatrix[j, i]
+            workingdatapacified[workingdata .== levels[j], i] .= contrastsmatrix[j, i]
         end
     end
 
     # Standardise everything
-    for i in Base.axes(workingDataPacified, 2)
-        workingDataPacified[:, i] = standardize(UnitRangeTransform, workingDataPacified[:, i])
+    for i in Base.axes(workingdatapacified, 2)
+        workingdatapacified[:, i] = standardize(UnitRangeTransform, workingdatapacified[:, i])
     end
 
-    return workingDataPacified
+    return workingdatapacified
 end

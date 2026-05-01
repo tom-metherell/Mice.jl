@@ -25,32 +25,32 @@ function pool(mira::Mira)
     stderrors = transpose(reduce(hcat, stderror.(mira.analyses)))
 
     # Calculate pooled coefficients and standard errors
-    pooledCoefs = mean.(eachcol(coefs))
+    pooledcoefs = mean.(eachcol(coefs))
     V_W = mean.(eachcol(stderrors .^ 2))
     V_B = var.(eachcol(coefs))
     V_T = V_W + V_B + V_B/length(mira.analyses)
-    pooledStderrors = sqrt.(V_T)
+    pooledstderrors = sqrt.(V_T)
 
     # Calculate degrees of freedom, t-values and p-values
     λ = (V_B .+ V_B ./ length(mira.analyses)) ./ V_T 
-    df_Old = (length(mira.analyses) - 1) ./ λ.^2
+    df_old = (length(mira.analyses) - 1) ./ λ.^2
     n = nobs(mira.analyses[1])
-    k = length(pooledCoefs)
-    df_Observed = (n - k + 1)/(n - k + 3) * (n - k) .* (1 .- λ)
-    df_Adjusted = (df_Old .* df_Observed) ./ (df_Old .+ df_Observed)
-    tvalues = pooledCoefs ./ pooledStderrors
-    pvalues = PValue.(ccdf.(FDist.(1, df_Adjusted), abs2.(tvalues)))
+    k = length(pooledcoefs)
+    df_observed = (n - k + 1)/(n - k + 3) * (n - k) .* (1 .- λ)
+    df_adjusted = (df_old .* df_observed) ./ (df_old .+ df_observed)
+    tvalues = pooledcoefs ./ pooledstderrors
+    pvalues = PValue.(ccdf.(FDist.(1, df_adjusted), abs2.(tvalues)))
 
     # Producing tidy table of coefficients (to mirror outputs from StatsModels.jl)
-    pooledCoefficients = CoefTable(
+    pooledcoefficients = CoefTable(
         [
-            pooledCoefs,
-            pooledStderrors,
+            pooledcoefs,
+            pooledstderrors,
             tvalues,
-            df_Adjusted,
+            df_adjusted,
             pvalues,
-            pooledCoefs .+ quantile.(TDist.(df_Adjusted), 0.025) .* pooledStderrors,
-            pooledCoefs .+ quantile.(TDist.(df_Adjusted), 0.975) .* pooledStderrors
+            pooledcoefs .+ quantile.(TDist.(df_adjusted), 0.025) .* pooledstderrors,
+            pooledcoefs .+ quantile.(TDist.(df_adjusted), 0.975) .* pooledstderrors
         ],
         ["Coef.", "Std. Error", "t", "df", "Pr(>|t|)", "Lower 95%", "Upper 95%"],
         coefnames(mira.analyses[1]),
@@ -59,10 +59,10 @@ function pool(mira::Mira)
     )
 
     return Mipo(
-        pooledCoefficients,
+        pooledcoefficients,
         coefnames(mira.analyses[1]),
-        pooledCoefs,
-        pooledStderrors,
+        pooledcoefs,
+        pooledstderrors,
         tvalues,
         pvalues
     )

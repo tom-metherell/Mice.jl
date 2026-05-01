@@ -4,9 +4,9 @@ function quantify(
     )
 
     # Use CCA to convert categorical variables to dummy variables
-    yDummies = pacify(yₒ)
-    Ycoef = miceCCA(Xₒ, yDummies)
-    yₒ = Vector{Float64}(zscore(yDummies * Ycoef[:, 2]))
+    ydummies = pacify(yₒ)
+    Ycoef = miceCCA(Xₒ, ydummies)
+    yₒ = Vector{Float64}(zscore(ydummies * Ycoef[:, 2]))
 
     return yₒ
 end

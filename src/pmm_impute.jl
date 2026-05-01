@@ -1,80 +1,80 @@
-# The pmmImpute! function includes a ! as it updates loggedEvents in place
-function pmmImpute!(
-    yData::AbstractArray,
+# The pmm_impute! function includes a ! as it updates loggedevents in place
+function pmm_impute!(
+    ydata::AbstractArray,
     X::Matrix{Float64},
-    whereY::Vector{Bool},
-    whereCount::Int,
-    yVar::String,
-    iterCounter::Int,
+    where_y::Vector{Bool},
+    wherecount::Int,
+    yvar::String,
+    itercounter::Int,
     j::Int,
-    loggedEvents::Vector{String};
+    loggedevents::Vector{String};
     donors::Int = 5,
     ridge::Float64 = 1e-5,
     unusedKwargs...
     )
 
-    yₒ = yData[.!whereY]
+    yₒ = ydata[.!where_y]
 
     # Get the X-values for the rows with observed and missing y-values, respectively
-    Xₒ = Matrix{Float64}(hcat(repeat([1], length(whereY) - whereCount), X[.!whereY, :]))
-    Xₘ = Matrix{Float64}(hcat(repeat([1], whereCount), X[whereY, :]))
+    Xₒ = Matrix{Float64}(hcat(repeat([1], length(where_y) - wherecount), X[.!where_y, :]))
+    Xₘ = Matrix{Float64}(hcat(repeat([1], wherecount), X[where_y, :]))
 
     # If y is categorical
     if nonmissingtype(eltype(yₒ)) <: Union{AbstractString, CategoricalValue}
         # Convert to dummy variables (as floats) via CCA
         mapping = Dict(levels(yₒ)[i] => i-1 for i in eachindex(levels(yₒ)))
-        yNum = Vector{Float64}([mapping[v] for v in yₒ])
-        yNum = quantify(yNum, Xₒ)
+        ynum = Vector{Float64}([mapping[v] for v in yₒ])
+        ynum = quantify(ynum, Xₒ)
     else
-        yNum = Vector{Float64}(yₒ)
+        ynum = Vector{Float64}(yₒ)
     end
 
     # Draw from Bayesian linear regression
-    β̂, β̇, σ̇ = blrDraw!(yNum, Xₒ, ridge, yVar, iterCounter, j, loggedEvents)
+    β̂, β̇, σ̇ = blrdraw!(ynum, Xₒ, ridge, yvar, itercounter, j, loggedevents)
 
     # Calculate predicted y-values (for type-1 matching)
     ŷₒ = Xₒ * β̂
     ẏₘ = Xₘ * β̇
 
     # Match predicted y-values with donors
-    indices = matchIndex(ŷₒ, ẏₘ, donors)
+    indices = matchindex(ŷₒ, ẏₘ, donors)
 
     return yₒ[indices]    
 end
 
 # Comments are as above
-function pmmImpute!(
-    yData::CategoricalArray,
+function pmm_impute!(
+    ydata::CategoricalArray,
     X::Matrix{Float64},
-    whereY::Vector{Bool},
-    whereCount::Int,
-    yVar::String,
-    iterCounter::Int,
+    where_y::Vector{Bool},
+    wherecount::Int,
+    yvar::String,
+    itercounter::Int,
     j::Int,
-    loggedEvents::Vector{String};
+    loggedevents::Vector{String};
     donors::Int = 5,
     ridge::Float64 = 1e-5,
     unusedKwargs...
     )
 
-    yₒ = yData[.!whereY]
+    yₒ = ydata[.!where_y]
 
-    Xₒ = Matrix{Float64}(hcat(repeat([1], sum(.!whereY)), X[.!whereY, :]))
-    Xₘ = Matrix{Float64}(hcat(repeat([1], whereCount), X[whereY, :]))
+    Xₒ = Matrix{Float64}(hcat(repeat([1], sum(.!where_y)), X[.!where_y, :]))
+    Xₘ = Matrix{Float64}(hcat(repeat([1], wherecount), X[where_y, :]))
 
-    yNum = quantify(yₒ, Xₒ)
+    ynum = quantify(yₒ, Xₒ)
 
-    β̂, β̇, σ̇ = blrDraw!(yNum, Xₒ, ridge, yVar, iterCounter, j, loggedEvents)
+    β̂, β̇, σ̇ = blrdraw!(ynum, Xₒ, ridge, yvar, itercounter, j, loggedevents)
 
     ŷₒ = Xₒ * β̂
     ẏₘ = Xₘ * β̇
 
-    indices = matchIndex(ŷₒ, ẏₘ, donors)
+    indices = matchindex(ŷₒ, ẏₘ, donors)
 
     return yₒ[indices]
 end
 
-function matchIndex(
+function matchindex(
     ŷₒ::Vector{Float64}, 
     ẏₘ::Vector{Float64},
     donors::Int
@@ -141,8 +141,8 @@ function matchIndex(
     return indices
 end
 
-const PMM_IMPUTER = Imputer((yData, X, whereY, whereCount, yVar, iterCounter, j, loggedEvents; donors::Int = 5, ridge::Float64 = 1e-5, kwargs...) -> begin
-    pmmImpute!(yData, X, whereY, whereCount, yVar, iterCounter, j, loggedEvents; donors = donors, ridge = ridge, kwargs...)
+const PMM_IMPUTER = Imputer((ydata, X, where_y, wherecount, yvar, itercounter, j, loggedevents; donors::Int = 5, ridge::Float64 = 1e-5, kwargs...) -> begin
+    pmm_impute!(ydata, X, where_y, wherecount, yvar, itercounter, j, loggedevents; donors = donors, ridge = ridge, kwargs...)
 end)
 
-registerImputer!("pmm", PMM_IMPUTER)
+registerimputer!("pmm", PMM_IMPUTER)
