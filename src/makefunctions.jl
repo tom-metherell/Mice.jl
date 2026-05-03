@@ -125,6 +125,11 @@ function initialiseworkingdata(
                 workingdata[var] = convert(Vector{Vector{nonmissingtype(eltype(workingdata[var][1]))}}, workingdata[var])
             end
         end
+
+        # Fallback in case there is a variable with no missing data that allows missing values
+        if Missing <: eltype(workingdata[var][1])
+            workingdata[var] = convert(Vector{Vector{nonmissingtype(eltype(workingdata[var][1]))}}, workingdata[var])
+        end
     end
 
     return workingdata
@@ -158,7 +163,11 @@ function initialiseworkingdata(
             # For each imputation
             for j in 1:m
                 # Initialise using the provided imputations
-                workingdata[var][j][imputewhere[var]] = imputations[findfirst(visitsequence .== var)][:, j]
+                if workingdata[var][1] isa CategoricalArray || nonmissingtype(eltype(workingdata[var][1])) <: CategoricalValue
+                    workingdata[var][j][imputewhere[var]] = CategoricalArray(imputations[findfirst(visitsequence .== var)][:, j], levels = levels(workingdata[var][j]))
+                else
+                    workingdata[var][j][imputewhere[var]] = imputations[findfirst(visitsequence .== var)][:, j]
+                end
             end
 
             # Convert to non-missing type
@@ -169,6 +178,10 @@ function initialiseworkingdata(
             else
                 workingdata[var] = convert(Vector{Vector{nonmissingtype(eltype(workingdata[var][1]))}}, workingdata[var])
             end
+        end
+
+        if Missing <: eltype(workingdata[var][1])
+            workingdata[var] = convert(Vector{Vector{nonmissingtype(eltype(workingdata[var][1]))}}, workingdata[var])
         end
     end
 

@@ -217,9 +217,9 @@ module Mice
         methods = mids.methods
         predictormatrix = mids.predictormatrix
         visitsequence = mids.visitsequence
-        prevIter = mids.iter
-        prevMeanTraces = mids.meantraces
-        prevVarTraces = mids.vartraces
+        previter = mids.iter
+        prevmeantraces = mids.meantraces
+        prevvartraces = mids.vartraces
         loggedevents = mids.loggedevents
 
         # Initialise working data & version with dummy variables
@@ -229,14 +229,14 @@ module Mice
         workingdatapacified, workingdatalevels = pacifyworkingdata(workingdata)
 
         # Initialise new mean and variance traces
-        meantraces = initialisetraces(visitsequence, iter+prevIter, m)
+        meantraces = initialisetraces(visitsequence, iter+previter, m)
         for w in eachindex(meantraces)
-            meantraces[w][1:prevIter, :] = prevMeanTraces[w]
+            meantraces[w][1:previter, :] = prevmeantraces[w]
         end
 
-        vartraces = initialisetraces(visitsequence, iter+prevIter, m)
+        vartraces = initialisetraces(visitsequence, iter+previter, m)
         for w in eachindex(vartraces)
-            vartraces[w][1:prevIter, :] = prevVarTraces[w]
+            vartraces[w][1:previter, :] = prevvartraces[w]
         end
 
         # Print header of progress indicator
@@ -245,9 +245,9 @@ module Mice
         end
 
         # For each new iteration, for each variable
-        for itercounter in prevIter+1:prevIter+iter, i in eachindex(visitsequence)
+        for itercounter in previter+1:previter+iter, i in eachindex(visitsequence)
             # Run the Gibbs sampler
-            sampler!(workingdata, workingdatapacified, workingdatalevels, meantraces, vartraces, imputewhere, m, visitsequence, methods, predictormatrix, prevIter+iter, itercounter, i, progressreports, loggedevents; imputers = imputers, kwargs...)
+            sampler!(workingdata, workingdatapacified, workingdatalevels, meantraces, vartraces, imputewhere, m, visitsequence, methods, predictormatrix, previter+iter, itercounter, i, progressreports, loggedevents; imputers = imputers, kwargs...)
         end
 
         # Clear the progress indicator
@@ -266,7 +266,7 @@ module Mice
             methods,
             predictormatrix,
             visitsequence,
-            prevIter+iter,
+            previter+iter,
             meantraces,
             vartraces,
             loggedevents
