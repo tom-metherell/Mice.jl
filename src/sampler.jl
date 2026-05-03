@@ -41,13 +41,13 @@ function sampler!(
         return
     end
 
-    if !any(where_y)
+    methodimputer = imputers[methodname]
+    twolevel = methodimputer.twolevel
+
+    if !any(where_y) && !methodimputer.ispassive
         push!(loggedevents, "Iteration $itercounter, variable $yvar: imputation skipped - no missing data.")
         return
     end
-
-    methodimputer = imputers[methodname]
-    twolevel = methodimputer.twolevel
 
     if methodimputer.requirespredictors && isempty(predictors)
         push!(loggedevents, "Iteration $itercounter, variable $yvar: imputation skipped - no predictors.")

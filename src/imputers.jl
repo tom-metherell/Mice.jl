@@ -7,7 +7,9 @@ If `ispassive` is `false`, the wrapped function should accept:
 `(ydata, X, where_y, wherecount, (types,) yvar, itercounter, j, loggedevents; kwargs...)`
 and return only the imputed values for `y`. `types` is only passed for two-level imputation methods.
 
-If `ispassive` is `true`, the wrapped function should accept `(workingdata, where_y, wherecount, yvar, itercounter, j, loggedevents; kwargs...)` and return all values for `y`.
+If `ispassive` is `true`, the wrapped function should accept:
+`(workingdata, where_y, wherecount, yvar, itercounter, j, loggedevents; kwargs...)`
+and return all values for `y`. In this case, values will be overwritten even if they are not missing.
 """
 struct Imputer
     f::Function
