@@ -3,17 +3,20 @@
 
 Generic wrapper for an imputation function.
 
-The wrapped function should accept:
+If `ispassive` is `false`, the wrapped function should accept:
 `(ydata, X, where_y, wherecount, (types,) yvar, itercounter, j, loggedevents; kwargs...)`
-and return the imputed values for `ydata[where_y]`. `types` is only passed for two-level imputation methods.
+and return only the imputed values for `y`. `types` is only passed for two-level imputation methods.
+
+If `ispassive` is `true`, the wrapped function should accept `(workingdata, where_y, wherecount, yvar, itercounter, j, loggedevents; kwargs...)` and return all values for `y`.
 """
 struct Imputer
     f::Function
     requirespredictors::Bool
     twolevel::Bool
+    ispassive::Bool
 end
 
-Imputer(f::Function; requirespredictors::Bool = true, twolevel::Bool = false) = Imputer(f, requirespredictors, twolevel)
+Imputer(f::Function; requirespredictors::Bool = true, twolevel::Bool = false, ispassive::Bool = false) = Imputer(f, requirespredictors, twolevel, ispassive)
 
 const IMPUTERS = Dict{String, Imputer}()
 

@@ -58,50 +58,11 @@ function sampler!(
         X = nothing
         types = Int[]
 
-        if methodimputer.requirespredictors
-            predictordata = Vector{Any}(undef, length(predictors))
-
-            for p in eachindex(predictors)
-                predictor = predictors[p]
-                predictortype = predictormatrix[yvar, predictor]
-
-                # For two-level methods, classing variables (coded -2) should remain in their original form.
-                if twolevel && predictortype == -2
-                    predictordata[p] = workingdata[predictor][j]
-                elseif predictor ∈ axes(workingdatapacified)[1]
-                    predictordata[p] = workingdatapacified[predictor][j]
-                else
-                    predictordata[p] = workingdata[predictor][j]
-                end
-            end
-
-            X = Matrix{Float64}(reduce(hcat, predictordata))
-            orig_ncol = size(X, 2)
-            removelindeps!(X, workingdata[yvar][j], where_y, wherecount)
-
-            types = vcat([
-                repeat([predictormatrix[yvar, predictor]], size(predictordata[p], 2))
-                for (p, predictor) in enumerate(predictors)
-            ]...)
-
-            if size(X, 2) == 0
-                push!(loggedevents, "Iteration $itercounter, variable $yvar, imputation $j: imputation skipped - all predictors dropped because of high multicollinearity.")
-                continue
-            end
-
-            if size(X, 2) < orig_ncol
-                diff = orig_ncol - size(X, 2)
-                push!(loggedevents, "Iteration $itercounter, variable $yvar, imputation $j: $diff (dummy) predictors were dropped because of high multicollinearity.")
-            end
-        end
-
-        if twolevel
-            workingdata[yvar][j][where_y] = methodimputer.f(
-                workingdata[yvar][j],
-                X,
+        if methodimputer.ispassive
+            workingdata[yvar][j] = methodimputer.f(
+                workingdata,
                 where_y,
                 wherecount,
-                types,
                 yvar,
                 itercounter,
                 j,
@@ -109,22 +70,74 @@ function sampler!(
                 kwargs...
             )
         else
-            if methodimputer.requirespredictors && any(types .≠ 1)
-                push!(loggedevents, "Iteration $itercounter, variable $yvar, imputation $j: imputation skipped - predictor matrix contains unsupported values.")
-                continue
+            if methodimputer.requirespredictors
+                predictordata = Vector{Any}(undef, length(predictors))
+
+                for p in eachindex(predictors)
+                    predictor = predictors[p]
+                    predictortype = predictormatrix[yvar, predictor]
+
+                    # For two-level methods, classing variables (coded -2) should remain in their original form.
+                    if twolevel && predictortype == -2
+                        predictordata[p] = workingdata[predictor][j]
+                    elseif predictor ∈ axes(workingdatapacified)[1]
+                        predictordata[p] = workingdatapacified[predictor][j]
+                    else
+                        predictordata[p] = workingdata[predictor][j]
+                    end
+                end
+
+                X = Matrix{Float64}(reduce(hcat, predictordata))
+                orig_ncol = size(X, 2)
+                removelindeps!(X, workingdata[yvar][j], where_y, wherecount)
+
+                types = vcat([
+                    repeat([predictormatrix[yvar, predictor]], size(predictordata[p], 2))
+                    for (p, predictor) in enumerate(predictors)
+                ]...)
+
+                if size(X, 2) == 0
+                    push!(loggedevents, "Iteration $itercounter, variable $yvar, imputation $j: imputation skipped - all predictors dropped because of high multicollinearity.")
+                    continue
+                end
+
+                if size(X, 2) < orig_ncol
+                    diff = orig_ncol - size(X, 2)
+                    push!(loggedevents, "Iteration $itercounter, variable $yvar, imputation $j: $diff (dummy) predictors were dropped because of high multicollinearity.")
+                end
             end
 
-            workingdata[yvar][j][where_y] = methodimputer.f(
-                workingdata[yvar][j],
-                X,
-                where_y,
-                wherecount,
-                yvar,
-                itercounter,
-                j,
-                loggedevents;
-                kwargs...
-            )
+            if twolevel
+                workingdata[yvar][j][where_y] = methodimputer.f(
+                    workingdata[yvar][j],
+                    X,
+                    where_y,
+                    wherecount,
+                    types,
+                    yvar,
+                    itercounter,
+                    j,
+                    loggedevents;
+                    kwargs...
+                )
+            elseif !methodimputer.ispassive
+                if methodimputer.requirespredictors && any(types .≠ 1)
+                    push!(loggedevents, "Iteration $itercounter, variable $yvar, imputation $j: imputation skipped - predictor matrix contains unsupported values.")
+                    continue
+                end
+
+                workingdata[yvar][j][where_y] = methodimputer.f(
+                    workingdata[yvar][j],
+                    X,
+                    where_y,
+                    wherecount,
+                    yvar,
+                    itercounter,
+                    j,
+                    loggedevents;
+                    kwargs...
+                )
+            end
         end
 
         updatetraces!(meantraces, vartraces, workingdata[yvar][j][where_y], i, itercounter, j)
