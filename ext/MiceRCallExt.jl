@@ -12,18 +12,18 @@ module MiceRCallExt
             nt = rcopy(NamedTuple, s)
             Mids(
                 nt.data,
-                [Matrix(nt.imp[Symbol(i)]) for i in nt.visitsequence],
+                [Matrix(nt.imp[Symbol(i)]) for i in nt.visitSequence],
                 AxisArray(
                     [Vector{Bool}(nt.where[:, i]) for i in eachindex(1:size(nt.data, 2))], 
                     names(nt.data)
                 ),
                 Int(nt.m),
                 AxisArray(nt.method, names(nt.data)),
-                AxisArray(Matrix{Int}(nt.predictormatrix), names(nt.data), names(nt.data)),
-                nt.visitsequence,
+                AxisArray(Matrix{Int}(nt.predictorMatrix), names(nt.data), names(nt.data)),
+                nt.visitSequence,
                 Int(nt.iteration),
-                [nt.chainmean[findfirst(names(nt.data) .== i), :, :] for i in nt.visitsequence],
-                [nt.chainvar[findfirst(names(nt.data) .== i), :, :] for i in nt.visitsequence],
+                [nt.chainMean[findfirst(names(nt.data) .== i), :, :] for i in nt.visitSequence],
+                [nt.chainVar[findfirst(names(nt.data) .== i), :, :] for i in nt.visitSequence],
                 ["This Mids object originated in R. Logged events have not been transferred."]
             )
         finally
@@ -60,8 +60,8 @@ module MiceRCallExt
             "call" => R"match.call()",
             "nmis" => nothing,
             "method" => AxisArray(mids.methods, collect(string.(columnnames(mids.data)))),
-            "predictormatrix" => AxisArray(Matrix{Int}(mids.predictormatrix), collect(string.(columnnames(mids.data))), collect(string.(columnnames(mids.data)))),
-            "visitsequence" => mids.visitsequence,
+            "predictorMatrix" => AxisArray(Matrix{Int}(mids.predictormatrix), collect(string.(columnnames(mids.data))), collect(string.(columnnames(mids.data)))),
+            "visitSequence" => mids.visitsequence,
             "formulas" => nothing,
             "post" => nothing,
             "blots" => nothing,
@@ -81,7 +81,7 @@ module MiceRCallExt
                 string.(1:mids.iter),
                 ["Chain $k" for k in 1:mids.m]
             ),
-            "loggedevents" => nothing,
+            "loggedEvents" => nothing,
             "version" => nothing,
             "date" => nothing
         )))
