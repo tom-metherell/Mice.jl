@@ -4,6 +4,13 @@
 
 Currently, only a few methods are supported. `Mice.jl` also currently does not support hybrid imputation models.
 
+!!! warning
+    Versions before 0.4.1 contain a major correctness bug that silently produces incorrect results.
+
+    Users should upgrade immediately and recompute affected outputs.
+
+    For more information see [the relevant Github issue](https://github.com/tom-metherell/Mice.jl/issues/28/).
+
 If you want to learn more about multiple imputation, this is not the guide for you. Instead, I recommend consulting ["Flexible Imputation of Missing Data"](https://stefvanbuuren.name/fimd/) by Stef van Buuren (ed.) [van_buuren_flexible_2018](@cite).
 
 ```@raw html

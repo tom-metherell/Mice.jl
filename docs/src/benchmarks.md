@@ -8,7 +8,7 @@ I have (very much not rigorously) benchmarked `Mice.jl` using the [test dataset]
 System info: Single-threaded execution, Apple M4 10-core CPU, 24GB LPDDR5 memory, running macOS Sequoia version 15.7.4.
 
 R: version 4.6.0 running `mice` version 3.19.0.
-Julia: version 1.12.2 running `Mice.jl` version 0.4.0.
+Julia: version 1.12.2 running `Mice.jl` version 0.4.0 (now deprecated).
 
 | Number of imputations | R (`mice`) (s) | `Mice.jl` (s) |
 | --- | --- | --- |

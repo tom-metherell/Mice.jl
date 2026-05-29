@@ -22,6 +22,13 @@ or
 using Pkg; Pkg.add("Mice")
 ```
 
+[!WARNING]
+Versions before 0.4.1 contain a major correctness bug that silently produces incorrect results.
+
+Users should upgrade immediately and recompute affected outputs.
+
+For more information see #28.
+
 ## Quick-start guide
 
 ### Imputation (`mice()`)
@@ -124,7 +131,7 @@ System info: Single-threaded execution, Apple M4 10-core CPU, 24GB LPDDR5 memory
 
 R: version 4.6.0 running `mice` version 3.19.0.
 
-Julia: version 1.12.2 running `Mice.jl` version 0.4.0.
+Julia: version 1.12.2 running `Mice.jl` version 0.4.0 (now deprecated).
 
 | Number of imputations | R (`mice`) (s) | `Mice.jl` (s) |
 | --- | --- | --- |

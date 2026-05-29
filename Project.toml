@@ -1,6 +1,6 @@
 name = "Mice"
 uuid = "d4678d24-b338-4f96-a2c8-a66549d61c16"
-version = "0.4.0"
+version = "0.4.1"
 authors = ["Tom Metherell <thomas.metherell.22@ucl.ac.uk> and contributors"]
 
 [deps]
