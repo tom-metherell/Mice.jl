@@ -1,4 +1,11 @@
 module Mice
+    function __init__()
+        @warn """
+        Mice versions prior to v0.4.1 may produce incorrect results.
+        Recompute outputs where necessary.
+        """
+    end
+
     # Dependencies
     using AxisArrays: axes, AxisArray, AxisMatrix, AxisVector
     using CategoricalArrays: CategoricalArray, CategoricalPool, CategoricalValue, levels
