@@ -22,12 +22,8 @@ or
 using Pkg; Pkg.add("Mice")
 ```
 
-[!WARNING]
-Versions before 0.4.1 contain a major correctness bug that silently produces incorrect results.
-
-Users should upgrade immediately and recompute affected outputs.
-
-For more information see #28.
+>[!WARNING]
+>Versions before 0.4.1 contain a major correctness bug that silently produces incorrect results. Users should upgrade immediately and recompute affected outputs. For more information see [#28](../../issues/28).
 
 ## Quick-start guide
 
